@@ -1,15 +1,34 @@
 using Rin.Core.Graphics;
+using Rin.Core.Graphics.Graph;
+using Rin.Core.Graphics.Windows;
+using Rin.Graphics.Vulkan.Windows;
 
 namespace Rin.Graphics.Vulkan.Tests;
 
 public class FrameCollectorTests
 {
     private FrameCollector _frames = null!;
+    private readonly List<RinWindow> _windows = [];
 
     [SetUp]
     public void CreateCollector()
     {
+        FakeNative.Reset();
         _frames = new FrameCollector();
+    }
+
+    [TearDown]
+    public void DisposeWindows()
+    {
+        foreach (var window in _windows) window.Dispose();
+        _windows.Clear();
+    }
+
+    private RinWindow NewWindow()
+    {
+        var window = new RinWindow(Native.CreateWindow("test", new Extent2D(640, 480), WindowFlags.None), null);
+        _windows.Add(window);
+        return window;
     }
 
     [Test]
@@ -112,6 +131,85 @@ public class FrameCollectorTests
             Assert.That(renderer.Collected[0].Disposed, Is.True);
             Assert.That(renderer.Executed, Is.Empty);
         });
+    }
+
+    [Test]
+    public void Add_IndexesAWindowRendererByItsWindow()
+    {
+        var window = NewWindow();
+        var other = NewWindow();
+        var plain = new RecordingRenderer();
+        var forWindow = new RecordingWindowRenderer(window);
+        _frames.Add(plain);
+        _frames.Add(forWindow);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(_frames.GetWindowRenderer(window), Is.SameAs(forWindow));
+            Assert.That(_frames.GetWindowRenderer(other), Is.Null);
+            Assert.That(_frames.GetWindowRenderers(), Is.EqualTo(new[] { forWindow }));
+            Assert.That(_frames.GetRenderers(), Is.EquivalentTo(new IRenderer[] { plain, forWindow }));
+        });
+    }
+
+    [Test]
+    public void Remove_ForgetsTheWindowRenderer()
+    {
+        var window = NewWindow();
+        var renderer = new RecordingWindowRenderer(window);
+        _frames.Add(renderer);
+
+        _frames.Remove(renderer);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(_frames.GetWindowRenderer(window), Is.Null);
+            Assert.That(_frames.GetWindowRenderers(), Is.Empty);
+            Assert.That(_frames.GetRenderers(), Is.Empty);
+        });
+    }
+
+    [Test]
+    public void Collect_IncludesWindowRenderersLikeAnyOther()
+    {
+        var renderer = new RecordingWindowRenderer(NewWindow());
+        _frames.Add(renderer);
+
+        _frames.Collect();
+        _frames.Execute();
+
+        Assert.That(renderer.Executed, Has.Count.EqualTo(1));
+    }
+
+    private sealed class RecordingWindowRenderer(IWindow window) : IWindowRenderer
+    {
+        public List<Data> Executed { get; } = [];
+        public bool VsyncEnabled => false;
+        public event Action<IGraphCollector>? OnCollect;
+
+        public IRenderData? Collect()
+        {
+            OnCollect?.Invoke(null!);
+            return new Data(this);
+        }
+
+        public void Execute(IRenderData context) => Executed.Add((Data)context);
+        public IWindow GetWindow() => window;
+        public Extent2D GetRenderExtent() => new(640, 480);
+        public void SetVsyncEnabled(bool enabled)
+        {
+        }
+
+        public uint GetNumFramesInFlight() => 2;
+        public void SetFramesInFlight(uint framesInFlight)
+        {
+        }
+
+        public uint GetMaxTrueFramesInFlight() => 3;
+
+        public void Dispose()
+        {
+        }
     }
 
     private sealed class RecordingRenderer : IRenderer

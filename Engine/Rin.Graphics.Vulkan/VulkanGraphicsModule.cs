@@ -33,8 +33,6 @@ public partial class VulkanGraphicsModule : IGraphicsModule
     private readonly FrameCollector _frames = new();
     private readonly Dictionary<ulong, RinWindow> _rinWindows = [];
 
-    private readonly Dictionary<IWindow, IWindowRenderer> _windows = [];
-
     private IntPtr _allocator;
 
     private int _bufferCount;
@@ -77,16 +75,13 @@ public partial class VulkanGraphicsModule : IGraphicsModule
         app.OnCollect -= Collect;
         app.OnUpdate -= Update;
 
-        _frames.Clear();
-
-        foreach (var (window, renderer) in _windows)
+        foreach (var renderer in _frames.GetWindowRenderers()) renderer.GetWindow().Dispose();
+        foreach (var renderer in _frames.GetRenderers())
         {
-            OnWindowClosed?.Invoke(window);
-            OnWindowRendererDestroyed?.Invoke(renderer);
-            window.Dispose();
+            RemoveRenderer(renderer);
+            renderer.Dispose();
         }
 
-        _windows.Clear();
         _frames.DisposeRemaining();
         _backgroundTaskQueue.Dispose();
         _descriptorAllocator?.Dispose();
@@ -138,29 +133,21 @@ public partial class VulkanGraphicsModule : IGraphicsModule
 
     public void AddRenderer(IRenderer renderer)
     {
-        throw new NotImplementedException();
+        _frames.Add(renderer);
+        if (renderer is IWindowRenderer windowRenderer) OnWindowRendererCreated?.Invoke(windowRenderer);
     }
 
     public void RemoveRenderer(IRenderer renderer)
     {
-        throw new NotImplementedException();
+        _frames.Remove(renderer);
+        if (renderer is IWindowRenderer windowRenderer) OnWindowRendererDestroyed?.Invoke(windowRenderer);
     }
 
-    public IWindowRenderer? GetWindowRenderer(IWindow window)
-    {
-        _windows.TryGetValue(window, out var windowRenderer);
-        return windowRenderer;
-    }
+    public IWindowRenderer? GetWindowRenderer(IWindow window) => _frames.GetWindowRenderer(window);
 
     public IRenderer[] GetRenderers() => _frames.GetRenderers();
 
-    public IWindowRenderer[] GetWindowRenderers()
-    {
-        lock (_windows)
-        {
-            return _windows.Values.ToArray();
-        }
-    }
+    public IWindowRenderer[] GetWindowRenderers() => _frames.GetWindowRenderers();
 
     public IGraphicsShader MakeGraphics(IGraphicsDescriptor descriptor)
     {
@@ -267,25 +254,19 @@ public partial class VulkanGraphicsModule : IGraphicsModule
 
     private void HandleWindowCreated(IWindow window)
     {
-        var r = new WindowRenderer(this, window);
-        r.Init();
-        _windows.Add(window, r);
-        _frames.Add(r);
-
+        var renderer = new WindowRenderer(this, window);
+        renderer.Init();
         OnWindowCreated?.Invoke(window);
-        OnWindowRendererCreated?.Invoke(r);
+        AddRenderer(renderer);
     }
 
     private void HandleWindowClosed(IWindow window)
     {
-        if (!_windows.TryGetValue(window, out var windowRenderer)) return;
-
-        _frames.Remove(windowRenderer);
+        if (_frames.GetWindowRenderer(window) is not { } renderer) return;
 
         OnWindowClosed?.Invoke(window);
-        OnWindowRendererDestroyed?.Invoke(_windows[window]);
-        _windows[window].Dispose();
-        _windows.Remove(window);
+        RemoveRenderer(renderer);
+        renderer.Dispose();
     }
 
     public VkInstance GetInstance()

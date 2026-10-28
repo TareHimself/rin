@@ -10,7 +10,9 @@ Restore needs the native package in the local `.feed/`: build it with `uv run py
 
 ## A frame
 
-The module hooks the application's `OnUpdate`, `OnCollect` and `OnRender` events. `Update` pumps native window events, `Collect` asks every window renderer for its render data and hands the batch to the render thread through `FrameCollector` (latest wins, a skipped batch is disposed), and `Execute` waits on the frame limiter (`SetMaxFramerate`), runs queued `GraphicsSubmit` actions, renders each window and then flushes the queued uploads no graph consumed.
+The module hooks the application's `OnUpdate`, `OnCollect` and `OnRender` events. `Update` pumps native window events, `Collect` asks every registered renderer for its render data and hands the batch to the render thread through `FrameCollector` (latest wins, a skipped batch is disposed), and `Execute` waits on the frame limiter (`SetMaxFramerate`), runs queued `GraphicsSubmit` actions, runs each renderer and then flushes the queued uploads no graph consumed.
+
+Renderers register through `AddRenderer` and `RemoveRenderer`. A window's `WindowRenderer` is just a renderer the module creates and registers itself when the window opens, and disposes when the window closes. `Stop` disposes every renderer still registered, including ones added from outside.
 
 ```mermaid
 flowchart TD

@@ -1,16 +1,18 @@
 using Rin.Core.Graphics;
+using Rin.Core.Graphics.Windows;
 using Rin.Core.Shared.Threading;
 
 namespace Rin.Graphics.Vulkan;
 
 /// <summary>
-///     The renderers and the hand-off between the main thread, which collects their render data, and the render
-///     thread, which executes it. The hand-off is latest-wins: a batch the render thread never got to is disposed
-///     rather than executed out of order.
+///     The registered renderers and the hand-off between the main thread, which collects their render data, and
+///     the render thread, which executes it. The hand-off is latest-wins: a batch the render thread never got to
+///     is disposed rather than executed out of order. Window renderers are also indexed by their window.
 /// </summary>
 internal sealed class FrameCollector
 {
     private readonly List<IRenderer> _renderers = [];
+    private readonly Dictionary<IWindow, IWindowRenderer> _windows = [];
     private readonly TripleBuffer<IRenderData[]> _collected = new();
 
     public void Add(IRenderer renderer)
@@ -18,6 +20,7 @@ internal sealed class FrameCollector
         lock (_renderers)
         {
             _renderers.Add(renderer);
+            if (renderer is IWindowRenderer windowRenderer) _windows.Add(windowRenderer.GetWindow(), windowRenderer);
         }
     }
 
@@ -26,14 +29,7 @@ internal sealed class FrameCollector
         lock (_renderers)
         {
             _renderers.Remove(renderer);
-        }
-    }
-
-    public void Clear()
-    {
-        lock (_renderers)
-        {
-            _renderers.Clear();
+            if (renderer is IWindowRenderer windowRenderer) _windows.Remove(windowRenderer.GetWindow());
         }
     }
 
@@ -42,6 +38,22 @@ internal sealed class FrameCollector
         lock (_renderers)
         {
             return _renderers.ToArray();
+        }
+    }
+
+    public IWindowRenderer? GetWindowRenderer(IWindow window)
+    {
+        lock (_renderers)
+        {
+            return _windows.GetValueOrDefault(window);
+        }
+    }
+
+    public IWindowRenderer[] GetWindowRenderers()
+    {
+        lock (_renderers)
+        {
+            return _windows.Values.ToArray();
         }
     }
 
