@@ -13,6 +13,7 @@ dotnet test Engine/Rin.Graphics.Vulkan.Tests/Rin.Graphics.Vulkan.Tests.csproj -p
 | --- | --- |
 | `NativeTests.cs` | Every checked wrapper throws `NativeException` naming the export and code when the native side fails, returns quietly on `Ok`, and `GraphicsResult` and `VulkanInitResult` still match `result.hpp` and `graphics.hpp` |
 | `VulkanExceptionTests.cs` | `ThrowIfFailed` throws on negative `VkResult` codes only |
+| `Images/ResourceTableTests.cs` | The generational handle rules: slot 0 is reserved, a freed handle never resolves again, a reused slot gets a newer generation, and only ready occupants resolve. No native calls at all |
 | `Windows/ResolvedWindowEventTests.cs` | `Resolve` reads the cursor position for cursor events and the text behind a `TextRef` for text events, and nothing for the rest |
 | `Windows/RinWindowTests.cs` | Resolved window events become `RinWindow` events with no native calls, drag and drop callbacks decode paths and text and keep handler exceptions for the next update |
 | `Windows/SystemClipboardTests.cs` | Clipboard text round trips through the native calls |
