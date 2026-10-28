@@ -31,18 +31,13 @@ public partial class VulkanGraphicsModule
 
     private readonly Lock _resourceSync = new();
 
-    private readonly IdFactory<uint> _textureIdFactory = new();
-    private readonly IdFactory<uint> _textureArrayIdFactory = new();
-    private readonly IdFactory<uint> _cubemapIdFactory = new();
-    private readonly IdFactory<uint> _bufferIdFactory = new();
-
     private const int BufferSlotChunkSize = 1024;
     private const int MaxBufferSlotChunks = 1024;
 
-    private readonly ResourceSlots<BindlessTexture> _textures = new((int)MaxTextures);
-    private readonly ResourceSlots<BindlessTextureArray> _textureArrays = new((int)MaxTextureArrays);
-    private readonly ResourceSlots<BindlessCubemap> _cubemaps = new((int)MaxCubemaps);
-    private readonly ResourceSlots<BindlessBuffer> _buffers = new(BufferSlotChunkSize, MaxBufferSlotChunks);
+    private readonly ResourceTable<BindlessTexture> _textures = new(ResourceType.Texture, (int)MaxTextures);
+    private readonly ResourceTable<BindlessTextureArray> _textureArrays = new(ResourceType.TextureArray, (int)MaxTextureArrays);
+    private readonly ResourceTable<BindlessCubemap> _cubemaps = new(ResourceType.Cubemap, (int)MaxCubemaps);
+    private readonly ResourceTable<BindlessBuffer> _buffers = new(ResourceType.Buffer, BufferSlotChunkSize, MaxBufferSlotChunks);
 
     private readonly TextureWriteLanes _textureWrites = new();
     private readonly BufferWriteLanes _bufferWrites = new();
@@ -110,15 +105,6 @@ public partial class VulkanGraphicsModule
 
         _resourceDescriptorSet.Update();
         _resourcePipelineLayout = _device.CreatePipelineLayout([_resourceDescriptorSetLayout]);
-
-        _textureIdFactory.NewId(); // 0 is invalid id
-        _textureArrayIdFactory.NewId();
-        _cubemapIdFactory.NewId();
-        _bufferIdFactory.NewId();
-        _textures.Set(0, new BindlessTexture());
-        _textureArrays.Set(0, new BindlessTextureArray());
-        _cubemaps.Set(0, new BindlessCubemap());
-        _buffers.Set(0, new BindlessBuffer());
 
         var extent = new Extent2D(1, 1);
         var format = ImageFormat.RGBA8;
@@ -253,16 +239,6 @@ public partial class VulkanGraphicsModule
         _device.DestroyPipelineLayout(_resourcePipelineLayout);
     }
 
-    /// <summary>
-    ///     The generation the next occupant of slot <paramref name="id" /> should be stamped with - one past
-    ///     whatever the slot's previous occupant (if any) last held. Must be read before the slot is
-    ///     overwritten.
-    /// </summary>
-    private static uint NextGeneration<T>(ResourceSlots<T> slots, uint id, bool isNewSlot) where T : BindlessResource
-    {
-        return isNewSlot ? 0u : unchecked(slots.Get(id)!.Generation + 1);
-    }
-
     public ResourceHandle CreateTexture(in Extent2D size, ImageFormat format, bool mips = false,
         ImageCreateFlags usage = ImageCreateFlags.None)
     {
@@ -272,8 +248,7 @@ public partial class VulkanGraphicsModule
 
         lock (_resourceSync)
         {
-            var id = _textureIdFactory.NewId(out var addToArray);
-            var generation = NextGeneration(_textures, id, addToArray);
+            var (id, generation) = _textures.Reserve();
             var handle = new ResourceHandle(ResourceType.Texture, id, isBindless, generation);
             if (image is VulkanTexture concreteImage) concreteImage.Handle = handle;
             var resource = new BindlessTexture
@@ -301,8 +276,7 @@ public partial class VulkanGraphicsModule
 
         lock (_resourceSync)
         {
-            var id = _textureArrayIdFactory.NewId(out var addToArray);
-            var generation = NextGeneration(_textureArrays, id, addToArray);
+            var (id, generation) = _textureArrays.Reserve();
             var handle = new ResourceHandle(ResourceType.TextureArray, id, isBindless, generation);
             if (image is VulkanTextureArray concreteImage) concreteImage.Handle = handle;
             var resource = new BindlessTextureArray
@@ -330,8 +304,7 @@ public partial class VulkanGraphicsModule
 
         lock (_resourceSync)
         {
-            var id = _cubemapIdFactory.NewId(out var addToArray);
-            var generation = NextGeneration(_cubemaps, id, addToArray);
+            var (id, generation) = _cubemaps.Reserve();
             var handle = new ResourceHandle(ResourceType.Cubemap, id, isBindless, generation);
             if (image is VulkanCubemap concreteImage) concreteImage.Handle = handle;
             var resource = new BindlessCubemap
@@ -360,8 +333,7 @@ public partial class VulkanGraphicsModule
 
         lock (_resourceSync)
         {
-            var id = _textureIdFactory.NewId(out var addToArray);
-            var generation = NextGeneration(_textures, id, addToArray);
+            var (id, generation) = _textures.Reserve();
             handle = new ResourceHandle(ResourceType.Texture, id, true, generation);
             if (image is VulkanTexture concreteImage) concreteImage.Handle = handle;
             var resource = new BindlessTexture
@@ -535,8 +507,7 @@ public partial class VulkanGraphicsModule
     {
         lock (_resourceSync)
         {
-            var id = _textureIdFactory.NewId(out var addToArray);
-            var generation = NextGeneration(_textures, id, addToArray);
+            var (id, generation) = _textures.Reserve();
             var handle = new ResourceHandle(ResourceType.Texture, id, isBindless, generation);
             var resource = new BindlessTexture
             {
@@ -554,32 +525,12 @@ public partial class VulkanGraphicsModule
         }
     }
 
-    public IDisposableVulkanTexture? GetTexture(in ResourceHandle handle)
-    {
-        if (handle.Type != ResourceType.Texture || handle.Id == 0) return null;
-        return _textures.Get(handle.Id) is { State: BindlessResourceState.Ready } resource &&
-               resource.Generation == handle.Generation
-            ? resource
-            : null;
-    }
+    public IDisposableVulkanTexture? GetTexture(in ResourceHandle handle) => _textures.Resolve(handle);
 
-    public IDisposableVulkanTextureArray? GetTextureArray(in ResourceHandle handle)
-    {
-        if (handle.Type != ResourceType.TextureArray || handle.Id == 0) return null;
-        return _textureArrays.Get(handle.Id) is { State: BindlessResourceState.Ready } resource &&
-               resource.Generation == handle.Generation
-            ? resource
-            : null;
-    }
+    public IDisposableVulkanTextureArray? GetTextureArray(in ResourceHandle handle) =>
+        _textureArrays.Resolve(handle);
 
-    public IDisposableVulkanCubemap? GetCubemap(in ResourceHandle handle)
-    {
-        if (handle.Type != ResourceType.Cubemap || handle.Id == 0) return null;
-        return _cubemaps.Get(handle.Id) is { State: BindlessResourceState.Ready } resource &&
-               resource.Generation == handle.Generation
-            ? resource
-            : null;
-    }
+    public IDisposableVulkanCubemap? GetCubemap(in ResourceHandle handle) => _cubemaps.Resolve(handle);
 
     /// <summary>
     ///     Resolves any image handle (texture/cubemap/texture array) to its concrete backend object, for barrier
@@ -658,15 +609,14 @@ public partial class VulkanGraphicsModule
 
     private BindlessResource? FindResource(in ResourceHandle handle)
     {
-        BindlessResource? resource = handle.Type switch
+        return handle.Type switch
         {
-            ResourceType.Texture => _textures.Get(handle.Id),
-            ResourceType.Cubemap => _cubemaps.Get(handle.Id),
-            ResourceType.TextureArray => _textureArrays.Get(handle.Id),
-            ResourceType.Buffer => _buffers.Get(handle.Id),
+            ResourceType.Texture => _textures.Find(handle),
+            ResourceType.Cubemap => _cubemaps.Find(handle),
+            ResourceType.TextureArray => _textureArrays.Find(handle),
+            ResourceType.Buffer => _buffers.Find(handle),
             _ => null
         };
-        return handle.Id != 0 && resource?.Generation == handle.Generation ? resource : null;
     }
 
     private void DestroyResources(ReadOnlySpan<ResourceHandle> handles)
@@ -690,12 +640,9 @@ public partial class VulkanGraphicsModule
                             touchedDescriptors = true;
                         }
 
-                        var resource = _textures.Get(handle.Id)!;
+                        if (_textures.Free(handle) is not { } resource) break;
                         Debug.Assert(resource.Source is not null);
                         disposes.Add(resource.Source.Dispose);
-
-                        _textures.Set(handle.Id, new BindlessTexture { Generation = unchecked(resource.Generation + 1) });
-                        _textureIdFactory.FreeId(handle.Id);
                         _textureWrites.Drop(handle);
                     }
                         break;
@@ -708,12 +655,9 @@ public partial class VulkanGraphicsModule
                             touchedDescriptors = true;
                         }
 
-                        var resource = _cubemaps.Get(handle.Id)!;
+                        if (_cubemaps.Free(handle) is not { } resource) break;
                         Debug.Assert(resource.Source is not null);
                         disposes.Add(resource.Source.Dispose);
-
-                        _cubemaps.Set(handle.Id, new BindlessCubemap { Generation = unchecked(resource.Generation + 1) });
-                        _cubemapIdFactory.FreeId(handle.Id);
                     }
                         break;
                     case ResourceType.TextureArray:
@@ -725,23 +669,15 @@ public partial class VulkanGraphicsModule
                             touchedDescriptors = true;
                         }
 
-                        var resource = _textureArrays.Get(handle.Id)!;
+                        if (_textureArrays.Free(handle) is not { } resource) break;
                         Debug.Assert(resource.Source is not null);
                         disposes.Add(resource.Source.Dispose);
-
-                        _textureArrays.Set(handle.Id, new BindlessTextureArray { Generation = unchecked(resource.Generation + 1) });
-                        _textureArrayIdFactory.FreeId(handle.Id);
                     }
                         break;
                     case ResourceType.Buffer:
                     {
-                        if (_buffers.Get(handle.Id) is not { } resource || resource.Generation != handle.Generation)
-                            break;
-
+                        if (_buffers.Free(handle) is not { } resource) break;
                         if (resource.Source is { } buffer) disposes.Add(buffer.Dispose);
-
-                        _buffers.Set(handle.Id, new BindlessBuffer { Generation = unchecked(resource.Generation + 1) });
-                        _bufferIdFactory.FreeId(handle.Id);
                         _bufferWrites.Drop(handle);
                     }
                         break;
@@ -877,8 +813,7 @@ public partial class VulkanGraphicsModule
 
         lock (_resourceSync)
         {
-            var id = _bufferIdFactory.NewId(out var addToArray);
-            var generation = NextGeneration(_buffers, id, addToArray);
+            var (id, generation) = _buffers.Reserve();
             var handle = new ResourceHandle(ResourceType.Buffer, id, false, generation);
             if (buffer is VulkanDeviceBuffer concreteBuffer) concreteBuffer.Handle = handle;
 
@@ -922,14 +857,7 @@ public partial class VulkanGraphicsModule
         _bufferWrites.TryTake(handle, int.MaxValue, into);
     }
 
-    public IVulkanDeviceBuffer? ResolveBuffer(in ResourceHandle handle)
-    {
-        if (handle.Type != ResourceType.Buffer || handle.Id == 0) return null;
-        return _buffers.Get(handle.Id) is { State: BindlessResourceState.Ready } resource &&
-               resource.Generation == handle.Generation
-            ? resource.Source
-            : null;
-    }
+    public IVulkanDeviceBuffer? ResolveBuffer(in ResourceHandle handle) => _buffers.Resolve(handle)?.Source;
 
     public void WriteBuffer(in ResourceHandle handle, ReadOnlySpan<byte> data, ulong offset = 0)
     {

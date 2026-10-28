@@ -4,32 +4,85 @@ namespace Rin.Audio.Miniaudio;
 
 public class MiniaudioActiveAudio : IActiveAudio, IChannel
 {
-    protected readonly ulong Id;
+    private bool _disposed;
 
-    internal MiniaudioActiveAudio(ulong id)
+    internal MiniaudioActiveAudio(IMiniaudioEngine engine, ulong id)
     {
+        Engine = engine;
         Id = id;
     }
 
-    public bool IsPlaying => Native.audioActiveIsPlaying(Id) != 0;
+    private protected IMiniaudioEngine Engine { get; }
 
-    public bool HasEnded => Native.audioActiveHasEnded(Id) != 0;
+    protected ulong Id { get; }
 
-    public double Position => Native.audioActiveGetPosition(Id);
-    public double Duration => Native.audioActiveGetDuration(Id);
+    public bool IsPlaying
+    {
+        get
+        {
+            ThrowIfDisposed();
+            return Engine.ActiveIsPlaying(Id);
+        }
+    }
 
-    public bool Play(bool restart = false) =>
-        Native.audioActivePlay(Id, restart ? 1 : 0) != 0;
+    public bool HasEnded
+    {
+        get
+        {
+            ThrowIfDisposed();
+            return Engine.ActiveHasEnded(Id);
+        }
+    }
 
-    public bool Pause() =>
-        Native.audioActivePause(Id) != 0;
+    public double Position
+    {
+        get
+        {
+            ThrowIfDisposed();
+            return Engine.ActiveGetPosition(Id);
+        }
+    }
 
-    public bool SetVolume(float value) =>
-        Native.audioActiveSetVolume(Id, value) != 0;
+    public double Duration
+    {
+        get
+        {
+            ThrowIfDisposed();
+            return Engine.ActiveGetDuration(Id);
+        }
+    }
 
-    public bool SetPosition(double position) =>
-        Native.audioActiveSetPosition(Id, position) != 0;
+    public bool Play(bool restart = false)
+    {
+        ThrowIfDisposed();
+        return Engine.ActivePlay(Id, restart);
+    }
 
-    public void Dispose() =>
-        Native.audioActiveDispose(Id);
+    public bool Pause()
+    {
+        ThrowIfDisposed();
+        return Engine.ActivePause(Id);
+    }
+
+    public bool SetVolume(float value)
+    {
+        ThrowIfDisposed();
+        return Engine.ActiveSetVolume(Id, value);
+    }
+
+    public bool SetPosition(double position)
+    {
+        ThrowIfDisposed();
+        return Engine.ActiveSetPosition(Id, position);
+    }
+
+    public void Dispose()
+    {
+        if (_disposed) return;
+        _disposed = true;
+        GC.SuppressFinalize(this);
+        Engine.ActiveDispose(Id);
+    }
+
+    protected void ThrowIfDisposed() => ObjectDisposedException.ThrowIf(_disposed, this);
 }

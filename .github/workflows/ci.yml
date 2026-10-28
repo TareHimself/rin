@@ -49,6 +49,7 @@ jobs:
           - { name: Rin.SourceGenerators.Tests, project: Engine/Rin.SourceGenerators.Tests/Rin.SourceGenerators.Tests.csproj, fakes: false, args: '-p:RinShadeSkipCompile=true' }
           - { name: Rin.Slang.Tests, project: Slang/Rin.Slang.Tests/Rin.Slang.Tests.csproj, fakes: false, args: '-p:RinShadeSkipCompile=true' }
           - { name: Rin.GLTF.Tests, project: Engine/Rin.GLTF.Tests/Rin.GLTF.Tests.csproj, fakes: false, args: '-p:RinShadeSkipCompile=true' }
+          - { name: Rin.Audio.Miniaudio.Tests, project: Engine/Rin.Audio.Miniaudio.Tests/Rin.Audio.Miniaudio.Tests.csproj, fakes: false, args: '-p:RinShadeSkipCompile=true' }
           - { name: Rin.Slang.Compiler.Tests, project: Slang/Rin.Slang.Compiler.Tests/Rin.Slang.Compiler.Tests.csproj, fakes: true, args: '-p:RinShadeSkipCompile=true' }
           - { name: Rin.Graphics.Vulkan.Tests, project: Engine/Rin.Graphics.Vulkan.Tests/Rin.Graphics.Vulkan.Tests.csproj, fakes: true, args: '-p:RinShadeSkipCompile=true' }
           - { name: Rin.Shade.Tests, project: Shade/Rin.Shade.Tests/Rin.Shade.Tests.csproj, fakes: false, args: '' }

@@ -29,6 +29,8 @@ public sealed class NullGraphicsModule : IGraphicsModule
 
     public void Stop(IApplication app)
     {
+        foreach (var renderer in _renderers) renderer.Dispose();
+        _renderers.Clear();
     }
 
     public void Update(float deltaTime)

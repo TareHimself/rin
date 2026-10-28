@@ -4,13 +4,13 @@ namespace Rin.Audio.Miniaudio;
 
 public class MiniaudioPushStream : MiniaudioActiveAudio, IPushStream
 {
-    internal MiniaudioPushStream(ulong id) : base(id)
+    internal MiniaudioPushStream(IMiniaudioEngine engine, ulong id) : base(engine, id)
     {
     }
 
-    public unsafe void Push(in ReadOnlySpan<byte> data)
+    public void Push(in ReadOnlySpan<byte> data)
     {
-        fixed (byte* ptr = data)
-            Native.audioPushStreamPush(Id, ptr, (nuint)data.Length);
+        ThrowIfDisposed();
+        Engine.PushStreamPush(Id, data);
     }
 }

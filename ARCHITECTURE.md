@@ -53,7 +53,8 @@ Arrows point from a dependency to the thing that uses it. The rule that holds th
 
 ```mermaid
 flowchart LR
-    OS["Window event<br/>(native layer)"] --> RW["RinWindow.ProcessEvent"]
+    OS["Window event<br/>(native layer)"] --> RE["Resolve<br/>cursor position and text, the only native reads"]
+    RE --> RW["RinWindow.ProcessEvent"]
     RW --> WS["WindowSurface"]
     WS --> V["View.HandleEvent<br/>hit test, OnCursorDown and friends"]
     V --> CH["A view changes state"]
@@ -63,7 +64,7 @@ flowchart LR
     GR --> GPU["Vulkan: compile graph,<br/>record, submit, present"]
 ```
 
-1. The native window layer produces events. The Vulkan backend pumps them each update and routes them by window to `RinWindow.ProcessEvent`. `WindowSurface` turns them into surface events.
+1. The native window layer produces events. The Vulkan backend pumps them each update, resolves the cursor position and event text each one needs (`ResolvedWindowEvent.Resolve`), and routes them by window to `RinWindow.ProcessEvent`, which makes no native calls. `WindowSurface` turns them into surface events.
 2. The `View` tree hit-tests the event, from children to parent, and views react (`OnCursorDown`, `OnScroll`, and so on).
 3. Views lay themselves out, then `Collect` walks the tree and appends quads, text, textures, blur and clip commands to a `CommandList`.
 4. The `CommandList` becomes render-graph passes: stencil passes for clipping, then draw passes whose commands are merged into batches. Details are in [Engine/Rin.Core/ReadMe.md](Engine/Rin.Core/ReadMe.md).
