@@ -258,16 +258,15 @@ public class RinWindow : IWindow
         if (_typing) Native.platformWindowSetTextInputRect(_handle, _typingRect);
     }
 
-    private static unsafe ReadOnlySpan<char> GetEventText(in Native.Window.TextRef text)
-    {
-        var data = Native.platformWindowGetEventText(text);
-        return data == null ? [] : new ReadOnlySpan<char>(data, (int)text.length);
-    }
-
     public event Action? OnDispose;
 
-    internal void ProcessEvent(in Native.Window.WindowEvent e)
+    /// <summary>
+    ///     Turns a resolved native event into the matching window event. Pure: the cursor position and text were
+    ///     read by <see cref="ResolvedWindowEvent.Resolve" /> before the event got here.
+    /// </summary>
+    internal void ProcessEvent(in ResolvedWindowEvent resolved)
     {
+        var e = resolved.Raw;
         switch (e.info.type)
         {
             case Native.Window.EventType.Key:
@@ -303,21 +302,21 @@ public class RinWindow : IWindow
                 {
                     Window = this,
                     Delta = e.scroll.delta,
-                    Position = GetCursorPosition()
+                    Position = resolved.CursorPosition
                 });
                 break;
             case Native.Window.EventType.CursorMove:
                 OnCursorMoved?.Invoke(new CursorMoveEvent
                 {
                     Window = this,
-                    Position = GetCursorPosition()
+                    Position = resolved.CursorPosition
                 });
                 break;
             case Native.Window.EventType.CursorButton:
                 OnCursorButton?.Invoke(new CursorButtonEvent
                 {
                     Window = this,
-                    Position = GetCursorPosition(),
+                    Position = resolved.CursorPosition,
                     Button = e.cursorButton.button,
                     Modifiers = e.cursorButton.modifier,
                     State = e.cursorButton.state
@@ -345,7 +344,7 @@ public class RinWindow : IWindow
                 break;
             case Native.Window.EventType.TextCommit:
                 // UTF-16, so a character outside the basic plane arrives as its two surrogates in order.
-                foreach (var character in GetEventText(e.textCommit.text))
+                foreach (var character in resolved.Text)
                     OnCharacter?.Invoke(new CharacterEvent
                     {
                         Window = this,
@@ -357,7 +356,7 @@ public class RinWindow : IWindow
                 OnTextPreedit?.Invoke(new TextPreeditEvent
                 {
                     Window = this,
-                    Text = GetEventText(e.textPreedit.text).ToString(),
+                    Text = resolved.Text,
                     CaretStart = (int)e.textPreedit.caretStart,
                     CaretEnd = (int)e.textPreedit.caretEnd
                 });

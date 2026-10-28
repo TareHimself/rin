@@ -128,7 +128,7 @@ public partial class VulkanGraphicsModule : IGraphicsModule
                 {
                     var e = events + i;
                     var window = _rinWindows[e->info.windowId];
-                    window.ProcessEvent(*e);
+                    window.ProcessEvent(ResolvedWindowEvent.Resolve(*e));
                 }
             } while (eventsPumped > 0);
         }

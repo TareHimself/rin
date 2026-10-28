@@ -31,6 +31,12 @@ public class RinWindowTests
         return new Native.Window.WindowEvent { info = new Native.Window.EventInfo { type = type, windowId = windowId } };
     }
 
+    private static ResolvedWindowEvent Resolved(in Native.Window.WindowEvent e, Vector2 cursor = default,
+        string text = "")
+    {
+        return new ResolvedWindowEvent(e, cursor, text);
+    }
+
     [Test]
     public void Constructor_RegistersDropCallbacks()
     {
@@ -78,7 +84,7 @@ public class RinWindowTests
         e.key.state = InputState.Repeat;
         e.key.modifier = InputModifier.Control | InputModifier.Shift;
 
-        _window.ProcessEvent(e);
+        _window.ProcessEvent(Resolved(e));
 
         Assert.That(raised, Is.Not.Null);
         Assert.Multiple(() =>
@@ -100,7 +106,7 @@ public class RinWindowTests
         var e = Event(Native.Window.EventType.Resize, _handle);
         e.resize.size = new Extent2D(800, 600);
 
-        _window.ProcessEvent(e);
+        _window.ProcessEvent(Resolved(e));
 
         Assert.That(raised?.Size, Is.EqualTo(new Extent2D(800, 600)));
     }
@@ -114,22 +120,21 @@ public class RinWindowTests
         var e = Event(Native.Window.EventType.KeyboardFocus, _handle);
         e.keyboardFocus.focused = focused;
 
-        _window.ProcessEvent(e);
+        _window.ProcessEvent(Resolved(e));
 
         Assert.That(raised?.IsFocused, Is.EqualTo(expected));
     }
 
     [Test]
-    public void ProcessEvent_CursorButton_UsesTheCurrentCursorPosition()
+    public void ProcessEvent_CursorButton_UsesTheResolvedCursorPosition()
     {
         CursorButtonEvent? raised = null;
         _window.OnCursorButton += e => raised = e;
-        _window.SetCursorPosition(new Vector2(5, 6));
         var e = Event(Native.Window.EventType.CursorButton, _handle);
         e.cursorButton.button = CursorButton.Two;
         e.cursorButton.state = InputState.Released;
 
-        _window.ProcessEvent(e);
+        _window.ProcessEvent(Resolved(e, cursor: new Vector2(5, 6)));
 
         Assert.That(raised, Is.Not.Null);
         Assert.Multiple(() =>
@@ -141,16 +146,32 @@ public class RinWindowTests
     }
 
     [Test]
-    public void ProcessEvent_Scroll_CarriesTheDelta()
+    public void ProcessEvent_Scroll_CarriesTheDeltaAndTheResolvedCursorPosition()
     {
         ScrollEvent? raised = null;
         _window.OnScroll += e => raised = e;
         var e = Event(Native.Window.EventType.Scroll, _handle);
         e.scroll.delta = new Vector2(0, -3);
 
-        _window.ProcessEvent(e);
+        _window.ProcessEvent(Resolved(e, cursor: new Vector2(7, 8)));
 
-        Assert.That(raised?.Delta, Is.EqualTo(new Vector2(0, -3)));
+        Assert.Multiple(() =>
+        {
+            Assert.That(raised?.Delta, Is.EqualTo(new Vector2(0, -3)));
+            Assert.That(raised?.Position, Is.EqualTo(new Vector2(7, 8)));
+        });
+    }
+
+    [Test]
+    public void ProcessEvent_CursorMove_UsesTheResolvedCursorPosition()
+    {
+        CursorMoveEvent? raised = null;
+        _window.OnCursorMoved += e => raised = e;
+        var e = Event(Native.Window.EventType.CursorMove, _handle);
+
+        _window.ProcessEvent(Resolved(e, cursor: new Vector2(1, 2)));
+
+        Assert.That(raised?.Position, Is.EqualTo(new Vector2(1, 2)));
     }
 
     [Test]
@@ -158,38 +179,21 @@ public class RinWindowTests
     {
         var characters = new List<char>();
         _window.OnCharacter += e => characters.Add(e.Data);
-        FakeNative.SetEventText("a😀");
         var e = Event(Native.Window.EventType.TextCommit, _handle);
-        e.textCommit.text = new Native.Window.TextRef { offset = 0, length = 3 };
 
-        _window.ProcessEvent(e);
+        _window.ProcessEvent(Resolved(e, text: "a😀"));
 
         Assert.That(characters, Is.EqualTo("a😀".ToCharArray()));
     }
 
     [Test]
-    public void ProcessEvent_TextCommit_ReadsFromTheTextRefOffset()
-    {
-        var characters = new List<char>();
-        _window.OnCharacter += e => characters.Add(e.Data);
-        FakeNative.SetEventText("xyz");
-        var e = Event(Native.Window.EventType.TextCommit, _handle);
-        e.textCommit.text = new Native.Window.TextRef { offset = 1, length = 2 };
-
-        _window.ProcessEvent(e);
-
-        Assert.That(characters, Is.EqualTo(new[] { 'y', 'z' }));
-    }
-
-    [Test]
-    public void ProcessEvent_TextCommit_WhoseTextIsGone_RaisesNothing()
+    public void ProcessEvent_TextCommit_WithoutText_RaisesNothing()
     {
         var characters = 0;
         _window.OnCharacter += _ => characters++;
         var e = Event(Native.Window.EventType.TextCommit, _handle);
-        e.textCommit.text = new Native.Window.TextRef { offset = 0, length = 3 };
 
-        _window.ProcessEvent(e);
+        _window.ProcessEvent(Resolved(e));
 
         Assert.That(characters, Is.Zero);
     }
@@ -199,13 +203,11 @@ public class RinWindowTests
     {
         TextPreeditEvent? raised = null;
         _window.OnTextPreedit += e => raised = e;
-        FakeNative.SetEventText("にほん");
         var e = Event(Native.Window.EventType.TextPreedit, _handle);
-        e.textPreedit.text = new Native.Window.TextRef { offset = 0, length = 3 };
         e.textPreedit.caretStart = 1;
         e.textPreedit.caretEnd = 2;
 
-        _window.ProcessEvent(e);
+        _window.ProcessEvent(Resolved(e, text: "にほん"));
 
         Assert.That(raised, Is.Not.Null);
         Assert.Multiple(() =>
@@ -221,7 +223,7 @@ public class RinWindowTests
     {
         var e = Event((Native.Window.EventType)99, _handle);
 
-        Assert.Throws<ArgumentOutOfRangeException>(() => _window.ProcessEvent(e));
+        Assert.Throws<ArgumentOutOfRangeException>(() => _window.ProcessEvent(Resolved(e)));
     }
 
     private unsafe DropEffect Drag(string[] paths, string? text, DropEffect allowed,
