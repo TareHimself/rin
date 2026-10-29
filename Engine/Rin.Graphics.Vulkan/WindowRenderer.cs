@@ -1,5 +1,4 @@
 ﻿using System.Collections.Frozen;
-using System.Diagnostics;
 using Rin.Core.Graphics;
 using Rin.Core.Graphics.Graph;
 using Rin.Graphics.Vulkan.Descriptors;
@@ -36,7 +35,6 @@ public class WindowRenderer : IWindowRenderer
     public FrozenDictionary<uint, DescriptorSet> GlobalDescriptors = FrozenDictionary<uint, DescriptorSet>.Empty;
     private VkSemaphore[] _renderSemaphores = [];
     private VkSwapchainKHR _swapchain;
-    private readonly PrepareForPresentPass _prepareForPresentPass = new PrepareForPresentPass();
 
     private Extent2D _swapchainExtent = new()
     {
@@ -116,7 +114,7 @@ public class WindowRenderer : IWindowRenderer
             foreach (var frame in _frames) frame.Dispose();
             ResourcePool.Dispose();
             _frames = [];
-            DestroySwapchain();
+            RetireSwapchain()?.Dispose();
             unsafe
             {
                 vkDestroySurfaceKHR(_module.GetInstance(), _surface, null);
@@ -142,13 +140,6 @@ public class WindowRenderer : IWindowRenderer
         ApplyPendingFramesInFlight();
 
         if (_swapchainExtent != ctx.RenderExtent) MarkDirty();
-
-        if (_dirty)
-        {
-            DestroySwapchain();
-            if (!CreateSwapchain(ctx.RenderExtent)) return;
-            _dirty = false;
-        }
 
         DoExecute(ctx);
     }
@@ -178,6 +169,8 @@ public class WindowRenderer : IWindowRenderer
         // ReSharper disable once AccessToDisposedClosure
         return Native.CreateSurface(instance, rinWindow.GetHandle());
     }
+
+    public uint DestinationImageId { get; private set; }
 
     public uint GetNumFramesInFlight()
     {
@@ -233,7 +226,7 @@ public class WindowRenderer : IWindowRenderer
         InitFrames();
     }
 
-    private unsafe bool CreateSwapchain(Extent2D extent)
+    private unsafe bool CreateSwapchain(Extent2D extent, VkSwapchainKHR oldSwapchain)
     {
         var surfaceCapabilities = GetSurfaceCapabilities();
 
@@ -265,7 +258,8 @@ public class WindowRenderer : IWindowRenderer
                          VkImageUsageFlags.VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
             imageArrayLayers = 1,
             minImageCount = imageCount,
-            preTransform = VkSurfaceTransformFlagsKHR.VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR
+            preTransform = VkSurfaceTransformFlagsKHR.VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR,
+            oldSwapchain = oldSwapchain
         };
 
         var swapchain = new VkSwapchainKHR();
@@ -311,30 +305,38 @@ public class WindowRenderer : IWindowRenderer
         return true;
     }
 
-    private unsafe void DestroySwapchain()
+    /// <summary>
+    ///     Takes the current swapchain out of use. Frames already submitted may still reference it, so the caller
+    ///     disposes the result once those frames are done.
+    /// </summary>
+    private RetiredSwapchain? RetireSwapchain()
     {
-        _module.WaitIdle();
-        foreach (var frame in _frames) frame.WaitForLastDraw();
+        if (_swapchain.Value == 0) return null;
 
-        if (_swapchainExtent == default) return;
-
-        var device = _module.GetDevice();
-
-        foreach (var renderSemaphore in _renderSemaphores) device.DestroySemaphore(renderSemaphore);
-        foreach (var view in _swapchainViews) vkDestroyImageView(device, view, null);
-        _swapchainViews = [];
-        _swapchainImages = [];
-
-        if (_swapchainImageWrappers.Length > 0)
-        {
-            foreach (var wrapper in _swapchainImageWrappers) _module.FreeResourceHandles(wrapper.Handle);
-            _swapchainImageWrappers = [];
-        }
-
-
-        if (_swapchain.Value != 0) vkDestroySwapchainKHR(device, _swapchain, null);
+        var retired = new RetiredSwapchain(_module, _swapchain, _swapchainViews, _renderSemaphores,
+            _swapchainImageWrappers);
         _swapchain = new VkSwapchainKHR();
         _swapchainExtent = new Extent2D();
+        _swapchainImages = [];
+        _swapchainViews = [];
+        _renderSemaphores = [];
+        _swapchainImageWrappers = [];
+        return retired;
+    }
+
+    /// <summary>
+    ///     Rebuilds a dirty swapchain. The old one is destroyed when <paramref name="frame" /> is next reset, which is
+    ///     after every frame that could reference it has finished, so nothing waits on the device here.
+    /// </summary>
+    private bool RebuildSwapchainIfDirty(Frame frame, Extent2D extent)
+    {
+        if (!_dirty) return true;
+
+        var retired = RetireSwapchain();
+        if (retired != null) frame.OnReset += _ => retired.Dispose();
+        if (!CreateSwapchain(extent, retired?.Swapchain ?? default)) return false;
+        _dirty = false;
+        return true;
     }
 
     private void InitFrames()
@@ -397,30 +399,29 @@ public class WindowRenderer : IWindowRenderer
                     builder.Reset();
                     Profiling.Begin("Engine.Rendering.Graph.Build");
                     ctx.Collector.Write(builder); // Build the passes from the collector
-                    builder.AddPass(_prepareForPresentPass);
                     Profiling.End("Engine.Rendering.Graph.Build");
                     var device = _module.GetDevice();
                     frame.WaitForLastDraw();
 
                     frame.Reset();
                     ResourcePool.OnFrameEnd(_framesRendered);
-                    
+
+                    if (!RebuildSwapchainIfDirty(frame, ctx.RenderExtent)) return;
+
                     uint swapchainImageIndex = 0;
-                    CheckSwapchainResult(vkAcquireNextImageKHR(device, _swapchain, ulong.MaxValue,
-                        frame.GetSwapchainSemaphore(),
-                        new VkFence(),
-                        &swapchainImageIndex), nameof(vkAcquireNextImageKHR));
+                    var acquireResult = vkAcquireNextImageKHR(device, _swapchain, ulong.MaxValue,
+                        frame.GetSwapchainSemaphore(), new VkFence(), &swapchainImageIndex);
+                    // Suboptimal still hands out an image and signals the semaphore, so the frame must consume it.
+                    if (acquireResult == VkResult.VK_SUBOPTIMAL_KHR) MarkDirty();
+                    else CheckSwapchainResult(acquireResult, nameof(vkAcquireNextImageKHR));
 
-                    var swapchainImageHandle = _swapchainImageWrappers[swapchainImageIndex].Handle;
-
-                    ctx.SwapchainImageId = builder.AddDestinationImage(swapchainImageHandle);
+                    var swapchainImage = _swapchainImageWrappers[swapchainImageIndex];
+                    swapchainImage.Layout = ImageLayout.Undefined;
+                    DestinationImageId = builder.AddExternalImage(swapchainImage.Handle, GraphResourceFlags.Terminal);
 
                     Profiling.Begin("Engine.Rendering.Graph.Compile");
                     var graph = builder.Compile();
                     Profiling.End("Engine.Rendering.Graph.Compile");
-
-                    Debug.Assert(graph != null,
-                        "Frame Graph is empty"); // Since we always prepare for present the graph can never be empty
 
                     var cmd = frame.GetPrimaryCommandBuffer();
                     cmd
@@ -428,13 +429,15 @@ public class WindowRenderer : IWindowRenderer
 
                     _module.BindBindlessDescriptors(cmd);
 
-                    frame.OnReset += _ => graph.Dispose();
+                    if (graph != null)
+                    {
+                        frame.OnReset += _ => graph.Dispose();
+                        Profiling.Begin("Engine.Rendering.Graph.Execute");
+                        graph.Execute(frame.ExecutionContext);
+                        Profiling.End("Engine.Rendering.Graph.Execute");
+                    }
 
-
-                    Profiling.Begin("Engine.Rendering.Graph.Execute");
-                    graph.Execute(frame.ExecutionContext);
-                    Profiling.End("Engine.Rendering.Graph.Execute");
-
+                    cmd.ImageBarrier(swapchainImage, swapchainImage.Layout, ImageLayout.Present);
                     vkEndCommandBuffer(cmd).ThrowIfFailed(nameof(vkEndCommandBuffer));
 
                     var queue = _module.GetGraphicsQueue();
@@ -466,7 +469,7 @@ public class WindowRenderer : IWindowRenderer
                         new ReadOnlySpan<VkCommandBufferSubmitInfo>(&bufferSubmitInfo, 1),
                         new ReadOnlySpan<VkSemaphoreSubmitInfo>(&signalSemaphoreSubmitInfo, 1),
                         new ReadOnlySpan<VkSemaphoreSubmitInfo>(&waitSemaphoreSubmitInfo, 1));
-                    ((CompiledGraph)graph).OnSubmitted();
+                    (graph as CompiledGraph)?.OnSubmitted();
 
                     var swapchain = _swapchain;
                     var imIdx = swapchainImageIndex + 0;
@@ -492,7 +495,7 @@ public class WindowRenderer : IWindowRenderer
             }
             catch (OutOfDateException)
             {
-                DestroySwapchain();
+                MarkDirty();
             }
         }
     }
@@ -518,12 +521,30 @@ public class WindowRenderer : IWindowRenderer
     {
     }
 
+    private sealed class RetiredSwapchain(
+        VulkanGraphicsModule module,
+        VkSwapchainKHR swapchain,
+        VkImageView[] views,
+        VkSemaphore[] renderSemaphores,
+        SwapchainImage[] wrappers) : IDisposable
+    {
+        public VkSwapchainKHR Swapchain => swapchain;
+
+        public unsafe void Dispose()
+        {
+            var device = module.GetDevice();
+            foreach (var semaphore in renderSemaphores) device.DestroySemaphore(semaphore);
+            foreach (var view in views) vkDestroyImageView(device, view, null);
+            foreach (var wrapper in wrappers) module.FreeResourceHandles(wrapper.Handle);
+            vkDestroySwapchainKHR(device, swapchain, null);
+        }
+    }
+
     private class RenderData : IRenderData
     {
         public required Frame TargetFrame { get; init; }
         public required GraphCollector Collector { get; init; }
         public Extent2D RenderExtent { get; init; }
-        public uint SwapchainImageId { get; set; }
         public required IRenderer Renderer { get; init; }
     }
 }

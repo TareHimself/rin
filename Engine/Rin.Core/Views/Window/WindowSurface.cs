@@ -86,7 +86,7 @@ public class WindowSurface : Surface, IWindowSurface
 
     private void Collect(IGraphCollector collector)
     {
-        if (CollectCommands() is { } cmds) collector.Add(new WindowSurfaceCollectedData(cmds));
+        if (CollectCommands() is { } cmds) collector.Add(new WindowSurfaceCollectedData(cmds, Renderer));
     }
 
     protected void OnWindowResized(ResizeEvent e)

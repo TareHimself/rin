@@ -3,7 +3,7 @@ using Rin.Core.Graphics.Graph;
 
 namespace Rin.Core.Views.Graphics;
 
-public class CopyToDestination(SurfaceContext context) : IPass
+public class CopyToDestination(SurfaceContext context, IWindowRenderer window) : IPass
 {
     private uint _destinationImageId;
 
@@ -11,7 +11,7 @@ public class CopyToDestination(SurfaceContext context) : IPass
     public void Configure(IGraphConfig config)
     {
         config.ReadTexture(context.MainImageId, ImageLayout.TransferSrc);
-        _destinationImageId = config.WriteTexture(config.DestinationImageId, ImageLayout.TransferDst);
+        _destinationImageId = config.WriteTexture(window.DestinationImageId, ImageLayout.TransferDst);
     }
 
     public void Execute(ICompiledGraph graph, IExecutionContext ctx)

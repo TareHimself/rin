@@ -5,12 +5,16 @@ public interface IGraphBuilder
     public uint AddPass(IPass pass);
 
     /// <summary>
-    /// Add an external resource to the graph, must be called for all external resources that will be used in <see cref="IPass.Execute"/>
+    ///     Add an external resource to the graph, must be called for all external resources that will be used in
+    ///     <see cref="IPass.Execute" />. <see cref="GraphResourceFlags.Terminal" /> makes the passes that write it
+    ///     pruning roots.
     /// </summary>
-    public uint AddExternalImage(ResourceHandle handle, Action? onDispose = null);
+    public uint AddExternalImage(ResourceHandle handle, GraphResourceFlags flags = GraphResourceFlags.None,
+        Action? onDispose = null);
 
     /// <inheritdoc cref="AddExternalImage" />
-    public uint AddExternalBuffer(in DeviceBufferView view, Action? onDispose = null);
+    public uint AddExternalBuffer(in DeviceBufferView view, GraphResourceFlags flags = GraphResourceFlags.None,
+        Action? onDispose = null);
 
     /// <summary>
     ///     Ties <paramref name="disposable" /> to this graph's lifetime: it's disposed once the frame that ran the

@@ -11,6 +11,11 @@ public interface IWindowRenderer : IRenderer
     public IWindow GetWindow();
 
     public Extent2D GetRenderExtent();
+
+    /// <summary>
+    ///     Graph id of the swapchain image acquired for the frame being built, valid from acquire until the graph compiles.
+    /// </summary>
+    public uint DestinationImageId { get; }
     public void SetVsyncEnabled(bool enabled);
 
     public uint GetNumFramesInFlight();
