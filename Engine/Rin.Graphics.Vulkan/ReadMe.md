@@ -10,27 +10,31 @@ Restore needs the native package in the local `.feed/`: build it with `uv run py
 
 ## A frame
 
-The module hooks the application's `OnUpdate`, `OnCollect` and `OnRender` events. `Update` pumps native window events, `Collect` asks every registered renderer for its render data and hands the batch to the render thread through `FrameCollector` (latest wins, a skipped batch is disposed), and `Execute` waits on the frame limiter (`SetMaxFramerate`), runs queued `GraphicsSubmit` actions, runs each renderer and then flushes the queued uploads no graph consumed.
+The module hooks the application's `OnUpdate`, `OnCollect` and `OnRender` events. `Update` pumps native window events, `Collect` asks every registered renderer for its render data and hands the batch to the render thread through `FrameCollector` (latest wins, a skipped batch is disposed), and `Execute` waits on the frame limiter (`SetMaxFramerate`), runs queued `GraphicsSubmit` actions, renders the batch into one graph and then flushes the queued uploads no graph consumed.
 
-Renderers register through `AddRenderer` and `RemoveRenderer`. A window's `WindowRenderer` is just a renderer the module creates and registers itself when the window opens, and disposes when the window closes. `Stop` disposes every renderer still registered, including ones added from outside.
+Every renderer in the batch adds its passes to the same graph. The module owns the frame ring (`Frame`: command buffer, fence, descriptor allocator, `GraphBuilder`), the `ResourcePool` and the global descriptors, and records one submit and one present per frame for every window. A `WindowRenderer` owns only its surface, swapchain and acquire semaphores: `BeginFrame` acquires an image and registers it as a `Terminal` external image, `EndFrame` moves it to `Present` after the graph has recorded, and the module takes its swapchain, image index and semaphores from there.
+
+Renderers register through `AddRenderer` and `RemoveRenderer`. A window's `WindowRenderer` is just a renderer the module creates and registers itself when the window opens, and disposes when the window closes. `RemoveRenderer` waits for the frame in progress, so a renderer may be disposed as soon as it returns, and a batch collected before the removal skips that renderer. `Stop` disposes every renderer still registered, including ones added from outside.
 
 ```mermaid
 flowchart TD
-    A["Collect: GraphCollector gathers the frame's data"] --> B["Execute: Collector.Write adds passes"]
-    B --> C["wait on the frame fence, acquire a swapchain image, register it as a Terminal external image"]
+    A["Collect: each renderer's GraphCollector gathers its data, one batch for the frame"] --> B["Execute: wait on the frame slot's fence, reset it"]
+    B --> C["BeginFrame on each renderer: a window rebuilds a dirty swapchain, acquires an image, registers it as a Terminal external image, then Collector.Write adds its passes"]
     C --> D["Configure: each pass records its reads, writes and created resources"]
     D --> E["SynthesizeUploads: an upload pass for each external resource with queued writes"]
     E --> F["CollectLivePasses: walk back from the roots (terminal passes, writers of Terminal resources), drop the rest"]
     F --> G["BuildSyncs: consecutive actions on a resource become image and buffer barriers"]
     G --> H["ScheduleLevels: a BarrierPass ahead of each dependency level"]
     H --> I["begin the command buffer, bind the global bindless set"]
-    I --> J["CompiledGraph.Execute: groups in order, passes one after another, then the swapchain image moves to Present"]
-    J --> K["vkQueueSubmit2, OnSubmitted completes the upload tasks, vkQueuePresentKHR"]
+    I --> J["CompiledGraph.Execute: groups in order, passes one after another"]
+    J --> K["EndFrame on each renderer that drew: a window moves its swapchain image to Present"]
+    K --> L["one vkQueueSubmit2 waiting every acquire semaphore and signalling every render semaphore, OnSubmitted completes the upload tasks"]
+    L --> M["one vkQueuePresentKHR with every swapchain, a result per swapchain"]
 ```
 
-Graph resources are created lazily from a `ResourcePool` keyed by descriptor hash and returned when the frame is done. An external buffer carries its last usage from one graph to the next, so graphs must run in the order they are compiled. A window has one frame in flight by default (`SetFramesInFlight`).
+Graph resources are created lazily from a `ResourcePool` keyed by descriptor hash and returned when the frame is done. An external buffer carries its last usage from one graph to the next, so graphs must run in the order they are compiled. The module keeps two frames in flight; a window's `SetFramesInFlight` only sizes its swapchain.
 
-A resize or an out-of-date result marks the swapchain dirty, and the next frame rebuilds it after the frame's own fence wait: the new swapchain is created with `oldSwapchain` set, and the old one, its views, render semaphores and handles are destroyed when that frame slot is next reset, by which point every frame that could reference them has finished. The device is never waited idle for a rebuild.
+A resize or an out-of-date result marks the swapchain dirty, and the next `BeginFrame` rebuilds it after the frame's own fence wait: the new swapchain is created with `oldSwapchain` set, and the old one, its views, render semaphores and handles are destroyed when that frame slot is next reset, by which point every frame that could reference them has finished, or when the window is disposed, whichever comes first. The device is never waited idle for a rebuild.
 
 ## The native boundary
 

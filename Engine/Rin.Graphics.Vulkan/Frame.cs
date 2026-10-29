@@ -6,7 +6,8 @@ using TerraFX.Interop.Vulkan;
 namespace Rin.Graphics.Vulkan;
 
 /// <summary>
-///     Represents a <see cref="WindowRenderer" /> frame
+///     One slot of the module's frame ring: the command buffer, fence, descriptor allocator and graph builder one
+///     rendered frame uses. Disposables hooked on <see cref="OnReset" /> are released when the slot is reused.
 /// </summary>
 public class Frame : IDisposable
 {
@@ -15,13 +16,9 @@ public class Frame : IDisposable
     private readonly DescriptorAllocator _descriptorAllocator;
     private readonly VkDevice _device;
     private readonly VkFence _renderFence;
-    private readonly VkSemaphore _swapchainSemaphore;
-    public readonly WindowRenderer Renderer;
     private bool _rendering;
-    public VulkanExecutionContext ExecutionContext { get; private init; }
-    public GraphBuilder GraphBuilder { get; }
 
-    public Frame(WindowRenderer renderer)
+    public Frame(VulkanGraphicsModule module, uint index)
     {
         _descriptorAllocator = new DescriptorAllocator(1000, [
             new PoolSizeRatio(DescriptorType.StorageImage, 3),
@@ -30,21 +27,22 @@ public class Frame : IDisposable
             new PoolSizeRatio(DescriptorType.CombinedSamplerImage, 4)
         ]);
 
-        Renderer = renderer;
-        var subsystem = VulkanGraphicsModule.Get();
-        var device = subsystem.GetDevice();
-        var queueFamily = subsystem.GetGraphicsQueueFamily();
-
-        _device = device;
-
-        _commandPool = device.CreateCommandPool(queueFamily);
-        _commandBuffer = device.AllocateCommandBuffers(_commandPool).First();
-        _renderFence = device.CreateFence(true);
-        _swapchainSemaphore = device.CreateSemaphore();
-        ExecutionContext = new VulkanExecutionContext(_commandBuffer, _descriptorAllocator, renderer.GlobalDescriptors);
-        GraphBuilder = new GraphBuilder(renderer.ResourcePool, this);
+        Index = index;
+        _device = module.GetDevice();
+        _commandPool = _device.CreateCommandPool(module.GetGraphicsQueueFamily());
+        _commandBuffer = _device.AllocateCommandBuffers(_commandPool).First();
+        _renderFence = _device.CreateFence(true);
+        ExecutionContext = new VulkanExecutionContext(_commandBuffer, _descriptorAllocator, module.GlobalDescriptors);
+        GraphBuilder = new GraphBuilder(module.ResourcePool, this);
     }
 
+    /// <summary>
+    ///     Position in the module's frame ring, which window renderers use to pick per-frame resources of their own.
+    /// </summary>
+    public uint Index { get; }
+
+    public VulkanExecutionContext ExecutionContext { get; }
+    public GraphBuilder GraphBuilder { get; }
 
     public void Dispose()
     {
@@ -52,22 +50,15 @@ public class Frame : IDisposable
         OnReset?.Invoke(this);
         OnReset = null;
         _descriptorAllocator.Dispose();
-        _device.DestroySemaphore(_swapchainSemaphore);
         _device.DestroyFence(_renderFence);
         _device.DestroyCommandPool(_commandPool);
     }
 
     public event Action<Frame>? OnReset;
 
-
     public VkFence GetRenderFence()
     {
         return _renderFence;
-    }
-
-    public VkSemaphore GetSwapchainSemaphore()
-    {
-        return _swapchainSemaphore;
     }
 
     public VkCommandBuffer GetPrimaryCommandBuffer()
@@ -81,7 +72,7 @@ public class Frame : IDisposable
     }
 
     /// <summary>
-    ///     Wait's for the previous frame to complete
+    ///     Waits for the GPU to finish the last frame recorded in this slot.
     /// </summary>
     public void WaitForLastDraw()
     {
@@ -96,7 +87,7 @@ public class Frame : IDisposable
     }
 
     /// <summary>
-    ///     Resets this <see cref="Frame" />
+    ///     Releases what the last frame in this slot left behind and readies the slot for the next one.
     /// </summary>
     public void Reset()
     {

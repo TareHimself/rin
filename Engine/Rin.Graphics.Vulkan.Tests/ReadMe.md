@@ -13,7 +13,7 @@ dotnet test Engine/Rin.Graphics.Vulkan.Tests/Rin.Graphics.Vulkan.Tests.csproj -p
 | --- | --- |
 | `NativeTests.cs` | Every checked wrapper throws `NativeException` naming the export and code when the native side fails, returns quietly on `Ok`, and `GraphicsResult` and `VulkanInitResult` still match `result.hpp` and `graphics.hpp` |
 | `VulkanExceptionTests.cs` | `ThrowIfFailed` throws on negative `VkResult` codes only |
-| `FrameCollectorTests.cs` | Collect hands the newest batch to Execute, a batch the render thread skipped is disposed, renderers with nothing to draw are left out, and a window renderer is found by its window until it is removed |
+| `FrameCollectorTests.cs` | Collect hands the newest batch to the render thread, a batch it skipped is disposed, renderers with nothing to draw are left out, a renderer removed after the collect is dropped from the batch, and a window renderer is found by its window until it is removed |
 | `UploadBatchTests.cs` | Filling a flush batch from the write lanes: the per-kind cap, a write whose resource cannot be acquired is dropped and its task cancelled, each resource is acquired once, buffer writes group by handle, staging sizes are aligned |
 | `Graph/GraphBuilderTests.cs` | Pruning roots: a pass that writes a `Terminal` resource survives without `ITerminalPass` and keeps what it reads, the rest is pruned and disposed, nothing terminal compiles to null, and `ITerminalPass` still roots. No device or module involved |
 | `Images/ResourceTableTests.cs` | The generational handle rules: slot 0 is reserved, a freed handle never resolves again, a reused slot gets a newer generation, and only ready occupants resolve. No native calls at all |

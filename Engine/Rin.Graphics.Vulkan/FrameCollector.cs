@@ -6,8 +6,9 @@ namespace Rin.Graphics.Vulkan;
 
 /// <summary>
 ///     The registered renderers and the hand-off between the main thread, which collects their render data, and
-///     the render thread, which executes it. The hand-off is latest-wins: a batch the render thread never got to
-///     is disposed rather than executed out of order. Window renderers are also indexed by their window.
+///     the render thread, which renders one batch into one graph. The hand-off is latest-wins: a batch the render
+///     thread never got to is disposed rather than rendered out of order. Window renderers are also indexed by their
+///     window.
 /// </summary>
 internal sealed class FrameCollector
 {
@@ -70,19 +71,25 @@ internal sealed class FrameCollector
     }
 
     /// <summary>
-    ///     Executes the newest collected batch, if any, and says whether there was one.
+    ///     Moves the newest collected batch into <paramref name="into" /> and says whether there was one. Data of a
+    ///     renderer removed since it was collected is disposed instead of handed over.
     /// </summary>
-    public bool Execute()
+    public bool TryTake(List<IRenderData> into)
     {
         if (!_collected.TryRead(out var batch) || batch == null) return false;
-        foreach (var data in batch) data.Renderer.Execute(data);
-        DisposeBatch(batch);
+        lock (_renderers)
+        {
+            foreach (var data in batch)
+                if (_renderers.Contains(data.Renderer)) into.Add(data);
+                else Dispose(data);
+        }
+
         return true;
     }
 
     /// <summary>
-    ///     Disposes whatever was collected but never executed. Safe after <see cref="Execute" />, because disposal
-    ///     is idempotent and this is the only way to catch a batch written after the last read.
+    ///     Disposes whatever was collected but never taken. Safe after <see cref="TryTake" />, because disposal is
+    ///     idempotent and this is the only way to catch a batch written after the last read.
     /// </summary>
     public void DisposeRemaining()
     {
@@ -91,11 +98,14 @@ internal sealed class FrameCollector
                 DisposeBatch(pending);
     }
 
-    // IRenderData is not IDisposable today, but a renderer may return a disposable implementation later.
-    private static void DisposeBatch(IRenderData[] batch)
+    public static void DisposeBatch(IReadOnlyList<IRenderData> batch)
     {
-        foreach (var data in batch)
-            if (data is IDisposable disposable)
-                disposable.Dispose();
+        for (var i = 0; i < batch.Count; i++) Dispose(batch[i]);
+    }
+
+    // IRenderData is not IDisposable today, but a renderer may return a disposable implementation later.
+    private static void Dispose(IRenderData data)
+    {
+        if (data is IDisposable disposable) disposable.Dispose();
     }
 }
