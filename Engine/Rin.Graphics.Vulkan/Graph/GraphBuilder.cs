@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using Rin.Core.Extensions;
 using Rin.Core.Graphics;
 using Rin.Core.Graphics.Graph;
@@ -13,10 +12,9 @@ public class GraphBuilder(IResourcePool resourcePool, Frame frame) : IGraphBuild
 
     private readonly Dictionary<uint, IPass> _passes = [];
     private readonly Dictionary<object, object> _shared = [];
+    private readonly HashSet<uint> _terminalResources = [];
     private List<IDisposable> _disposables = [];
     private uint _latestId;
-    private uint _swapchainImageId;
-
 
     public uint AddPass(IPass pass)
     {
@@ -42,7 +40,8 @@ public class GraphBuilder(IResourcePool resourcePool, Frame frame) : IGraphBuild
         _externalImageIds.Clear();
         _externalBufferIds.Clear();
 
-        if (!_passes.Values.Any(pass => pass is ITerminalPass))
+        var roots = CollectRoots(config);
+        if (roots.Count == 0)
         {
             foreach (var pass in _passes.Values) (pass as IDisposable)?.Dispose();
             foreach (var disposable in _disposables) disposable.Dispose();
@@ -52,7 +51,7 @@ public class GraphBuilder(IResourcePool resourcePool, Frame frame) : IGraphBuild
             return null;
         }
 
-        var (nodes, passParents) = CollectLivePasses(config);
+        var (nodes, passParents) = CollectLivePasses(config, roots);
 
         foreach (var passId in _passes.Keys)
             if (!nodes.ContainsKey(passId))
@@ -73,22 +72,37 @@ public class GraphBuilder(IResourcePool resourcePool, Frame frame) : IGraphBuild
     }
 
     /// <summary>
-    ///     Walks back from the terminal passes; anything not reached is pruned. Returns each live pass's
+    ///     The pruning roots: terminal passes and every pass that writes a terminal resource.
+    /// </summary>
+    private HashSet<uint> CollectRoots(GraphConfig config)
+    {
+        HashSet<uint> roots = [];
+        foreach (var pass in _passes.Values)
+            if (pass is ITerminalPass)
+                roots.Add(pass.Id);
+
+        foreach (var resourceId in _terminalResources)
+        {
+            if (!config.ResourceActions.TryGetValue(resourceId, out var actions)) continue;
+            foreach (var action in actions)
+                if (action.Operation == ResourceOperation.Write)
+                    roots.Add(action.PassId);
+        }
+
+        return roots;
+    }
+
+    /// <summary>
+    ///     Walks back from the roots; anything not reached is pruned. Returns each live pass's
     ///     dependencies and, inverted, the passes that depend on it.
     /// </summary>
     private (Dictionary<uint, HashSet<uint>> Nodes, Dictionary<uint, HashSet<uint>> Parents) CollectLivePasses(
-        GraphConfig config)
+        GraphConfig config, HashSet<uint> roots)
     {
         Dictionary<uint, HashSet<uint>> nodes = [];
         Dictionary<uint, HashSet<uint>> passParents = [];
-        var toCheck = new Queue<uint>();
-        var visited = new HashSet<uint>();
-        foreach (var pass in _passes.Values)
-        {
-            if (pass is not ITerminalPass) continue;
-            toCheck.Enqueue(pass.Id);
-            visited.Add(pass.Id);
-        }
+        var toCheck = new Queue<uint>(roots);
+        var visited = new HashSet<uint>(roots);
 
         while (toCheck.NotEmpty())
         {
@@ -201,7 +215,7 @@ public class GraphBuilder(IResourcePool resourcePool, Frame frame) : IGraphBuild
                     Add(new ImageResourceSync
                     {
                         PreviousLayout = ImageLayout.Undefined,
-                        FromCurrentLayout = !action.Discard && resourceId != _swapchainImageId &&
+                        FromCurrentLayout = !action.Discard &&
                                             config.Resources[resourceId] is IExternalResourceDescriptor,
                         NextLayout = action.ImageLayout,
                         PreviousOperation = ResourceOperation.Write,
@@ -323,41 +337,52 @@ public class GraphBuilder(IResourcePool resourcePool, Frame frame) : IGraphBuild
         return resources;
     }
 
-    public uint AddExternalImage(ResourceHandle handle, Action? onDispose = null)
+    public uint AddExternalImage(ResourceHandle handle, GraphResourceFlags flags = GraphResourceFlags.None,
+        Action? onDispose = null)
     {
-        if (TryReuseExternalImage(handle, onDispose, out var existingId)) return existingId;
+        if (TryReuseExternalImage(handle, flags, onDispose, out var existingId)) return existingId;
         if (ExternalResourceDescriptors.Make(handle, onDispose) is not { } descriptor) return 0;
         var id = MakeId();
         _externalResources.Add(id, descriptor);
-        RememberExternalImage(handle, id);
+        RememberExternalImage(handle, id, flags);
         return id;
     }
 
-    internal bool TryReuseExternalImage(in ResourceHandle handle, Action? onDispose, out uint id)
+    internal bool TryReuseExternalImage(in ResourceHandle handle, GraphResourceFlags flags, Action? onDispose,
+        out uint id)
     {
         if (!_externalImageIds.TryGetValue(handle, out id)) return false;
+        RememberFlags(id, flags);
         if (onDispose is not null) AddDisposable(new DisposeCallback(onDispose));
         return true;
     }
 
-    internal void RememberExternalImage(in ResourceHandle handle, uint id)
+    internal void RememberExternalImage(in ResourceHandle handle, uint id, GraphResourceFlags flags)
     {
         _externalImageIds.Add(handle, id);
+        RememberFlags(id, flags);
     }
 
-    public uint AddExternalBuffer(in DeviceBufferView view, Action? onDispose = null)
+    public uint AddExternalBuffer(in DeviceBufferView view, GraphResourceFlags flags = GraphResourceFlags.None,
+        Action? onDispose = null)
     {
         if (ExternalResourceDescriptors.MakeBuffer(view, onDispose) is not { } descriptor) return 0;
         var id = MakeId();
         _externalResources.Add(id, descriptor);
-        RememberExternalBuffer(view.Buffer, id);
+        RememberExternalBuffer(view.Buffer, id, flags);
         return id;
     }
 
-    internal void RememberExternalBuffer(in ResourceHandle handle, uint id)
+    internal void RememberExternalBuffer(in ResourceHandle handle, uint id, GraphResourceFlags flags)
     {
         if (!_externalBufferIds.TryGetValue(handle, out var ids)) _externalBufferIds[handle] = ids = [];
         ids.Add(id);
+        RememberFlags(id, flags);
+    }
+
+    internal void RememberFlags(uint id, GraphResourceFlags flags)
+    {
+        if ((flags & GraphResourceFlags.Terminal) != 0) _terminalResources.Add(id);
     }
 
     public void AddDisposable(IDisposable disposable)
@@ -374,11 +399,6 @@ public class GraphBuilder(IResourcePool resourcePool, Frame frame) : IGraphBuild
         return created;
     }
 
-    public uint AddDestinationImage(ResourceHandle handle, Action? onDispose = null)
-    {
-        return _swapchainImageId = AddExternalImage(handle, onDispose);
-    }
-
     public void Reset()
     {
         // Anything still here was registered for a frame that never compiled (e.g. swapchain acquire failed).
@@ -393,7 +413,7 @@ public class GraphBuilder(IResourcePool resourcePool, Frame frame) : IGraphBuild
         _externalImageIds.Clear();
         _externalBufferIds.Clear();
         _shared.Clear();
-        _swapchainImageId = 0;
+        _terminalResources.Clear();
         _latestId = 0;
     }
 
@@ -408,13 +428,13 @@ public class GraphBuilder(IResourcePool resourcePool, Frame frame) : IGraphBuild
 
     private Uploads SynthesizeUploads(GraphConfig config)
     {
-        var module = VulkanGraphicsModule.Get();
         var uploads = new Uploads([], []);
+        if (_externalImageIds.Count == 0 && _externalBufferIds.Count == 0) return uploads;
+        var module = VulkanGraphicsModule.Get();
 
         foreach (var (handle, resourceId) in _externalImageIds)
         {
-            if (handle.Type != ResourceType.Texture || resourceId == _swapchainImageId ||
-                !config.ResourceActions.ContainsKey(resourceId)) continue;
+            if (handle.Type != ResourceType.Texture || !config.ResourceActions.ContainsKey(resourceId)) continue;
 
             var count = module.PeekTextureWrites(handle, out var firstCoversWholeImage);
             if (count == 0) continue;
@@ -452,6 +472,7 @@ public class GraphBuilder(IResourcePool resourcePool, Frame frame) : IGraphBuild
 
     private void TakeUploads(Uploads uploads, Dictionary<uint, HashSet<uint>> nodes)
     {
+        if (uploads.Textures.Count == 0 && uploads.Buffers.Count == 0) return;
         var module = VulkanGraphicsModule.Get();
         List<(TextureUploadPass Pass, PendingTextureWrite Write)> textureWrites = [];
         List<(BufferUploadPass Pass, List<PendingBufferWrite> Writes)> bufferWrites = [];
@@ -510,12 +531,7 @@ public class GraphBuilder(IResourcePool resourcePool, Frame frame) : IGraphBuild
 
     private GraphConfig Configure()
     {
-        Debug.Assert(_swapchainImageId != 0, "A swapchain image must be added to the graph");
-
-        var config = new GraphConfig(this)
-        {
-            DestinationImageId = _swapchainImageId
-        };
+        var config = new GraphConfig(this);
 
         foreach (var (id, externalImageResourceDescriptor) in _externalResources)
             config.Resources.Add(id, externalImageResourceDescriptor);

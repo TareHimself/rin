@@ -31,47 +31,50 @@ public class GraphConfig(GraphBuilder builder) : IGraphConfig
 
     public uint CurrentPassId { get; set; }
 
-
-    public uint DestinationImageId { get; set; }
-
-    public uint AddExternalImage(ResourceHandle handle, Action? onDispose = null)
+    public uint AddExternalImage(ResourceHandle handle, GraphResourceFlags flags = GraphResourceFlags.None,
+        Action? onDispose = null)
     {
-        if (builder.TryReuseExternalImage(handle, onDispose, out var existingId)) return existingId;
+        if (builder.TryReuseExternalImage(handle, flags, onDispose, out var existingId)) return existingId;
         if (ExternalResourceDescriptors.Make(handle, onDispose) is not { } descriptor) return 0;
         var resourceId = builder.MakeId();
         Resources.Add(resourceId, descriptor);
-        builder.RememberExternalImage(handle, resourceId);
+        builder.RememberExternalImage(handle, resourceId, flags);
         return resourceId;
     }
 
-    public uint AddExternalBuffer(in DeviceBufferView view, Action? onDispose = null)
+    public uint AddExternalBuffer(in DeviceBufferView view, GraphResourceFlags flags = GraphResourceFlags.None,
+        Action? onDispose = null)
     {
         if (ExternalResourceDescriptors.MakeBuffer(view, onDispose) is not { } descriptor) return 0;
         var resourceId = builder.MakeId();
         Resources.Add(resourceId, descriptor);
-        builder.RememberExternalBuffer(view.Buffer, resourceId);
+        builder.RememberExternalBuffer(view.Buffer, resourceId, flags);
         return resourceId;
     }
 
-    public uint CreateTexture(in Extent2D extent, ImageFormat format, ImageLayout layout)
+    public uint CreateTexture(in Extent2D extent, ImageFormat format, ImageLayout layout,
+        GraphResourceFlags flags = GraphResourceFlags.None)
     {
-        return CreateImage(extent, format, layout, 0, ResourceType.Texture);
+        return CreateImage(extent, format, layout, 0, ResourceType.Texture, flags);
     }
 
-    public uint CreateTextureArray(in Extent2D extent, ImageFormat format, uint count, ImageLayout layout)
+    public uint CreateTextureArray(in Extent2D extent, ImageFormat format, uint count, ImageLayout layout,
+        GraphResourceFlags flags = GraphResourceFlags.None)
     {
-        return CreateImage(extent, format, layout, count, ResourceType.TextureArray);
+        return CreateImage(extent, format, layout, count, ResourceType.TextureArray, flags);
     }
 
-    public uint CreateCubemap(in Extent2D extent, ImageFormat format, ImageLayout layout)
+    public uint CreateCubemap(in Extent2D extent, ImageFormat format, ImageLayout layout,
+        GraphResourceFlags flags = GraphResourceFlags.None)
     {
-        return CreateImage(extent, format, layout, 0, ResourceType.Cubemap);
+        return CreateImage(extent, format, layout, 0, ResourceType.Cubemap, flags);
     }
 
 
-    public uint CreateBuffer(ulong size, GraphBufferUsage usage)
+    public uint CreateBuffer(ulong size, GraphBufferUsage usage, GraphResourceFlags flags = GraphResourceFlags.None)
     {
         var resourceId = builder.MakeId();
+        builder.RememberFlags(resourceId, flags);
         // A pass may legitimately have nothing to put in a buffer this frame (e.g. zero meshes on
         // a loading screen) - clamp instead of rejecting, rather than forcing every call site to
         // special-case "empty this frame".
@@ -220,7 +223,8 @@ public class GraphConfig(GraphBuilder builder) : IGraphConfig
         return action;
     }
 
-    private uint CreateImage(in Extent2D extent, ImageFormat format, ImageLayout layout, uint count, ResourceType type)
+    private uint CreateImage(in Extent2D extent, ImageFormat format, ImageLayout layout, uint count, ResourceType type,
+        GraphResourceFlags resourceFlags)
     {
         if (extent.Width == 0 || extent.Height == 0)
             throw new ArgumentOutOfRangeException(nameof(extent), extent, "Image dimensions must be greater than zero");
@@ -231,6 +235,7 @@ public class GraphConfig(GraphBuilder builder) : IGraphConfig
             _ => ImageCreateFlags.None
         };
         var resourceId = builder.MakeId();
+        builder.RememberFlags(resourceId, resourceFlags);
         _images.Add(resourceId, new GraphConfigImage
         {
             Extent = extent,

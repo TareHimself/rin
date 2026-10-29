@@ -40,7 +40,7 @@ sequenceDiagram
     A->>G: OnRender, Execute()
     G->>R: Execute(renderData)
     R->>B: ICollectedData.Write(builder) adds IPass objects
-    B->>B: Configure every pass, prune from the terminal passes, order, Execute each
+    B->>B: Configure every pass, prune from the roots, order, Execute each
 ```
 
 The main thread waits up to 3 ms for the previous render to finish; if it has, it collects and wakes the render thread, otherwise it skips the collect for that tick. The frame graph builder, compiler and executor live in the backend ([Rin.Graphics.Vulkan](../Rin.Graphics.Vulkan/ReadMe.md)); Rin.Core only holds the interfaces.
@@ -48,10 +48,10 @@ The main thread waits up to 3 ms for the previous render to finish; if it has, i
 | Interface | Role |
 | --- | --- |
 | `IGraphicsModule` | Backend entry point: windows and renderers, shader and resource creation, uploads, `Collect` and `Execute`, max framerate. |
-| `IRenderer`, `IWindowRenderer` | `Collect` on the main thread returns the render data `Execute` consumes on the render thread. A window renderer raises `OnCollect` for surfaces. |
+| `IRenderer`, `IWindowRenderer` | `Collect` on the main thread returns the render data `Execute` consumes on the render thread. A window renderer raises `OnCollect` for surfaces and exposes the acquired swapchain image as `DestinationImageId`. |
 | `IGraphCollector`, `ICollectedData` | Subsystems hand collected data to the renderer; `Write` turns it into passes later. |
-| `IGraphBuilder`, `IGraphConfig` | Adding passes and external resources; declaring the textures and buffers a pass creates, reads and writes, by `uint` id. |
-| `IPass`, `ITerminalPass`, `IPassWithPreAdd`, `IPassWithPostAdd` | `Configure` declares resources, `Execute` records GPU work. Passes nothing terminal depends on are pruned. |
+| `IGraphBuilder`, `IGraphConfig` | Adding passes and external resources; declaring the textures and buffers a pass creates, reads and writes, by `uint` id. `GraphResourceFlags.Terminal` marks a resource whose writes are observed outside the graph. |
+| `IPass`, `ITerminalPass`, `IPassWithPreAdd`, `IPassWithPostAdd` | `Configure` declares resources, `Execute` records GPU work. Pruning keeps terminal passes, writers of `Terminal` resources and whatever they depend on. |
 | `ICompiledGraph`, `IExecutionContext` | Resolve ids to resources and record commands during `Execute`. |
 | `IGraphicsShader`, `IComputeShader` | Created from a Rin.Shade descriptor; `Bind` returns a context for push constants, buffers and draws, including indirect draws. |
 | `IAudioModule`, `IAudioSample`, `IAudioGroup`, `IChannel`, `IPushStream` | Samples and streams play on groups (busses) as channels; a push stream takes PCM pushed from outside. |
@@ -99,7 +99,7 @@ The shaders are C# classes written with Rin.Shade under `Views/Graphics/Shaders/
 
 | Rule | Why |
 | --- | --- |
-| A graph with no `ITerminalPass` draws nothing. | Pruning starts from the terminal passes. |
+| A graph with no `ITerminalPass` and no write to a `Terminal` resource draws nothing. | Those are the pruning roots. |
 | Register every external image or buffer a pass uses in `Execute`. | The backend derives order and barriers from what was declared. |
 | `View.Layout` returns the content size plus padding unless `fill` is true. | A view fills its slot only when the parent asks. |
 | The desired size is cached only while the view is on a surface. | Call `InvalidateDesiredSize()` and `InvalidateLayout()` after changing what affects it. |

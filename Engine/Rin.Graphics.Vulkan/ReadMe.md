@@ -16,15 +16,15 @@ Renderers register through `AddRenderer` and `RemoveRenderer`. A window's `Windo
 
 ```mermaid
 flowchart TD
-    A["Collect: GraphCollector gathers the frame's data"] --> B["Execute: Collector.Write adds passes, then PrepareForPresentPass"]
-    B --> C["wait on the frame fence, acquire a swapchain image, register it as the destination"]
+    A["Collect: GraphCollector gathers the frame's data"] --> B["Execute: Collector.Write adds passes"]
+    B --> C["wait on the frame fence, acquire a swapchain image, register it as a Terminal external image"]
     C --> D["Configure: each pass records its reads, writes and created resources"]
     D --> E["SynthesizeUploads: an upload pass for each external resource with queued writes"]
-    E --> F["CollectLivePasses: walk back from the terminal passes, drop the rest"]
+    E --> F["CollectLivePasses: walk back from the roots (terminal passes, writers of Terminal resources), drop the rest"]
     F --> G["BuildSyncs: consecutive actions on a resource become image and buffer barriers"]
     G --> H["ScheduleLevels: a BarrierPass ahead of each dependency level"]
     H --> I["begin the command buffer, bind the global bindless set"]
-    I --> J["CompiledGraph.Execute: groups in order, passes one after another"]
+    I --> J["CompiledGraph.Execute: groups in order, passes one after another, then the swapchain image moves to Present"]
     J --> K["vkQueueSubmit2, OnSubmitted completes the upload tasks, vkQueuePresentKHR"]
 ```
 

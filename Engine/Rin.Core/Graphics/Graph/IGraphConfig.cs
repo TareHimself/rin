@@ -2,32 +2,41 @@ namespace Rin.Core.Graphics.Graph;
 
 public interface IGraphConfig
 {
-    public uint DestinationImageId { get; }
+    /// <inheritdoc cref="IGraphBuilder.AddExternalImage" />
+    public uint AddExternalImage(ResourceHandle handle, GraphResourceFlags flags = GraphResourceFlags.None,
+        Action? onDispose = null);
 
     /// <inheritdoc cref="IGraphBuilder.AddExternalImage" />
-    public uint AddExternalImage(ResourceHandle handle, Action? onDispose = null);
+    public uint AddExternalBuffer(in DeviceBufferView view, GraphResourceFlags flags = GraphResourceFlags.None,
+        Action? onDispose = null);
 
-    /// <inheritdoc cref="IGraphBuilder.AddExternalImage" />
-    public uint AddExternalBuffer(in DeviceBufferView view, Action? onDispose = null);
-    public uint CreateTexture(in Extent2D extent, ImageFormat format, ImageLayout layout);
-    public uint CreateTextureArray(in Extent2D extent, ImageFormat format, uint count, ImageLayout layout);
-    public uint CreateCubemap(in Extent2D extent, ImageFormat format, ImageLayout layout);
+    public uint CreateTexture(in Extent2D extent, ImageFormat format, ImageLayout layout,
+        GraphResourceFlags flags = GraphResourceFlags.None);
 
-    public uint CreateBuffer(ulong size, GraphBufferUsage usage);
+    public uint CreateTextureArray(in Extent2D extent, ImageFormat format, uint count, ImageLayout layout,
+        GraphResourceFlags flags = GraphResourceFlags.None);
 
-    public uint CreateBuffer<T>(GraphBufferUsage usage) where T : unmanaged
+    public uint CreateCubemap(in Extent2D extent, ImageFormat format, ImageLayout layout,
+        GraphResourceFlags flags = GraphResourceFlags.None);
+
+    public uint CreateBuffer(ulong size, GraphBufferUsage usage, GraphResourceFlags flags = GraphResourceFlags.None);
+
+    public uint CreateBuffer<T>(GraphBufferUsage usage, GraphResourceFlags flags = GraphResourceFlags.None)
+        where T : unmanaged
     {
-        return CreateBuffer(Utils.ByteSizeOf<T>(), usage);
+        return CreateBuffer(Utils.ByteSizeOf<T>(), usage, flags);
     }
 
-    public uint CreateBuffer<T>(int count, GraphBufferUsage usage) where T : unmanaged
+    public uint CreateBuffer<T>(int count, GraphBufferUsage usage, GraphResourceFlags flags = GraphResourceFlags.None)
+        where T : unmanaged
     {
-        return CreateBuffer(Utils.ByteSizeOf<T>(count), usage);
+        return CreateBuffer(Utils.ByteSizeOf<T>(count), usage, flags);
     }
 
-    public uint CreateBuffer<T>(uint count, GraphBufferUsage usage) where T : unmanaged
+    public uint CreateBuffer<T>(uint count, GraphBufferUsage usage, GraphResourceFlags flags = GraphResourceFlags.None)
+        where T : unmanaged
     {
-        return CreateBuffer(Utils.ByteSizeOf<T>() * count, usage);
+        return CreateBuffer(Utils.ByteSizeOf<T>() * count, usage, flags);
     }
 
     public uint UseTexture(uint id, ImageLayout layout, ResourceOperation operation);

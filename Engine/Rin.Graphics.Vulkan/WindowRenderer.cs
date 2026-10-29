@@ -1,5 +1,4 @@
 ﻿using System.Collections.Frozen;
-using System.Diagnostics;
 using Rin.Core.Graphics;
 using Rin.Core.Graphics.Graph;
 using Rin.Graphics.Vulkan.Descriptors;
@@ -36,7 +35,6 @@ public class WindowRenderer : IWindowRenderer
     public FrozenDictionary<uint, DescriptorSet> GlobalDescriptors = FrozenDictionary<uint, DescriptorSet>.Empty;
     private VkSemaphore[] _renderSemaphores = [];
     private VkSwapchainKHR _swapchain;
-    private readonly PrepareForPresentPass _prepareForPresentPass = new PrepareForPresentPass();
 
     private Extent2D _swapchainExtent = new()
     {
@@ -178,6 +176,8 @@ public class WindowRenderer : IWindowRenderer
         // ReSharper disable once AccessToDisposedClosure
         return Native.CreateSurface(instance, rinWindow.GetHandle());
     }
+
+    public uint DestinationImageId { get; private set; }
 
     public uint GetNumFramesInFlight()
     {
@@ -397,7 +397,6 @@ public class WindowRenderer : IWindowRenderer
                     builder.Reset();
                     Profiling.Begin("Engine.Rendering.Graph.Build");
                     ctx.Collector.Write(builder); // Build the passes from the collector
-                    builder.AddPass(_prepareForPresentPass);
                     Profiling.End("Engine.Rendering.Graph.Build");
                     var device = _module.GetDevice();
                     frame.WaitForLastDraw();
@@ -411,16 +410,13 @@ public class WindowRenderer : IWindowRenderer
                         new VkFence(),
                         &swapchainImageIndex), nameof(vkAcquireNextImageKHR));
 
-                    var swapchainImageHandle = _swapchainImageWrappers[swapchainImageIndex].Handle;
-
-                    ctx.SwapchainImageId = builder.AddDestinationImage(swapchainImageHandle);
+                    var swapchainImage = _swapchainImageWrappers[swapchainImageIndex];
+                    swapchainImage.Layout = ImageLayout.Undefined;
+                    DestinationImageId = builder.AddExternalImage(swapchainImage.Handle, GraphResourceFlags.Terminal);
 
                     Profiling.Begin("Engine.Rendering.Graph.Compile");
                     var graph = builder.Compile();
                     Profiling.End("Engine.Rendering.Graph.Compile");
-
-                    Debug.Assert(graph != null,
-                        "Frame Graph is empty"); // Since we always prepare for present the graph can never be empty
 
                     var cmd = frame.GetPrimaryCommandBuffer();
                     cmd
@@ -428,13 +424,15 @@ public class WindowRenderer : IWindowRenderer
 
                     _module.BindBindlessDescriptors(cmd);
 
-                    frame.OnReset += _ => graph.Dispose();
+                    if (graph != null)
+                    {
+                        frame.OnReset += _ => graph.Dispose();
+                        Profiling.Begin("Engine.Rendering.Graph.Execute");
+                        graph.Execute(frame.ExecutionContext);
+                        Profiling.End("Engine.Rendering.Graph.Execute");
+                    }
 
-
-                    Profiling.Begin("Engine.Rendering.Graph.Execute");
-                    graph.Execute(frame.ExecutionContext);
-                    Profiling.End("Engine.Rendering.Graph.Execute");
-
+                    cmd.ImageBarrier(swapchainImage, swapchainImage.Layout, ImageLayout.Present);
                     vkEndCommandBuffer(cmd).ThrowIfFailed(nameof(vkEndCommandBuffer));
 
                     var queue = _module.GetGraphicsQueue();
@@ -466,7 +464,7 @@ public class WindowRenderer : IWindowRenderer
                         new ReadOnlySpan<VkCommandBufferSubmitInfo>(&bufferSubmitInfo, 1),
                         new ReadOnlySpan<VkSemaphoreSubmitInfo>(&signalSemaphoreSubmitInfo, 1),
                         new ReadOnlySpan<VkSemaphoreSubmitInfo>(&waitSemaphoreSubmitInfo, 1));
-                    ((CompiledGraph)graph).OnSubmitted();
+                    (graph as CompiledGraph)?.OnSubmitted();
 
                     var swapchain = _swapchain;
                     var imIdx = swapchainImageIndex + 0;
@@ -523,7 +521,6 @@ public class WindowRenderer : IWindowRenderer
         public required Frame TargetFrame { get; init; }
         public required GraphCollector Collector { get; init; }
         public Extent2D RenderExtent { get; init; }
-        public uint SwapchainImageId { get; set; }
         public required IRenderer Renderer { get; init; }
     }
 }

@@ -196,6 +196,7 @@ public class FrameCollectorTests
         public void Execute(IRenderData context) => Executed.Add((Data)context);
         public IWindow GetWindow() => window;
         public Extent2D GetRenderExtent() => new(640, 480);
+        public uint DestinationImageId => 0;
         public void SetVsyncEnabled(bool enabled)
         {
         }
