@@ -32,7 +32,7 @@ flowchart TD
     L --> M["one vkQueuePresentKHR with every swapchain, a result per swapchain"]
 ```
 
-Graph resources are created lazily from a `ResourcePool` keyed by descriptor hash and returned when the frame is done. An external buffer carries its last usage from one graph to the next, so graphs must run in the order they are compiled. The module keeps two frames in flight; a window's `SetFramesInFlight` only sizes its swapchain.
+Graph resources are created lazily from a `ResourcePool` keyed by descriptor hash and returned when the frame is done. An external buffer carries its last usage from one graph to the next, so graphs must run in the order they are compiled. Frames in flight is a module setting (`SetFramesInFlight`, two by default, capped by `GetMaxTrueFramesInFlight` from the open windows' surfaces). Applying a change waits for the device, rebuilds the frame ring and gives every window new acquire semaphores and a swapchain with the matching image count.
 
 A resize or an out-of-date result marks the swapchain dirty, and the next `BeginFrame` rebuilds it after the frame's own fence wait: the new swapchain is created with `oldSwapchain` set, and the old one, its views, render semaphores and handles are destroyed when that frame slot is next reset, by which point every frame that could reference them has finished, or when the window is disposed, whichever comes first. The device is never waited idle for a rebuild.
 

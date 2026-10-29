@@ -1,7 +1,6 @@
 ﻿using Rin.Core.Graphics;
 using Rin.Core.Graphics.Graph;
 using Rin.Core.Graphics.Windows;
-using Rin.Core.Shared;
 using Rin.Graphics.Vulkan.Graph;
 using Rin.Graphics.Vulkan.Images;
 using Rin.Graphics.Vulkan.Windows;
@@ -18,7 +17,6 @@ namespace Rin.Graphics.Vulkan;
 /// </summary>
 public class WindowRenderer : IWindowRenderer
 {
-    private readonly CoalescingValue<uint> _framesInFlight = new(2);
     private readonly VulkanGraphicsModule _module;
     private readonly VkPresentModeKHR _nonVSyncPresentMode;
     private readonly List<RetiredSwapchain> _retiring = [];
@@ -130,7 +128,6 @@ public class WindowRenderer : IWindowRenderer
         if (render.RenderExtent.Width == 0 || render.RenderExtent.Height == 0) return false;
         if (render.RenderExtent != _window.GetSize()) return false;
 
-        ApplyPendingFramesInFlight();
         if (_swapchainExtent != render.RenderExtent) MarkDirty();
 
         var frame = _module.CurrentFrame;
@@ -188,31 +185,17 @@ public class WindowRenderer : IWindowRenderer
 
     public uint DestinationImageId { get; private set; }
 
-    public uint GetNumFramesInFlight()
-    {
-        return _framesInFlight.Current;
-    }
-
     /// <summary>
-    ///     Publishes a new swapchain image count request. Safe to call from any thread at any time - it never touches
-    ///     GPU resources itself. The render loop picks up the latest request and rebuilds the swapchain at its next safe
-    ///     point (<see cref="BeginFrame" />). The frame ring itself belongs to the module.
+    ///     The most swapchain images this window's surface allows, which caps the module's frames in flight.
     /// </summary>
-    public void SetFramesInFlight(uint framesInFlight)
+    internal uint MaxSwapchainImages
     {
-        _framesInFlight.Set(Math.Max(1, framesInFlight));
-    }
-
-    private void ApplyPendingFramesInFlight()
-    {
-        if (_framesInFlight.TryConsume(out _)) MarkDirty();
-    }
-
-    public unsafe uint GetMaxTrueFramesInFlight()
-    {
-        var capabilities = GetSurfaceCapabilities();
-        // 0 means the surface imposes no upper bound (Vulkan spec).
-        return capabilities.maxImageCount == 0 ? uint.MaxValue : capabilities.maxImageCount;
+        get
+        {
+            var capabilities = GetSurfaceCapabilities();
+            // 0 means the surface imposes no upper bound (Vulkan spec).
+            return capabilities.maxImageCount == 0 ? uint.MaxValue : capabilities.maxImageCount;
+        }
     }
 
     private unsafe VkSurfaceCapabilitiesKHR GetSurfaceCapabilities()
@@ -230,8 +213,19 @@ public class WindowRenderer : IWindowRenderer
     public void Init()
     {
         var device = _module.GetDevice();
+        foreach (var semaphore in _acquireSemaphores) device.DestroySemaphore(semaphore);
         _acquireSemaphores = new VkSemaphore[_module.FramesInFlight];
         for (var i = 0; i < _acquireSemaphores.Length; i++) _acquireSemaphores[i] = device.CreateSemaphore();
+    }
+
+    /// <summary>
+    ///     Follows a change of the module's frames in flight, with the device idle: new acquire semaphores and a
+    ///     swapchain with the matching image count.
+    /// </summary>
+    internal void OnFramesInFlightChanged()
+    {
+        Init();
+        MarkDirty();
     }
 
     private unsafe bool CreateSwapchain(Extent2D extent, VkSwapchainKHR oldSwapchain)
@@ -251,7 +245,7 @@ public class WindowRenderer : IWindowRenderer
         // [minImageCount, maxImageCount] range (maxImageCount == 0 means no upper bound).
         var minImages = Math.Max(1, surfaceCapabilities.minImageCount);
         var maxImages = surfaceCapabilities.maxImageCount == 0 ? uint.MaxValue : surfaceCapabilities.maxImageCount;
-        var imageCount = Math.Clamp(Math.Max(1, _framesInFlight.Current), minImages, maxImages);
+        var imageCount = Math.Clamp(_module.FramesInFlight, minImages, maxImages);
 
         var createInfo = new VkSwapchainCreateInfoKHR
         {

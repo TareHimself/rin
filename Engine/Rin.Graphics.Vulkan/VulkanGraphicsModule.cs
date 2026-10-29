@@ -84,6 +84,7 @@ public partial class VulkanGraphicsModule : IGraphicsModule, IResourceAcquirer
 
         _frames.DisposeRemaining();
         DisposeFrames();
+        _resourcePool.Dispose();
         _backgroundTaskQueue.Dispose();
         _descriptorAllocator?.Dispose();
         _shaderManager?.Dispose();
@@ -253,7 +254,7 @@ public partial class VulkanGraphicsModule : IGraphicsModule, IResourceAcquirer
         _allocator = Native.CreateAllocator(_instance, _device, _physicalDevice);
         _shaderManager = new CompiledShaderManager();
         InitBindlessResources();
-        InitFrames(DefaultFramesInFlight);
+        InitFrames(_framesInFlight.Current);
         _instance.DestroySurface(result.surface);
     }
 

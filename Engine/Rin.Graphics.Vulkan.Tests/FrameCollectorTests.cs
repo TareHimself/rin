@@ -229,13 +229,6 @@ public class FrameCollectorTests
         {
         }
 
-        public uint GetNumFramesInFlight() => 2;
-        public void SetFramesInFlight(uint framesInFlight)
-        {
-        }
-
-        public uint GetMaxTrueFramesInFlight() => 3;
-
         public void Dispose()
         {
         }

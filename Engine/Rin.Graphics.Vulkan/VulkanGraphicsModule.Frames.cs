@@ -20,6 +20,7 @@ public partial class VulkanGraphicsModule
     private readonly List<IRenderer> _active = [];
     private readonly List<IRenderData> _batch = [];
     private readonly Lock _frameLock = new();
+    private readonly CoalescingValue<uint> _framesInFlight = new(DefaultFramesInFlight);
     private readonly List<WindowRenderer> _presenting = [];
     private readonly ResourcePool _resourcePool = new();
     private Frame[] _frameRing = [];
@@ -37,6 +38,41 @@ public partial class VulkanGraphicsModule
 
     internal uint FramesInFlight => (uint)_frameRing.Length;
 
+    public uint GetNumFramesInFlight()
+    {
+        return _framesInFlight.Current;
+    }
+
+    public void SetFramesInFlight(uint framesInFlight)
+    {
+        _framesInFlight.Set(Math.Max(1, framesInFlight));
+    }
+
+    public uint GetMaxTrueFramesInFlight()
+    {
+        var max = uint.MaxValue;
+        foreach (var renderer in _frames.GetWindowRenderers())
+            if (renderer is WindowRenderer window)
+                max = Math.Min(max, window.MaxSwapchainImages);
+        return max;
+    }
+
+    /// <summary>
+    ///     Applies the latest frames in flight request between frames: waits for the device, rebuilds the ring and
+    ///     tells every window to follow with new acquire semaphores and a swapchain of the matching image count.
+    /// </summary>
+    private void ApplyPendingFramesInFlight()
+    {
+        if (!_framesInFlight.TryConsume(out var framesInFlight)) return;
+
+        WaitIdle();
+        DisposeFrames();
+        InitFrames(framesInFlight);
+        foreach (var renderer in _frames.GetWindowRenderers())
+            if (renderer is WindowRenderer window)
+                window.OnFramesInFlightChanged();
+    }
+
     private void InitFrames(uint framesInFlight)
     {
         DescriptorSet[] sets = [GetResourceDescriptorSet()];
@@ -49,7 +85,6 @@ public partial class VulkanGraphicsModule
     {
         foreach (var frame in _frameRing) frame.Dispose();
         _frameRing = [];
-        _resourcePool.Dispose();
     }
 
     /// <summary>
@@ -61,6 +96,7 @@ public partial class VulkanGraphicsModule
         lock (_frameLock)
         {
             if (!_frames.TryTake(_batch)) return;
+            ApplyPendingFramesInFlight();
             if (_batch.Count > 0) RenderBatch();
             FrameCollector.DisposeBatch(_batch);
             _batch.Clear();

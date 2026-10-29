@@ -49,7 +49,7 @@ The main thread waits up to 3 ms for the previous render to finish; if it has, i
 
 | Interface | Role |
 | --- | --- |
-| `IGraphicsModule` | Backend entry point: windows and renderers, shader and resource creation, uploads, `Collect` and `Execute`, max framerate. |
+| `IGraphicsModule` | Backend entry point: windows and renderers, shader and resource creation, uploads, `Collect` and `Execute`, max framerate and frames in flight. |
 | `IRenderer`, `IWindowRenderer` | `Collect` on the main thread returns the render data `BeginFrame` writes into the shared graph builder on the render thread, and `EndFrame` records what comes after the graph, in the same command buffer. A window renderer raises `OnCollect` for surfaces and exposes the acquired swapchain image as `DestinationImageId`. |
 | `IGraphCollector`, `ICollectedData` | Subsystems hand collected data to the renderer; `Write` turns it into passes later. |
 | `IGraphBuilder`, `IGraphConfig` | Adding passes and external resources; declaring the textures and buffers a pass creates, reads and writes, by `uint` id. `GraphResourceFlags.Terminal` marks a resource whose writes are observed outside the graph. |

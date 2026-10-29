@@ -94,4 +94,17 @@ public interface  IGraphicsModule : IModule, IUpdatable, IProviderResolvable<IGr
     public int MaxFramerate { get; }
 
     public void SetMaxFramerate(int framesPerSecond);
+
+    public uint GetNumFramesInFlight();
+
+    /// <summary>
+    ///     Requests a new frames in flight count. Safe from any thread; the render thread applies it between frames.
+    /// </summary>
+    public void SetFramesInFlight(uint framesInFlight);
+
+    /// <summary>
+    ///     The true cap on how many frames in flight can be requested, imposed by the open windows' presentation
+    ///     surfaces.
+    /// </summary>
+    public uint GetMaxTrueFramesInFlight();
 }

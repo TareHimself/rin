@@ -14,6 +14,7 @@ public sealed class NullGraphicsModule : IGraphicsModule
     private readonly HashSet<ResourceHandle> _buffers = [];
 
     private uint _nextId = 1;
+    private uint _framesInFlight = 2;
 
     public event Action<IWindow>? OnWindowClosed;
     public event Action<IWindow>? OnWindowCreated;
@@ -194,6 +195,21 @@ public sealed class NullGraphicsModule : IGraphicsModule
     public void SetMaxFramerate(int framesPerSecond)
     {
         _frameLimiter.MaxFramerate = int.Max(framesPerSecond, 0);
+    }
+
+    public uint GetNumFramesInFlight()
+    {
+        return _framesInFlight;
+    }
+
+    public void SetFramesInFlight(uint framesInFlight)
+    {
+        _framesInFlight = Math.Max(1, framesInFlight);
+    }
+
+    public uint GetMaxTrueFramesInFlight()
+    {
+        return uint.MaxValue;
     }
 
     public void Execute()
