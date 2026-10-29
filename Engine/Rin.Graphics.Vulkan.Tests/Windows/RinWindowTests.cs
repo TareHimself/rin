@@ -67,6 +67,34 @@ public class RinWindowTests
     }
 
     [Test]
+    public void SetSize_IsReflectedByGetSize()
+    {
+        _window.SetSize(new Extent2D(800, 600));
+
+        Assert.That(_window.GetSize(), Is.EqualTo(new Extent2D(800, 600)));
+    }
+
+    [Test]
+    public void SetFullscreen_ReachesTheNativeWindowAndTracksTheState()
+    {
+        _window.SetFullscreen(true);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(_window.IsFullscreen, Is.True);
+            Assert.That(FakeNative.WindowIsFullscreen(_handle), Is.EqualTo(1));
+        });
+
+        _window.SetFullscreen(false);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(_window.IsFullscreen, Is.False);
+            Assert.That(FakeNative.WindowIsFullscreen(_handle), Is.Zero);
+        });
+    }
+
+    [Test]
     public void SetCursorPosition_RoundTrips()
     {
         _window.SetCursorPosition(new Vector2(12, 34));

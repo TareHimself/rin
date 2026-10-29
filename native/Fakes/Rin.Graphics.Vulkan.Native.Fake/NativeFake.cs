@@ -43,6 +43,7 @@ public static unsafe class NativeFake
     {
         public Extent2D Size;
         public Vector2 Cursor;
+        public bool Fullscreen;
         public DropCallbacks? Drop;
     }
 
@@ -102,6 +103,10 @@ public static unsafe class NativeFake
     [UnmanagedCallersOnly(EntryPoint = "fakeWindowHasDropCallbacks")]
     public static int FakeWindowHasDropCallbacks(ulong handle) =>
         Windows.TryGetValue(handle, out var window) && window.Drop.HasValue ? 1 : 0;
+
+    [UnmanagedCallersOnly(EntryPoint = "fakeWindowIsFullscreen")]
+    public static int FakeWindowIsFullscreen(ulong handle) =>
+        Windows.TryGetValue(handle, out var window) && window.Fullscreen ? 1 : 0;
 
     [UnmanagedCallersOnly(EntryPoint = "fakeLiveAllocationCount")]
     public static int FakeLiveAllocationCount() => _liveAllocations;
@@ -241,6 +246,13 @@ public static unsafe class NativeFake
 
     [UnmanagedCallersOnly(EntryPoint = "platformWindowGetSize")]
     public static Extent2D PlatformWindowGetSize(ulong handle) => Windows[handle].Size;
+
+    [UnmanagedCallersOnly(EntryPoint = "platformWindowSetFullscreen")]
+    public static void PlatformWindowSetFullscreen(ulong handle, byte fullscreen) =>
+        Windows[handle].Fullscreen = fullscreen != 0;
+
+    [UnmanagedCallersOnly(EntryPoint = "platformWindowSetSize")]
+    public static void PlatformWindowSetSize(ulong handle, Extent2D size) => Windows[handle].Size = size;
 
     [UnmanagedCallersOnly(EntryPoint = "platformWindowCreateSurface")]
     public static int PlatformWindowCreateSurface(nint instance, ulong handle, nint* outSurface)
