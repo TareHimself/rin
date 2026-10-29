@@ -12,6 +12,7 @@ public sealed class ExampleContext(ExampleHost application, IWindowSurface surfa
 {
     private readonly List<IView> _views = [];
     private readonly List<Action> _undo = [];
+    private readonly List<IWindow> _children = [];
 
     public ExampleHost Application => application;
 
@@ -63,9 +64,17 @@ public sealed class ExampleContext(ExampleHost application, IWindowSurface surfa
         _undo.Add(() => Window.OnDrop -= handler);
     }
 
+    internal void AddChild(IWindowSurface childSurface)
+    {
+        var window = childSurface.Window;
+        _children.Add(window);
+        window.OnDispose += () => _children.Remove(window);
+    }
+
     internal void Release()
     {
         IsActive = false;
+        foreach (var child in _children.ToArray()) child.Dispose();
         foreach (var undo in _undo) undo();
         _undo.Clear();
 
