@@ -22,6 +22,10 @@ RIN_NATIVE_API void platformWindowSetCursorPosition(std::uint64_t handle,rwin::V
 
 RIN_NATIVE_API rwin::Extent2D platformWindowGetSize(std::uint64_t handle);
 
+RIN_NATIVE_API void platformWindowSetFullscreen(std::uint64_t handle,std::uint8_t fullscreen);
+
+RIN_NATIVE_API void platformWindowSetSize(std::uint64_t handle,rwin::Extent2D size);
+
 RIN_NATIVE_API GraphicsResult platformWindowCreateSurface(VkInstance instance,std::uint64_t handle,VkSurfaceKHR * outSurface);
 
 RIN_NATIVE_API int platformWindowGetEvents(rwin::WindowEvent * output,int size);

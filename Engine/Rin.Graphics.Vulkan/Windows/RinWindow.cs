@@ -39,7 +39,7 @@ public class RinWindow : IWindow
         _self.Free();
     }
 
-    public bool IsFullscreen { get; }
+    public bool IsFullscreen { get; private set; }
     public event Action<KeyEvent>? OnKey;
     public event Action<CursorMoveEvent>? OnCursorMoved;
     public event Action<CursorButtonEvent>? OnCursorButton;
@@ -213,12 +213,13 @@ public class RinWindow : IWindow
 
     public void SetFullscreen(bool state)
     {
-        throw new NotImplementedException();
+        Native.platformWindowSetFullscreen(_handle, state);
+        IsFullscreen = state;
     }
 
     public void SetSize(in Extent2D size)
     {
-        throw new NotImplementedException();
+        Native.platformWindowSetSize(_handle, size);
     }
 
     public Extent2D GetSize()

@@ -24,6 +24,9 @@ internal static partial class FakeNative
     [LibraryImport(DllName, EntryPoint = "fakeWindowHasDropCallbacks")]
     public static partial int WindowHasDropCallbacks(ulong handle);
 
+    [LibraryImport(DllName, EntryPoint = "fakeWindowIsFullscreen")]
+    public static partial int WindowIsFullscreen(ulong handle);
+
     [LibraryImport(DllName, EntryPoint = "fakeLiveAllocationCount")]
     public static partial int LiveAllocationCount();
 

@@ -176,6 +176,13 @@ internal static partial class Native
     public static partial Extent2D platformWindowGetSize(ulong handle);
 
     [LibraryImport(DllName)]
+    public static partial void platformWindowSetFullscreen(ulong handle,
+        [MarshalAs(UnmanagedType.U1)] bool fullscreen);
+
+    [LibraryImport(DllName)]
+    public static partial void platformWindowSetSize(ulong handle, Extent2D size);
+
+    [LibraryImport(DllName)]
     public static unsafe partial int platformWindowGetEvents(Window.WindowEvent* events, int size);
 
     [LibraryImport(DllName)]

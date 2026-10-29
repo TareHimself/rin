@@ -108,6 +108,16 @@ rwin::Extent2D platformWindowGetSize(std::uint64_t handle)
     return rwin::getWindowClientSize(handle);
 }
 
+void platformWindowSetFullscreen(std::uint64_t handle, std::uint8_t fullscreen)
+{
+    rwin::setWindowFullscreen(handle, fullscreen != 0);
+}
+
+void platformWindowSetSize(std::uint64_t handle, rwin::Extent2D size)
+{
+    rwin::setWindowSize(handle, size);
+}
+
 GraphicsResult platformWindowCreateSurface(VkInstance instance, std::uint64_t handle, VkSurfaceKHR* outSurface)
 {
     return guarded([&]
