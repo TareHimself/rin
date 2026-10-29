@@ -1,6 +1,7 @@
 using Examples.ChildWindows.Views;
 using Rin.Core.Graphics;
 using Rin.Core.Graphics.Windows;
+using Rin.Core.Views.Window;
 
 namespace Examples.ChildWindows;
 
@@ -21,5 +22,10 @@ public sealed class ChildWindowsExample : Example
             if (e is { Key: InputKey.Enter, State: InputState.Pressed, IsAltDown: true })
                 window.SetFullscreen(!window.IsFullscreen);
         });
+    }
+
+    public override void OnChildSurface(IWindowSurface surface)
+    {
+        surface.Add(new WindowControlsView(surface.Window));
     }
 }

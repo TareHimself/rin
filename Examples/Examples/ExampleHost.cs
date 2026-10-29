@@ -70,14 +70,19 @@ public sealed class ExampleHost(Example? example, IReadOnlyList<Example> example
 
     private void OnSurfaceCreated(IWindowSurface surface)
     {
-        // Child windows get surfaces too, and the example belongs to the first one only.
-        if (_surface is not null) return;
-        _surface = surface;
+        if (_surface is null)
+        {
+            _surface = surface;
+            if (example is not null)
+                Run(example, surface);
+            else
+                ShowLauncher(surface);
+            return;
+        }
 
-        if (example is not null)
-            Run(example, surface);
-        else
-            ShowLauncher(surface);
+        if (_running is null || _context is null) return;
+        _context.AddChild(surface);
+        _running.OnChildSurface(surface);
     }
 
     private void ShowLauncher(IWindowSurface surface)
