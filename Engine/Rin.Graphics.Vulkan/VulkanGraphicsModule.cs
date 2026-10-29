@@ -19,7 +19,7 @@ using static TerraFX.Interop.Vulkan.Vulkan;
 
 namespace Rin.Graphics.Vulkan;
 
-public partial class VulkanGraphicsModule : IGraphicsModule
+public partial class VulkanGraphicsModule : IGraphicsModule, IResourceAcquirer
 {
     private readonly FrameLimiter _frameLimiter = new();
     private readonly BackgroundTaskQueue _backgroundTaskQueue = new()
