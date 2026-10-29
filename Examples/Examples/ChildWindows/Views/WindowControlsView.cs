@@ -73,7 +73,7 @@ public sealed class WindowControlsView : RectView
     private void OpenChild()
     {
         _opened++;
-        var child = _window.CreateChild($"Child {_opened}", ChildSize);
+        var child = _window.CreateChild($"Child {_opened}", ChildSize, WindowFlags.Visible | WindowFlags.Resizable);
         _children.Add(child);
         child.OnDispose += () =>
         {

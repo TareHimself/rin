@@ -21,7 +21,14 @@ public sealed class ChildWindowsExample : Example
         {
             if (e is { Key: InputKey.Enter, State: InputState.Pressed, IsAltDown: true })
                 window.SetFullscreen(!window.IsFullscreen);
+            if (e is { Key: InputKey.F, State: InputState.Pressed, IsAltDown: false }) ToggleFramesInFlight();
         });
+    }
+
+    private static void ToggleFramesInFlight()
+    {
+        var graphics = IGraphicsModule.Get();
+        graphics.SetFramesInFlight(graphics.GetNumFramesInFlight() == 2 ? 3u : 2u);
     }
 
     public override void OnChildSurface(IWindowSurface surface)
