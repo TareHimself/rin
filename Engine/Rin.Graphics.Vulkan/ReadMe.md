@@ -30,6 +30,8 @@ flowchart TD
 
 Graph resources are created lazily from a `ResourcePool` keyed by descriptor hash and returned when the frame is done. An external buffer carries its last usage from one graph to the next, so graphs must run in the order they are compiled. A window has one frame in flight by default (`SetFramesInFlight`).
 
+A resize or an out-of-date result marks the swapchain dirty, and the next frame rebuilds it after the frame's own fence wait: the new swapchain is created with `oldSwapchain` set, and the old one, its views, render semaphores and handles are destroyed when that frame slot is next reset, by which point every frame that could reference them has finished. The device is never waited idle for a rebuild.
+
 ## The native boundary
 
 | Side | Owns |
