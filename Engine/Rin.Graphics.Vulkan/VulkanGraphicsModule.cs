@@ -83,6 +83,8 @@ public partial class VulkanGraphicsModule : IGraphicsModule, IResourceAcquirer
         }
 
         _frames.DisposeRemaining();
+        DisposeFrames();
+        _resourcePool.Dispose();
         _backgroundTaskQueue.Dispose();
         _descriptorAllocator?.Dispose();
         _shaderManager?.Dispose();
@@ -137,9 +139,17 @@ public partial class VulkanGraphicsModule : IGraphicsModule, IResourceAcquirer
         if (renderer is IWindowRenderer windowRenderer) OnWindowRendererCreated?.Invoke(windowRenderer);
     }
 
+    /// <summary>
+    ///     Unregisters a renderer once the frame in progress, if any, has been presented, so the caller may dispose it
+    ///     as soon as this returns.
+    /// </summary>
     public void RemoveRenderer(IRenderer renderer)
     {
-        _frames.Remove(renderer);
+        lock (_frameLock)
+        {
+            _frames.Remove(renderer);
+        }
+
         if (renderer is IWindowRenderer windowRenderer) OnWindowRendererDestroyed?.Invoke(windowRenderer);
     }
 
@@ -193,7 +203,7 @@ public partial class VulkanGraphicsModule : IGraphicsModule, IResourceAcquirer
             HandlePendingGraphicsSubmits();
         }
 
-        _frames.Execute();
+        RenderCollectedFrame();
         FlushPendingWrites();
     }
 
@@ -244,6 +254,7 @@ public partial class VulkanGraphicsModule : IGraphicsModule, IResourceAcquirer
         _allocator = Native.CreateAllocator(_instance, _device, _physicalDevice);
         _shaderManager = new CompiledShaderManager();
         InitBindlessResources();
+        InitFrames(_framesInFlight.Current);
         _instance.DestroySurface(result.surface);
     }
 
@@ -265,8 +276,11 @@ public partial class VulkanGraphicsModule : IGraphicsModule, IResourceAcquirer
         if (_frames.GetWindowRenderer(window) is not { } renderer) return;
 
         OnWindowClosed?.Invoke(window);
-        RemoveRenderer(renderer);
-        renderer.Dispose();
+        lock (_frameLock)
+        {
+            RemoveRenderer(renderer);
+            renderer.Dispose();
+        }
     }
 
     public VkInstance GetInstance()

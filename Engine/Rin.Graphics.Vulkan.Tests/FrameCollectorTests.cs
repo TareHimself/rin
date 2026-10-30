@@ -8,6 +8,7 @@ namespace Rin.Graphics.Vulkan.Tests;
 public class FrameCollectorTests
 {
     private FrameCollector _frames = null!;
+    private readonly List<IRenderData> _taken = [];
     private readonly List<RinWindow> _windows = [];
 
     [SetUp]
@@ -15,6 +16,7 @@ public class FrameCollectorTests
     {
         FakeNative.Reset();
         _frames = new FrameCollector();
+        _taken.Clear();
     }
 
     [TearDown]
@@ -32,7 +34,7 @@ public class FrameCollectorTests
     }
 
     [Test]
-    public void Collect_ThenExecute_RunsEachRendererOnItsOwnData()
+    public void Collect_ThenTryTake_HandsOverEachRenderersOwnData()
     {
         var first = new RecordingRenderer();
         var second = new RecordingRenderer();
@@ -40,45 +42,42 @@ public class FrameCollectorTests
         _frames.Add(second);
 
         _frames.Collect();
-        var executed = _frames.Execute();
+        var taken = _frames.TryTake(_taken);
 
         Assert.Multiple(() =>
         {
-            Assert.That(executed, Is.True);
-            Assert.That(first.Executed, Has.Count.EqualTo(1));
-            Assert.That(second.Executed, Has.Count.EqualTo(1));
-            Assert.That(first.Executed[0].Renderer, Is.SameAs(first));
-            Assert.That(first.Executed[0].Disposed, Is.True);
+            Assert.That(taken, Is.True);
+            Assert.That(_taken, Is.EqualTo(new[] { first.Collected[0], second.Collected[0] }));
+            Assert.That(first.Collected[0].Disposed, Is.False);
         });
     }
 
     [Test]
-    public void Execute_WithoutACollect_DoesNothing()
+    public void TryTake_WithoutACollect_HandsOverNothing()
     {
-        var renderer = new RecordingRenderer();
-        _frames.Add(renderer);
+        _frames.Add(new RecordingRenderer());
 
         Assert.Multiple(() =>
         {
-            Assert.That(_frames.Execute(), Is.False);
-            Assert.That(renderer.Executed, Is.Empty);
+            Assert.That(_frames.TryTake(_taken), Is.False);
+            Assert.That(_taken, Is.Empty);
         });
     }
 
     [Test]
-    public void Collect_Twice_ExecutesTheNewestAndDisposesTheSkippedBatch()
+    public void Collect_Twice_HandsOverTheNewestAndDisposesTheSkippedBatch()
     {
         var renderer = new RecordingRenderer();
         _frames.Add(renderer);
 
         _frames.Collect();
         _frames.Collect();
-        _frames.Execute();
+        _frames.TryTake(_taken);
 
         Assert.Multiple(() =>
         {
             Assert.That(renderer.Collected, Has.Count.EqualTo(2));
-            Assert.That(renderer.Executed, Is.EqualTo(new[] { renderer.Collected[1] }));
+            Assert.That(_taken, Is.EqualTo(new[] { renderer.Collected[1] }));
             Assert.That(renderer.Collected[0].Disposed, Is.True);
         });
     }
@@ -92,12 +91,28 @@ public class FrameCollectorTests
         _frames.Add(busy);
 
         _frames.Collect();
-        _frames.Execute();
+        _frames.TryTake(_taken);
+
+        Assert.That(_taken, Is.EqualTo(new[] { busy.Collected[0] }));
+    }
+
+    [Test]
+    public void TryTake_DropsAndDisposesTheDataOfARendererRemovedAfterCollect()
+    {
+        var removed = new RecordingRenderer();
+        var kept = new RecordingRenderer();
+        _frames.Add(removed);
+        _frames.Add(kept);
+        _frames.Collect();
+
+        _frames.Remove(removed);
+        _frames.TryTake(_taken);
 
         Assert.Multiple(() =>
         {
-            Assert.That(idle.Executed, Is.Empty);
-            Assert.That(busy.Executed, Has.Count.EqualTo(1));
+            Assert.That(_taken, Is.EqualTo(new[] { kept.Collected[0] }));
+            Assert.That(removed.Collected[0].Disposed, Is.True);
+            Assert.That(kept.Collected[0].Disposed, Is.False);
         });
     }
 
@@ -118,7 +133,7 @@ public class FrameCollectorTests
     }
 
     [Test]
-    public void DisposeRemaining_DisposesABatchNobodyExecuted()
+    public void DisposeRemaining_DisposesABatchNobodyTook()
     {
         var renderer = new RecordingRenderer();
         _frames.Add(renderer);
@@ -126,11 +141,20 @@ public class FrameCollectorTests
 
         _frames.DisposeRemaining();
 
-        Assert.Multiple(() =>
-        {
-            Assert.That(renderer.Collected[0].Disposed, Is.True);
-            Assert.That(renderer.Executed, Is.Empty);
-        });
+        Assert.That(renderer.Collected[0].Disposed, Is.True);
+    }
+
+    [Test]
+    public void DisposeBatch_DisposesEveryEntry()
+    {
+        var renderer = new RecordingRenderer();
+        _frames.Add(renderer);
+        _frames.Collect();
+        _frames.TryTake(_taken);
+
+        FrameCollector.DisposeBatch(_taken);
+
+        Assert.That(renderer.Collected[0].Disposed, Is.True);
     }
 
     [Test]
@@ -176,14 +200,13 @@ public class FrameCollectorTests
         _frames.Add(renderer);
 
         _frames.Collect();
-        _frames.Execute();
+        _frames.TryTake(_taken);
 
-        Assert.That(renderer.Executed, Has.Count.EqualTo(1));
+        Assert.That(_taken, Has.Count.EqualTo(1));
     }
 
     private sealed class RecordingWindowRenderer(IWindow window) : IWindowRenderer
     {
-        public List<Data> Executed { get; } = [];
         public bool VsyncEnabled => false;
         public event Action<IGraphCollector>? OnCollect;
 
@@ -193,20 +216,18 @@ public class FrameCollectorTests
             return new Data(this);
         }
 
-        public void Execute(IRenderData context) => Executed.Add((Data)context);
+        public bool BeginFrame(IRenderData data, IGraphBuilder builder) => true;
+
+        public void EndFrame(IExecutionContext ctx)
+        {
+        }
+
         public IWindow GetWindow() => window;
         public Extent2D GetRenderExtent() => new(640, 480);
         public uint DestinationImageId => 0;
         public void SetVsyncEnabled(bool enabled)
         {
         }
-
-        public uint GetNumFramesInFlight() => 2;
-        public void SetFramesInFlight(uint framesInFlight)
-        {
-        }
-
-        public uint GetMaxTrueFramesInFlight() => 3;
 
         public void Dispose()
         {
@@ -217,7 +238,6 @@ public class FrameCollectorTests
     {
         public bool Draws { get; init; } = true;
         public List<Data> Collected { get; } = [];
-        public List<Data> Executed { get; } = [];
 
         public IRenderData? Collect()
         {
@@ -227,7 +247,11 @@ public class FrameCollectorTests
             return data;
         }
 
-        public void Execute(IRenderData context) => Executed.Add((Data)context);
+        public bool BeginFrame(IRenderData data, IGraphBuilder builder) => true;
+
+        public void EndFrame(IExecutionContext ctx)
+        {
+        }
 
         public void Dispose()
         {

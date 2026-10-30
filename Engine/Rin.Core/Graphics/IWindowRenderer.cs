@@ -17,13 +17,4 @@ public interface IWindowRenderer : IRenderer
     /// </summary>
     public uint DestinationImageId { get; }
     public void SetVsyncEnabled(bool enabled);
-
-    public uint GetNumFramesInFlight();
-    public void SetFramesInFlight(uint framesInFlight);
-
-    /// <summary>
-    ///     The true cap on how many frames in flight can actually be requested, imposed by the
-    ///     window's presentation surface.
-    /// </summary>
-    public uint GetMaxTrueFramesInFlight();
 }

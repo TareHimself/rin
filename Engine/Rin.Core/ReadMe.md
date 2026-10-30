@@ -38,17 +38,19 @@ sequenceDiagram
     S-->>R: collector.Add(ICollectedData)
     Note over A: render thread
     A->>G: OnRender, Execute()
-    G->>R: Execute(renderData)
-    R->>B: ICollectedData.Write(builder) adds IPass objects
-    B->>B: Configure every pass, prune from the roots, order, Execute each
+    G->>R: BeginFrame(renderData, builder)
+    R->>B: register the swapchain image, ICollectedData.Write(builder) adds IPass objects
+    B->>B: one graph for every renderer: Configure, prune from the roots, order, Execute each
+    G->>R: EndFrame(ctx) moves the swapchain image to Present
+    G->>G: one submit, one present
 ```
 
 The main thread waits up to 3 ms for the previous render to finish; if it has, it collects and wakes the render thread, otherwise it skips the collect for that tick. The frame graph builder, compiler and executor live in the backend ([Rin.Graphics.Vulkan](../Rin.Graphics.Vulkan/ReadMe.md)); Rin.Core only holds the interfaces.
 
 | Interface | Role |
 | --- | --- |
-| `IGraphicsModule` | Backend entry point: windows and renderers, shader and resource creation, uploads, `Collect` and `Execute`, max framerate. |
-| `IRenderer`, `IWindowRenderer` | `Collect` on the main thread returns the render data `Execute` consumes on the render thread. A window renderer raises `OnCollect` for surfaces and exposes the acquired swapchain image as `DestinationImageId`. |
+| `IGraphicsModule` | Backend entry point: windows and renderers, shader and resource creation, uploads, `Collect` and `Execute`, max framerate and frames in flight. |
+| `IRenderer`, `IWindowRenderer` | `Collect` on the main thread returns the render data `BeginFrame` writes into the shared graph builder on the render thread, and `EndFrame` records what comes after the graph, in the same command buffer. A window renderer raises `OnCollect` for surfaces and exposes the acquired swapchain image as `DestinationImageId`. |
 | `IGraphCollector`, `ICollectedData` | Subsystems hand collected data to the renderer; `Write` turns it into passes later. |
 | `IGraphBuilder`, `IGraphConfig` | Adding passes and external resources; declaring the textures and buffers a pass creates, reads and writes, by `uint` id. `GraphResourceFlags.Terminal` marks a resource whose writes are observed outside the graph. |
 | `IPass`, `ITerminalPass`, `IPassWithPreAdd`, `IPassWithPostAdd` | `Configure` declares resources, `Execute` records GPU work. Pruning keeps terminal passes, writers of `Terminal` resources and whatever they depend on. |
