@@ -9,21 +9,15 @@ namespace Rin.Graphics.Vulkan.Graph;
 
 public class ResourcePool : IResourcePool
 {
-    // Effectively disabled: destroying a pooled image and reusing its descriptor slot for a new one -
-    // even correctly, through FreeResourceHandles, well past any frames-in-flight margin - reliably
-    // trips a Khronos Validation Layer GPU-AV false positive ("Descriptor index N references a
-    // resource that was destroyed") on the very next draw against that slot. Confirmed by disabling
-    // eviction entirely: zero validation errors over the same run that otherwise produces thousands.
-    // Matches known validation-layer bugs with UPDATE_AFTER_BIND + PARTIALLY_BOUND descriptor reuse:
-    // https://github.com/KhronosGroup/Vulkan-ValidationLayers/issues/3835
-    // https://github.com/KhronosGroup/Vulkan-ValidationLayers/issues/3729
-    // Trade-off: pooled images now live for the app's lifetime instead of being freed when idle.
+    /// <summary>
+    ///     Free a pooled resource once it has gone unused for this many rendered frames.
+    /// </summary>
+    [PublicAPI] public static ulong MaxIdleFrames = 120;
 
-    /// <summary>Free a pooled resource once it has gone unused for this many rendered frames.</summary>
-    [PublicAPI] public static ulong MaxIdleFrames = ulong.MaxValue;
-
-    /// <summary>Cap on idle resources kept per pool key; extras are freed immediately on return.</summary>
-    [PublicAPI] public static int MaxIdlePerKey = int.MaxValue;
+    /// <summary>
+    ///     Cap on idle resources kept per pool key; the oldest extras are freed at the end of a frame.
+    /// </summary>
+    [PublicAPI] public static int MaxIdlePerKey = 4;
 
     private readonly BufferPool _bufferPool = new();
     private readonly CubemapPool _cubemapPool = new();
@@ -92,7 +86,7 @@ public class ResourcePool : IResourcePool
 
         public void Return(LinkedList<KeyValuePair<ulong, TResource>> container, TResource resource)
         {
-            // Never dispose here — freeing happens only in OnFrameEnd, well past frames-in-flight.
+            // Never dispose here, freeing happens only in OnFrameEnd, well past frames-in-flight.
             // The proxy captured this exact list at checkout, so it must stay reachable even if
             // OnFrameEnd emptied it in the meantime; keys are therefore never removed.
             container.AddFirst(new KeyValuePair<ulong, TResource>(CurrentFrame, resource));
