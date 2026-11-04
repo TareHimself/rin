@@ -210,6 +210,7 @@ public class ResourcePool : IResourcePool
     {
         public Extent2D Extent => resource.Image.Extent;
         public bool Mips => resource.Image.Mips;
+        public ImageCreateFlags Usage => resource.Image.Usage;
         public ImageFormat Format => resource.Image.Format;
         public ResourceHandle Handle => resource.Image.Handle;
 

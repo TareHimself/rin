@@ -209,6 +209,17 @@ public class VulkanExecutionContext(
         return this;
     }
 
+    public IExecutionContext CopyImage(ResourceHandle src, in Offset2D srcOffset, ResourceHandle dest,
+        in Offset2D destOffset, in Extent2D extent)
+    {
+        var module = VulkanGraphicsModule.Get();
+        var vkSrc = module.GetTexture(src);
+        var vkDest = module.GetTexture(dest);
+        Debug.Assert(vkSrc is not null && vkDest is not null, "Invalid texture resource handle");
+        CommandBuffer.CopyImage(vkSrc!, vkDest!, srcOffset, destOffset, extent);
+        return this;
+    }
+
     public IExecutionContext CopyToImage(in DeviceBufferView src, ResourceHandle dest)
     {
         Debug.Assert(src.IsValid);

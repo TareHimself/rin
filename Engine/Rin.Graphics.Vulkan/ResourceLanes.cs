@@ -2,115 +2,238 @@ using Rin.Core.Graphics;
 
 namespace Rin.Graphics.Vulkan;
 
-internal abstract class ResourceLanes<TAction> where TAction : class, IDisposable
+/// <summary>
+///     The kind-independent face of a lane set, so shared work can reach the lanes it names.
+/// </summary>
+internal interface IResourceLanes
 {
-    private readonly Dictionary<ResourceHandle, List<TAction>> _lanes = [];
+    Lock Sync { get; }
+    int Count(in ResourceHandle handle);
+
+    /// <summary>
+    ///     Copies a lane's items without removing them and freezes them against merging, so a later
+    ///     <see cref="Take" /> of that many items gets exactly these.
+    /// </summary>
+    int Peek(in ResourceHandle handle, List<PendingResourceAction> into);
+
+    int Take(in ResourceHandle handle, int count, List<PendingResourceAction> into);
+    void EnqueueFence(in ResourceHandle handle, SharedWrite fence);
+    void RemoveFence(in ResourceHandle handle, SharedWrite fence);
+    int WritesBeforeFence(in ResourceHandle handle);
+    bool IsFirstFence(in ResourceHandle handle, SharedWrite fence);
+
+    /// <summary>
+    ///     Takes the writes before the next fence of the next unblocked lane in rotation, at most
+    ///     <paramref name="budget" /> of them. False when no lane had any.
+    /// </summary>
+    bool TakeNextSegment(ref int budget, List<(ResourceHandle Handle, PendingResourceAction Action)> into);
+
+    List<PendingResourceAction>? DropLane(in ResourceHandle handle);
+    void TakeAllWrites(List<PendingResourceAction> into);
+}
+
+/// <summary>
+///     Queued writes of one kind, one ordered lane per <see cref="ResourceHandle" />. A lane also holds the
+///     <see cref="SharedWrite" /> fences that order it against other lanes, and merging never crosses one.
+/// </summary>
+internal abstract class ResourceLanes<TWrite> : IResourceLanes where TWrite : PendingWrite
+{
+    private readonly Dictionary<ResourceHandle, Lane> _lanes = [];
     private readonly Queue<ResourceHandle> _rotation = [];
     private readonly HashSet<ResourceHandle> _inRotation = [];
-    private readonly Lock _sync = new();
 
-    public void Enqueue(in ResourceHandle handle, TAction action)
+    public Lock Sync { get; } = new();
+
+    public void Enqueue(in ResourceHandle handle, TWrite write)
     {
-        List<TAction>? discarded = null;
-        lock (_sync)
+        List<PendingResourceAction>? discarded = null;
+        lock (Sync)
         {
-            if (!_lanes.TryGetValue(handle, out var lane)) _lanes[handle] = lane = [];
-            if (_inRotation.Add(handle)) _rotation.Enqueue(handle);
-
-            var result = action;
-            while (lane.Count > 0 && CanMerge(lane[^1], result))
+            var lane = GetOrAddLane(handle);
+            while (lane.Items.Count > lane.Frozen && CanMerge(lane.Items[^1], write))
             {
-                var existing = lane[^1];
-                lane.RemoveAt(lane.Count - 1);
-                var merged = Merge(existing, result);
-                if (!ReferenceEquals(merged, existing)) (discarded ??= []).Add(existing);
-                if (!ReferenceEquals(merged, result)) (discarded ??= []).Add(result);
-                result = merged;
+                var existing = lane.Items[^1];
+                lane.Items.RemoveAt(lane.Items.Count - 1);
+                write.AdoptTasks(existing);
+                (discarded ??= []).Add(existing);
             }
 
-            lane.Add(result);
+            lane.Items.Add(write);
         }
 
-        if (discarded is not null)
-            foreach (var item in discarded)
-                item.Dispose();
+        if (discarded is null) return;
+        foreach (var item in discarded) item.Dispose();
     }
 
-    public int Peek(in ResourceHandle handle, out TAction? first)
+    public void EnqueueFence(in ResourceHandle handle, SharedWrite fence)
     {
-        lock (_sync)
+        lock (Sync)
         {
-            if (!_lanes.TryGetValue(handle, out var lane))
-            {
-                first = null;
-                return 0;
-            }
-
-            first = lane[0];
-            return lane.Count;
+            GetOrAddLane(handle).Items.Add(fence);
         }
     }
 
-    public int TryTake(in ResourceHandle handle, int max, List<TAction> into)
+    public int Count(in ResourceHandle handle)
     {
-        lock (_sync)
+        lock (Sync)
+        {
+            return _lanes.TryGetValue(handle, out var lane) ? lane.Items.Count : 0;
+        }
+    }
+
+    public int Peek(in ResourceHandle handle, List<PendingResourceAction> into)
+    {
+        lock (Sync)
+        {
+            if (!_lanes.TryGetValue(handle, out var lane)) return 0;
+            into.AddRange(lane.Items);
+            lane.Frozen = lane.Items.Count;
+            return lane.Items.Count;
+        }
+    }
+
+    public int Take(in ResourceHandle handle, int count, List<PendingResourceAction> into)
+    {
+        lock (Sync)
         {
             if (!_lanes.TryGetValue(handle, out var lane)) return 0;
 
-            var count = Math.Min(max, lane.Count);
-            into.AddRange(lane.GetRange(0, count));
-            lane.RemoveRange(0, count);
-            if (lane.Count == 0) _lanes.Remove(handle);
-            return count;
+            var taken = Math.Min(count, lane.Items.Count);
+            for (var i = 0; i < taken; i++) into.Add(lane.Items[i]);
+            lane.RemoveFromFront(taken);
+            RemoveIfEmpty(handle, lane);
+            return taken;
         }
     }
 
-    public void TakeAll(List<(ResourceHandle Handle, TAction Action)> into)
+    public int WritesBeforeFence(in ResourceHandle handle)
     {
-        TakeUpTo(int.MaxValue, into);
+        lock (Sync)
+        {
+            return _lanes.TryGetValue(handle, out var lane) ? lane.WritesBeforeFence() : 0;
+        }
     }
 
-    public void TakeUpTo(int max, List<(ResourceHandle Handle, TAction Action)> into)
+    public bool IsFirstFence(in ResourceHandle handle, SharedWrite fence)
     {
-        lock (_sync)
+        lock (Sync)
         {
-            var remaining = max;
-            while (remaining > 0 && _rotation.TryDequeue(out var handle))
+            return _lanes.TryGetValue(handle, out var lane) && lane.IsFirstFence(fence);
+        }
+    }
+
+    public void RemoveFence(in ResourceHandle handle, SharedWrite fence)
+    {
+        lock (Sync)
+        {
+            if (!_lanes.TryGetValue(handle, out var lane)) return;
+            lane.RemoveItem(fence);
+            RemoveIfEmpty(handle, lane);
+        }
+    }
+
+    public bool TakeNextSegment(ref int budget, List<(ResourceHandle Handle, PendingResourceAction Action)> into)
+    {
+        lock (Sync)
+        {
+            for (var attempts = _rotation.Count; attempts > 0; attempts--)
             {
+                var handle = _rotation.Dequeue();
                 _inRotation.Remove(handle);
                 if (!_lanes.TryGetValue(handle, out var lane)) continue;
 
-                into.Add((handle, lane[0]));
-                lane.RemoveAt(0);
-                remaining--;
+                var writes = Math.Min(lane.WritesBeforeFence(), budget);
+                if (writes > 0)
+                {
+                    for (var i = 0; i < writes; i++) into.Add((handle, lane.Items[i]));
+                    lane.RemoveFromFront(writes);
+                    budget -= writes;
+                    if (RemoveIfEmpty(handle, lane)) return true;
+                }
 
-                if (lane.Count == 0)
-                    _lanes.Remove(handle);
-                else if (_inRotation.Add(handle))
-                    _rotation.Enqueue(handle);
+                if (_inRotation.Add(handle)) _rotation.Enqueue(handle);
+                if (writes > 0) return true;
             }
+
+            return false;
         }
     }
 
-    public void Drop(in ResourceHandle handle)
+    public List<PendingResourceAction>? DropLane(in ResourceHandle handle)
     {
-        List<TAction>? lane;
-        lock (_sync)
+        lock (Sync)
         {
-            _lanes.Remove(handle, out lane);
+            return _lanes.Remove(handle, out var lane) ? lane.Items : null;
+        }
+    }
+
+    public void TakeAllWrites(List<PendingResourceAction> into)
+    {
+        lock (Sync)
+        {
+            foreach (var lane in _lanes.Values)
+                foreach (var item in lane.Items)
+                    if (item is not SharedWrite)
+                        into.Add(item);
+
+            _lanes.Clear();
+            _rotation.Clear();
+            _inRotation.Clear();
+        }
+    }
+
+    protected abstract bool CanMerge(TWrite existing, TWrite incoming);
+
+    private bool CanMerge(PendingResourceAction existing, TWrite incoming)
+    {
+        return existing is TWrite write && CanMerge(write, incoming);
+    }
+
+    private Lane GetOrAddLane(in ResourceHandle handle)
+    {
+        if (!_lanes.TryGetValue(handle, out var lane)) _lanes[handle] = lane = new Lane();
+        if (_inRotation.Add(handle)) _rotation.Enqueue(handle);
+        return lane;
+    }
+
+    private bool RemoveIfEmpty(in ResourceHandle handle, Lane lane)
+    {
+        if (lane.Items.Count > 0) return false;
+        _lanes.Remove(handle);
+        return true;
+    }
+
+    private sealed class Lane
+    {
+        public List<PendingResourceAction> Items { get; } = [];
+
+        public int Frozen { get; set; }
+
+        public int WritesBeforeFence()
+        {
+            var count = 0;
+            while (count < Items.Count && Items[count] is not SharedWrite) count++;
+            return count;
         }
 
-        if (lane is null) return;
-        foreach (var action in lane) action.Dispose();
-    }
+        public bool IsFirstFence(SharedWrite fence)
+        {
+            var writes = WritesBeforeFence();
+            return writes < Items.Count && ReferenceEquals(Items[writes], fence);
+        }
 
-    protected virtual bool CanMerge(TAction existing, TAction incoming)
-    {
-        return false;
-    }
+        public void RemoveFromFront(int count)
+        {
+            Items.RemoveRange(0, count);
+            Frozen = Math.Max(0, Frozen - count);
+        }
 
-    protected virtual TAction Merge(TAction existing, TAction incoming)
-    {
-        throw new NotSupportedException();
+        public void RemoveItem(PendingResourceAction item)
+        {
+            var index = Items.IndexOf(item);
+            if (index < 0) return;
+            Items.RemoveAt(index);
+            if (index < Frozen) Frozen--;
+        }
     }
 }

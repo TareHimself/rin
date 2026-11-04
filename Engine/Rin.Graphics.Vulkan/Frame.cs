@@ -33,7 +33,7 @@ public class Frame : IDisposable
         _commandBuffer = _device.AllocateCommandBuffers(_commandPool).First();
         _renderFence = _device.CreateFence(true);
         ExecutionContext = new VulkanExecutionContext(_commandBuffer, _descriptorAllocator, module.GlobalDescriptors);
-        GraphBuilder = new GraphBuilder(module.ResourcePool, this);
+        GraphBuilder = new GraphBuilder(module.ResourcePool, this, module.PendingActions, module, module);
     }
 
     /// <summary>

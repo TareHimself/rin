@@ -35,7 +35,7 @@ public class GraphConfig(GraphBuilder builder) : IGraphConfig
         Action? onDispose = null)
     {
         if (builder.TryReuseExternalImage(handle, flags, onDispose, out var existingId)) return existingId;
-        if (ExternalResourceDescriptors.Make(handle, onDispose) is not { } descriptor) return 0;
+        if (ExternalResourceDescriptors.Make(builder.ExternalResources, handle, onDispose) is not { } descriptor) return 0;
         var resourceId = builder.MakeId();
         Resources.Add(resourceId, descriptor);
         builder.RememberExternalImage(handle, resourceId, flags);
@@ -45,7 +45,7 @@ public class GraphConfig(GraphBuilder builder) : IGraphConfig
     public uint AddExternalBuffer(in DeviceBufferView view, GraphResourceFlags flags = GraphResourceFlags.None,
         Action? onDispose = null)
     {
-        if (ExternalResourceDescriptors.MakeBuffer(view, onDispose) is not { } descriptor) return 0;
+        if (ExternalResourceDescriptors.MakeBuffer(builder.ExternalResources, view, onDispose) is not { } descriptor) return 0;
         var resourceId = builder.MakeId();
         Resources.Add(resourceId, descriptor);
         builder.RememberExternalBuffer(view.Buffer, resourceId, flags);
@@ -209,6 +209,18 @@ public class GraphConfig(GraphBuilder builder) : IGraphConfig
     internal void PrependBufferWrite(uint id)
     {
         UseBuffer(id, GraphBufferUsage.Transfer, ResourceOperation.Write);
+        MoveLastActionToPrepended(id);
+    }
+
+    internal void PrependTextureRead(uint id)
+    {
+        UseTexture(id, ImageLayout.TransferSrc, ResourceOperation.Read);
+        MoveLastActionToPrepended(id);
+    }
+
+    internal void PrependBufferRead(uint id)
+    {
+        UseBuffer(id, GraphBufferUsage.Transfer, ResourceOperation.Read);
         MoveLastActionToPrepended(id);
     }
 

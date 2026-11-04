@@ -42,6 +42,33 @@ public interface  IGraphicsModule : IModule, IUpdatable, IProviderResolvable<IGr
     /// </summary>
     public Task QueueBufferUpload(ResourceHandle handle, ReadOnlyMemory<byte> data, ulong offset = 0);
 
+    /// <summary>
+    ///     Queues a buffer to buffer copy that runs on the GPU in enqueue order with the other uploads and copies
+    ///     of both buffers. The task completes once the GPU has run it and is cancelled if either buffer is freed first.
+    /// </summary>
+    public Task QueueBufferCopy(ResourceHandle src, ResourceHandle dst, ulong srcOffset, ulong dstOffset, ulong size);
+
+    /// <summary>
+    ///     Queues a texture to texture copy, ordered like <see cref="QueueBufferCopy" />. The source needs
+    ///     <see cref="ImageCreateFlags.TransferSrc" />.
+    /// </summary>
+    public Task QueueTextureCopy(ResourceHandle src, ResourceHandle dst, Offset2D srcOffset, Offset2D dstOffset,
+        Extent2D extent);
+
+    /// <summary>
+    ///     Queues a copy from tightly packed rows at <paramref name="srcOffset" /> in a buffer into a texture region,
+    ///     ordered like <see cref="QueueBufferCopy" />.
+    /// </summary>
+    public Task QueueBufferToTextureCopy(ResourceHandle src, ResourceHandle dst, ulong srcOffset, Offset2D dstOffset,
+        Extent2D extent);
+
+    /// <summary>
+    ///     Queues a copy of a texture region into tightly packed rows at <paramref name="dstOffset" /> in a buffer,
+    ///     ordered like <see cref="QueueBufferCopy" />. The texture needs <see cref="ImageCreateFlags.TransferSrc" />.
+    /// </summary>
+    public Task QueueTextureToBufferCopy(ResourceHandle src, ResourceHandle dst, Offset2D srcOffset, Extent2D extent,
+        ulong dstOffset);
+
     public ResourceHandle CreateTexture(in Extent2D extent, ImageFormat format, bool mips = false,
         ImageCreateFlags flags = ImageCreateFlags.None);
 

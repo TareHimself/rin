@@ -4,7 +4,7 @@ using Rin.Core.Graphics.Graph;
 
 namespace Rin.Graphics.Vulkan.Graph;
 
-public class GraphBuilder(IResourcePool resourcePool, Frame frame) : IGraphBuilder
+public class GraphBuilder : IGraphBuilder
 {
     private readonly Dictionary<ResourceHandle, List<uint>> _externalBufferIds = [];
     private readonly Dictionary<ResourceHandle, uint> _externalImageIds = [];
@@ -15,6 +15,22 @@ public class GraphBuilder(IResourcePool resourcePool, Frame frame) : IGraphBuild
     private readonly HashSet<uint> _terminalResources = [];
     private List<IDisposable> _disposables = [];
     private uint _latestId;
+    private readonly IResourcePool _resourcePool;
+    private readonly Frame _frame;
+    private readonly UploadLanes _pendingActions;
+    private readonly IStagingAllocator _staging;
+
+    internal GraphBuilder(IResourcePool resourcePool, Frame frame, UploadLanes pendingActions,
+        IStagingAllocator staging, IExternalResourceSource externalResources)
+    {
+        _resourcePool = resourcePool;
+        _frame = frame;
+        _pendingActions = pendingActions;
+        _staging = staging;
+        ExternalResources = externalResources;
+    }
+
+    internal IExternalResourceSource ExternalResources { get; }
 
     public uint AddPass(IPass pass)
     {
@@ -68,7 +84,7 @@ public class GraphBuilder(IResourcePool resourcePool, Frame frame) : IGraphBuild
         // The builder is reused every frame, so ownership of this frame's disposables moves to the graph.
         var disposables = _disposables;
         _disposables = [];
-        return new CompiledGraph(resourcePool, frame, resources, executionGroups, disposables);
+        return new CompiledGraph(_resourcePool, _frame, resources, executionGroups, disposables);
     }
 
     /// <summary>
@@ -341,7 +357,7 @@ public class GraphBuilder(IResourcePool resourcePool, Frame frame) : IGraphBuild
         Action? onDispose = null)
     {
         if (TryReuseExternalImage(handle, flags, onDispose, out var existingId)) return existingId;
-        if (ExternalResourceDescriptors.Make(handle, onDispose) is not { } descriptor) return 0;
+        if (ExternalResourceDescriptors.Make(ExternalResources, handle, onDispose) is not { } descriptor) return 0;
         var id = MakeId();
         _externalResources.Add(id, descriptor);
         RememberExternalImage(handle, id, flags);
@@ -366,7 +382,7 @@ public class GraphBuilder(IResourcePool resourcePool, Frame frame) : IGraphBuild
     public uint AddExternalBuffer(in DeviceBufferView view, GraphResourceFlags flags = GraphResourceFlags.None,
         Action? onDispose = null)
     {
-        if (ExternalResourceDescriptors.MakeBuffer(view, onDispose) is not { } descriptor) return 0;
+        if (ExternalResourceDescriptors.MakeBuffer(ExternalResources, view, onDispose) is not { } descriptor) return 0;
         var id = MakeId();
         _externalResources.Add(id, descriptor);
         RememberExternalBuffer(view.Buffer, id, flags);
@@ -426,40 +442,96 @@ public class GraphBuilder(IResourcePool resourcePool, Frame frame) : IGraphBuild
         return ++_latestId;
     }
 
-    private Uploads SynthesizeUploads(GraphConfig config)
+    private UploadSynthesis? SynthesizeUploads(GraphConfig config)
     {
-        var uploads = new Uploads([], []);
-        if (_externalImageIds.Count == 0 && _externalBufferIds.Count == 0) return uploads;
-        var module = VulkanGraphicsModule.Get();
+        if (_externalImageIds.Count == 0 && _externalBufferIds.Count == 0) return null;
 
+        var resourceIds = CollectTouchedResourceIds(config);
+        var plan = UploadPlan.Build(_pendingActions, resourceIds.Keys,
+            (shared, handle) => TryImportForCopy(config, shared.Action, handle, resourceIds));
+        var passes = new IUploadPass[plan.Steps.Count];
+        for (var i = 0; i < passes.Length; i++)
+        {
+            var step = plan.Steps[i];
+            passes[i] = MakeUploadPass(step, resourceIds);
+            AddSynthesizedPass(config, passes[i]);
+            if (step.PreviousInLane >= 0) config.DependOn(passes[step.PreviousInLane].Id);
+            if (step.PreviousInDestinationLane >= 0) config.DependOn(passes[step.PreviousInDestinationLane].Id);
+        }
+
+        return new UploadSynthesis(plan, passes);
+    }
+
+    private Dictionary<ResourceHandle, uint[]> CollectTouchedResourceIds(GraphConfig config)
+    {
+        Dictionary<ResourceHandle, uint[]> resourceIds = [];
         foreach (var (handle, resourceId) in _externalImageIds)
+            if (handle.Type == ResourceType.Texture && config.ResourceActions.ContainsKey(resourceId))
+                resourceIds[handle] = [resourceId];
+
+        foreach (var (handle, ids) in _externalBufferIds)
         {
-            if (handle.Type != ResourceType.Texture || !config.ResourceActions.ContainsKey(resourceId)) continue;
+            var usedIds = ids.Where(config.ResourceActions.ContainsKey).ToArray();
+            if (usedIds.Length != 0) resourceIds[handle] = usedIds;
+        }
 
-            var count = module.PeekTextureWrites(handle, out var firstCoversWholeImage);
-            if (count == 0) continue;
+        return resourceIds;
+    }
 
-            var passes = new TextureUploadPass[count];
-            for (var i = 0; i < count; i++)
+    private bool TryImportForCopy(GraphConfig config, CopyAction copy, in ResourceHandle handle,
+        Dictionary<ResourceHandle, uint[]> resourceIds)
+    {
+        switch (handle.Type)
+        {
+            case ResourceType.Texture:
             {
-                passes[i] = new TextureUploadPass(handle, resourceId, i == 0 && firstCoversWholeImage);
-                AddSynthesizedPass(config, passes[i]);
+                var id = config.AddExternalImage(handle);
+                if (id == 0) return false;
+                resourceIds[handle] = [id];
+                return true;
             }
+            case ResourceType.Buffer:
+            {
+                if (!_externalBufferIds.TryGetValue(handle, out var ids))
+                {
+                    var id = config.AddExternalBuffer(CopiedRange(copy, handle));
+                    if (id == 0) return false;
+                    ids = [id];
+                }
 
-            uploads.Textures.Add(passes);
+                resourceIds[handle] = ids.ToArray();
+                return true;
+            }
+            default:
+                return false;
         }
+    }
 
-        foreach (var (handle, resourceIds) in _externalBufferIds)
+    private static DeviceBufferView CopiedRange(CopyAction copy, in ResourceHandle handle)
+    {
+        return copy switch
         {
-            var usedIds = resourceIds.Where(config.ResourceActions.ContainsKey).ToArray();
-            if (usedIds.Length == 0 || !module.HasBufferWrites(handle)) continue;
+            BufferCopy buffers => new DeviceBufferView(handle,
+                handle.Equals(buffers.Source) ? buffers.SourceOffset : buffers.DestinationOffset, buffers.Size),
+            BufferToTextureCopy toTexture => new DeviceBufferView(handle, toTexture.SourceOffset,
+                toTexture.Size),
+            TextureToBufferCopy toBuffer => new DeviceBufferView(handle, toBuffer.DestinationOffset, toBuffer.Size),
+            _ => throw new ArgumentOutOfRangeException(nameof(copy), copy, "Copy has no buffer side")
+        };
+    }
 
-            var pass = new BufferUploadPass(handle, usedIds);
-            AddSynthesizedPass(config, pass);
-            uploads.Buffers.Add(pass);
-        }
-
-        return uploads;
+    private static IUploadPass MakeUploadPass(UploadStep step, Dictionary<ResourceHandle, uint[]> resourceIds)
+    {
+        var ids = resourceIds[step.Handle];
+        return step.Kind switch
+        {
+            UploadStepKind.TextureWrite => new TextureUploadPass(step.Handle, ids[0],
+                step.LaneIndex == 0 && ((PendingTextureWrite)step.Action!).CoversWholeImage),
+            UploadStepKind.BufferWrites => new BufferUploadPass(step.Handle, ids),
+            UploadStepKind.Copy => new CopyUploadPass((SharedWrite)step.Action!, ids,
+                resourceIds[step.Destination]),
+            _ => throw new ArgumentOutOfRangeException(nameof(step), step.Kind, null)
+        };
     }
 
     private void AddSynthesizedPass(GraphConfig config, IPass pass)
@@ -470,49 +542,60 @@ public class GraphBuilder(IResourcePool resourcePool, Frame frame) : IGraphBuild
         pass.Configure(config);
     }
 
-    private void TakeUploads(Uploads uploads, Dictionary<uint, HashSet<uint>> nodes)
+    private void TakeUploads(UploadSynthesis? uploads, Dictionary<uint, HashSet<uint>> nodes)
     {
-        if (uploads.Textures.Count == 0 && uploads.Buffers.Count == 0) return;
-        var module = VulkanGraphicsModule.Get();
+        if (uploads is null) return;
+        var (plan, passes) = uploads;
         List<(TextureUploadPass Pass, PendingTextureWrite Write)> textureWrites = [];
         List<(BufferUploadPass Pass, List<PendingBufferWrite> Writes)> bufferWrites = [];
         ulong stagingSize = 0;
 
-        List<PendingTextureWrite> taken = [];
-        foreach (var passes in uploads.Textures)
+        List<PendingResourceAction> taken = [];
+        foreach (var (handle, stepIndices) in plan.LaneSteps)
         {
-            if (!nodes.ContainsKey(passes[^1].Id))
+            var live = 0;
+            var count = 0;
+            foreach (var index in stepIndices)
             {
-                continue;
+                if (!nodes.ContainsKey(passes[index].Id)) break;
+                live++;
+                count += plan.Steps[index].Count;
             }
+
+            if (live == 0) continue;
 
             taken.Clear();
-            module.TakeTextureWrites(passes[0].Texture, passes.Length, taken);
-            for (var i = 0; i < taken.Count; i++)
+            _pendingActions.Take(handle, count, taken);
+            var next = 0;
+            for (var i = 0; i < live && next < taken.Count; i++)
             {
-                textureWrites.Add((passes[i], taken[i]));
-                stagingSize += taken[i].StagingSize;
+                var step = plan.Steps[stepIndices[i]];
+                switch (passes[stepIndices[i]])
+                {
+                    case TextureUploadPass texturePass:
+                        var textureWrite = (PendingTextureWrite)taken[next++];
+                        textureWrites.Add((texturePass, textureWrite));
+                        stagingSize += textureWrite.StagingSize;
+                        break;
+                    case BufferUploadPass bufferPass:
+                        List<PendingBufferWrite> writes = [];
+                        for (var j = 0; j < step.Count && next < taken.Count; j++)
+                            writes.Add((PendingBufferWrite)taken[next++]);
+                        bufferWrites.Add((bufferPass, writes));
+                        stagingSize += WriteRecorder.StagingSize(writes);
+                        break;
+                    case CopyUploadPass copyPass:
+                        next++;
+                        copyPass.Assign();
+                        break;
+                }
             }
-        }
-
-        foreach (var pass in uploads.Buffers)
-        {
-            if (!nodes.ContainsKey(pass.Id))
-            {
-                continue;
-            }
-
-            List<PendingBufferWrite> writes = [];
-            module.TakeBufferWrites(pass.Buffer, writes);
-            if (writes.Count == 0) continue;
-            bufferWrites.Add((pass, writes));
-            stagingSize += WriteRecorder.StagingSize(writes);
         }
 
         if (stagingSize == 0) return;
 
-        var staging = WriteRecorder.CreateStaging(module, stagingSize);
-        AddDisposable(new DisposeCallback(() => module.FreeResourceHandles(staging)));
+        var staging = _staging.Allocate(stagingSize);
+        AddDisposable(new DisposeCallback(() => _staging.Free(staging)));
 
         ulong offset = 0;
         foreach (var (pass, write) in textureWrites)
@@ -547,7 +630,7 @@ public class GraphBuilder(IResourcePool resourcePool, Frame frame) : IGraphBuild
         return config;
     }
 
-    private sealed record Uploads(List<TextureUploadPass[]> Textures, List<BufferUploadPass> Buffers);
+    private sealed record UploadSynthesis(UploadPlan Plan, IUploadPass[] Passes);
 
     private sealed class DisposeCallback(Action callback) : IDisposable
     {
