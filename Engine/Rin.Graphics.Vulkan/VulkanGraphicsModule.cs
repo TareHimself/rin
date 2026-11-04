@@ -19,7 +19,7 @@ using static TerraFX.Interop.Vulkan.Vulkan;
 
 namespace Rin.Graphics.Vulkan;
 
-public partial class VulkanGraphicsModule : IGraphicsModule, IResourceAcquirer
+public partial class VulkanGraphicsModule : IGraphicsModule, IExternalResourceSource, IStagingAllocator
 {
     private readonly FrameLimiter _frameLimiter = new();
     private readonly BackgroundTaskQueue _backgroundTaskQueue = new()
@@ -613,7 +613,8 @@ public partial class VulkanGraphicsModule : IGraphicsModule, IResourceAcquirer
                 VulkanView = CreateImageView(viewCreateInfo),
                 Allocation = allocation,
                 Extent = extent,
-                Format = format
+                Format = format,
+                Usage = usage
             };
 
             //_images.Add(vkImage);

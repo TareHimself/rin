@@ -765,6 +765,58 @@ internal static class VulkanExtensions
         return cmd;
     }
 
+    public static VkCommandBuffer CopyImage(this in VkCommandBuffer cmd, IVulkanTexture src, IVulkanTexture dst,
+        in Offset2D srcOffset, in Offset2D dstOffset, in Extent2D extent)
+    {
+        var region = new VkImageCopy
+        {
+            srcSubresource = FirstLayer(src),
+            srcOffset = new VkOffset3D { x = (int)srcOffset.X, y = (int)srcOffset.Y },
+            dstSubresource = FirstLayer(dst),
+            dstOffset = new VkOffset3D { x = (int)dstOffset.X, y = (int)dstOffset.Y },
+            extent = new VkExtent3D { width = extent.Width, height = extent.Height, depth = 1 }
+        };
+
+        unsafe
+        {
+            vkCmdCopyImage(cmd, src.VulkanImage, ImageLayout.TransferSrc.ToVk(), dst.VulkanImage,
+                ImageLayout.TransferDst.ToVk(), 1, &region);
+        }
+
+        return cmd;
+    }
+
+    public static VkCommandBuffer CopyImageToBuffer(this in VkCommandBuffer cmd, IVulkanTexture image,
+        in Offset2D offset, in Extent2D extent, IVulkanDeviceBuffer buffer, ulong bufferOffset)
+    {
+        var region = new VkBufferImageCopy
+        {
+            bufferOffset = bufferOffset,
+            imageSubresource = FirstLayer(image),
+            imageOffset = new VkOffset3D { x = (int)offset.X, y = (int)offset.Y },
+            imageExtent = new VkExtent3D { width = extent.Width, height = extent.Height, depth = 1 }
+        };
+
+        unsafe
+        {
+            vkCmdCopyImageToBuffer(cmd, image.VulkanImage, ImageLayout.TransferSrc.ToVk(), buffer.NativeBuffer, 1,
+                &region);
+        }
+
+        return cmd;
+    }
+
+    private static VkImageSubresourceLayers FirstLayer(IVulkanTexture image)
+    {
+        return new VkImageSubresourceLayers
+        {
+            aspectMask = image.Format.ToAspectFlags(),
+            mipLevel = 0,
+            baseArrayLayer = 0,
+            layerCount = 1
+        };
+    }
+
     public static VkCommandBuffer CopyImageToImage(in this VkCommandBuffer cmd, IVulkanTexture src, IVulkanTexture dst,
         ImageFilter filter = ImageFilter.Linear)
     {

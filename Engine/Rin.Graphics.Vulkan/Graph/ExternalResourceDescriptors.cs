@@ -9,37 +9,37 @@ namespace Rin.Graphics.Vulkan.Graph;
 /// </summary>
 internal static class ExternalResourceDescriptors
 {
-    public static IResourceDescriptor? Make(in ResourceHandle handle, Action? onDispose)
+    internal static IResourceDescriptor? Make(IExternalResourceSource source, in ResourceHandle handle,
+        Action? onDispose)
     {
-        var module = VulkanGraphicsModule.Get();
-        if (!module.TryAcquireResource(handle)) return null;
-        var release = MakeRelease(module, handle, onDispose);
+        if (!source.TryAcquireResource(handle)) return null;
+        var release = MakeRelease(source, handle, onDispose);
 
         return handle.Type switch
         {
-            ResourceType.Texture => new ExternalVulkanTextureResourceDescriptor(module.GetTexture(handle)!, release),
-            ResourceType.Cubemap => new ExternalVulkanCubemapResourceDescriptor(module.GetCubemap(handle)!, release),
+            ResourceType.Texture => new ExternalVulkanTextureResourceDescriptor(source.GetTexture(handle)!, release),
+            ResourceType.Cubemap => new ExternalVulkanCubemapResourceDescriptor(source.GetCubemap(handle)!, release),
             ResourceType.TextureArray => new ExternalVulkanTextureArrayResourceDescriptor(
-                module.GetTextureArray(handle)!, release),
+                source.GetTextureArray(handle)!, release),
             _ => throw new ArgumentOutOfRangeException(nameof(handle), handle.Type,
                 "Handle does not reference an image resource")
         };
     }
 
-    public static IResourceDescriptor? MakeBuffer(in DeviceBufferView view, Action? onDispose)
+    internal static IResourceDescriptor? MakeBuffer(IExternalResourceSource source, in DeviceBufferView view,
+        Action? onDispose)
     {
-        var module = VulkanGraphicsModule.Get();
-        if (!module.TryAcquireResource(view.Buffer)) return null;
+        if (!source.TryAcquireResource(view.Buffer)) return null;
 
-        return new ExternalVulkanBufferResourceDescriptor(module.ResolveBuffer(view.Buffer)!, view,
-            MakeRelease(module, view.Buffer, onDispose));
+        return new ExternalVulkanBufferResourceDescriptor(source.ResolveBuffer(view.Buffer)!, view,
+            MakeRelease(source, view.Buffer, onDispose));
     }
 
-    private static Action MakeRelease(VulkanGraphicsModule module, ResourceHandle handle, Action? onDispose)
+    private static Action MakeRelease(IExternalResourceSource source, ResourceHandle handle, Action? onDispose)
     {
         return () =>
         {
-            module.ReleaseResource(handle);
+            source.ReleaseResource(handle);
             onDispose?.Invoke();
         };
     }

@@ -6,10 +6,4 @@ internal sealed class TextureWriteLanes : ResourceLanes<PendingTextureWrite>
     {
         return incoming.CoversWholeImage;
     }
-
-    protected override PendingTextureWrite Merge(PendingTextureWrite existing, PendingTextureWrite incoming)
-    {
-        incoming.AdoptTasks(existing);
-        return incoming;
-    }
 }

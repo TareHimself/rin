@@ -39,8 +39,7 @@ public partial class VulkanGraphicsModule
     private readonly ResourceTable<BindlessCubemap> _cubemaps = new(ResourceType.Cubemap, (int)MaxCubemaps);
     private readonly ResourceTable<BindlessBuffer> _buffers = new(ResourceType.Buffer, BufferSlotChunkSize, MaxBufferSlotChunks);
 
-    private readonly TextureWriteLanes _textureWrites = new();
-    private readonly BufferWriteLanes _bufferWrites = new();
+    private readonly UploadLanes _pendingActions = new();
     private readonly UploadBatch _uploads = new();
 
     private DescriptorAllocator? _resourceDescriptorAllocator;
@@ -194,12 +193,9 @@ public partial class VulkanGraphicsModule
     {
         if (_resourceDescriptorAllocator is null) return;
 
-        List<(ResourceHandle Handle, PendingTextureWrite Write)> pendingTextureWrites = [];
-        _textureWrites.TakeAll(pendingTextureWrites);
-        foreach (var (_, write) in pendingTextureWrites) write.Dispose();
-        List<(ResourceHandle Handle, PendingBufferWrite Write)> pendingBufferWrites = [];
-        _bufferWrites.TakeAll(pendingBufferWrites);
-        foreach (var (_, write) in pendingBufferWrites) write.Dispose();
+        List<PendingResourceAction> pendingActions = [];
+        _pendingActions.TakeAll(pendingActions);
+        foreach (var action in pendingActions) action.Dispose();
 
         _resourceDescriptorAllocator.Dispose();
 
@@ -349,7 +345,7 @@ public partial class VulkanGraphicsModule
             _textures.Set(id, resource);
         }
 
-        _textureWrites.Enqueue(handle,
+        _pendingActions.EnqueueTexture(handle,
             new PendingTextureWrite(PooledMemory<byte>.CopyFrom(data), default, size, size));
         return Task.FromResult(handle);
     }
@@ -380,20 +376,93 @@ public partial class VulkanGraphicsModule
         var write = new PendingTextureWrite(PooledMemory<byte>.CopyFrom(data.Span), offset, extent,
             texture.Extent);
         write.Tasks.Add(completion);
-        _textureWrites.Enqueue(handle, write);
+        _pendingActions.EnqueueTexture(handle, write);
         return completion.Task;
     }
 
-    internal int PeekTextureWrites(in ResourceHandle handle, out bool firstCoversWholeImage)
+    internal UploadLanes PendingActions => _pendingActions;
+
+    private ResourceHandle AllocateStaging(ulong size)
     {
-        var count = _textureWrites.Peek(handle, out var first);
-        firstCoversWholeImage = first?.CoversWholeImage ?? false;
-        return count;
+        return CreateBuffer(size, BufferCreateFlags.TransferSrc | BufferCreateFlags.HostDst);
     }
 
-    internal void TakeTextureWrites(in ResourceHandle handle, int max, List<PendingTextureWrite> into)
+    ResourceHandle IStagingAllocator.Allocate(ulong size) => AllocateStaging(size);
+
+    void IStagingAllocator.Free(in ResourceHandle handle) => FreeResourceHandles(handle);
+
+    IVulkanTexture? IExternalResourceSource.GetTexture(in ResourceHandle handle) => GetTexture(handle);
+
+    IVulkanCubemap? IExternalResourceSource.GetCubemap(in ResourceHandle handle) => GetCubemap(handle);
+
+    IVulkanTextureArray? IExternalResourceSource.GetTextureArray(in ResourceHandle handle) =>
+        GetTextureArray(handle);
+
+    IVulkanDeviceBuffer? IExternalResourceSource.ResolveBuffer(in ResourceHandle handle) => ResolveBuffer(handle);
+
+    public Task QueueTextureCopy(ResourceHandle src, ResourceHandle dst, Offset2D srcOffset, Offset2D dstOffset,
+        Extent2D extent)
     {
-        _textureWrites.TryTake(handle, max, into);
+        var source = GetTexture(src) ?? throw new ArgumentException("Invalid or unresolvable texture handle", nameof(src));
+        var destination = GetTexture(dst) ??
+                          throw new ArgumentException("Invalid or unresolvable texture handle", nameof(dst));
+        ThrowIfSameResource(src, dst);
+        Debug.Assert(source.Usage.HasFlag(ImageCreateFlags.TransferSrc),
+            "Copy source texture was not created with ImageCreateFlags.TransferSrc");
+        Debug.Assert(srcOffset.X + extent.Width <= source.Extent.Width &&
+                     srcOffset.Y + extent.Height <= source.Extent.Height, "Copy runs past the source texture");
+        Debug.Assert(dstOffset.X + extent.Width <= destination.Extent.Width &&
+                     dstOffset.Y + extent.Height <= destination.Extent.Height, "Copy runs past the target texture");
+        if (extent.Width == 0 || extent.Height == 0) return Task.CompletedTask;
+
+        return EnqueueCopy(new TextureCopy(src, dst, srcOffset, dstOffset, extent));
+    }
+
+    public Task QueueBufferToTextureCopy(ResourceHandle src, ResourceHandle dst, ulong srcOffset, Offset2D dstOffset,
+        Extent2D extent)
+    {
+        var source = ResolveBuffer(src) ?? throw new ArgumentException("Invalid or unresolvable buffer handle", nameof(src));
+        var destination = GetTexture(dst) ??
+                          throw new ArgumentException("Invalid or unresolvable texture handle", nameof(dst));
+        var size = extent.Width * extent.Height * destination.Format.PixelByteSize();
+        Debug.Assert(srcOffset + size <= source.Size, "Copy runs past the end of the buffer");
+        Debug.Assert(dstOffset.X + extent.Width <= destination.Extent.Width &&
+                     dstOffset.Y + extent.Height <= destination.Extent.Height, "Copy runs past the target texture");
+        if (extent.Width == 0 || extent.Height == 0) return Task.CompletedTask;
+
+        return EnqueueCopy(new BufferToTextureCopy(src, dst, srcOffset, size, dstOffset, extent));
+    }
+
+    public Task QueueTextureToBufferCopy(ResourceHandle src, ResourceHandle dst, Offset2D srcOffset, Extent2D extent,
+        ulong dstOffset)
+    {
+        var source = GetTexture(src) ?? throw new ArgumentException("Invalid or unresolvable texture handle", nameof(src));
+        var destination = ResolveBuffer(dst) ??
+                          throw new ArgumentException("Invalid or unresolvable buffer handle", nameof(dst));
+        var size = extent.Width * extent.Height * source.Format.PixelByteSize();
+        Debug.Assert(source.Usage.HasFlag(ImageCreateFlags.TransferSrc),
+            "Copy source texture was not created with ImageCreateFlags.TransferSrc");
+        Debug.Assert(srcOffset.X + extent.Width <= source.Extent.Width &&
+                     srcOffset.Y + extent.Height <= source.Extent.Height, "Copy runs past the source texture");
+        Debug.Assert(dstOffset + size <= destination.Size, "Copy runs past the end of the buffer");
+        if (extent.Width == 0 || extent.Height == 0) return Task.CompletedTask;
+
+        return EnqueueCopy(new TextureToBufferCopy(src, dst, srcOffset, extent, dstOffset, size));
+    }
+
+    private Task EnqueueCopy(CopyAction copy)
+    {
+        var completion = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var shared = new SharedWrite(copy);
+        shared.Tasks.Add(completion);
+        _pendingActions.EnqueueShared(shared);
+        return completion.Task;
+    }
+
+    private static void ThrowIfSameResource(in ResourceHandle src, in ResourceHandle dst)
+    {
+        if (src.Equals(dst))
+            throw new ArgumentException("A texture cannot be copied onto itself", nameof(dst));
     }
 
     internal void BindPendingTexture(in ResourceHandle handle)
@@ -408,17 +477,17 @@ public partial class VulkanGraphicsModule
         }
     }
 
-    // Per lane kind, so a burst of one can't starve the other; the rest waits for later frames.
-    private const int MaxFlushedWritesPerKind = 64;
+    // The rest waits for later frames.
+    private const int MaxFlushedActions = 64;
 
     private void FlushPendingWrites()
     {
-        _uploads.Fill(_textureWrites, _bufferWrites, MaxFlushedWritesPerKind, this);
+        _uploads.Fill(_pendingActions, MaxFlushedActions, this);
         if (_uploads.IsEmpty) return;
 
         if (_uploads.StagingSize > 0)
         {
-            var staging = WriteRecorder.CreateStaging(this, _uploads.StagingSize);
+            var staging = AllocateStaging(_uploads.StagingSize);
             SubmitGraphicsAndWait(cmd => RecordUploads(cmd, staging));
             FreeResourceHandles(staging);
         }
@@ -431,26 +500,39 @@ public partial class VulkanGraphicsModule
     private void RecordUploads(in VkCommandBuffer cmd, in ResourceHandle staging)
     {
         ulong offset = 0;
-        foreach (var (handle, write) in _uploads.Textures)
-        {
-            var image = GetTexture(handle)!;
-            cmd.ImageBarrier(image, write.CoversWholeImage ? ImageLayout.Undefined : image.Layout,
-                ImageLayout.TransferDst);
-            WriteRecorder.RecordTextureCopy(cmd, image, new DeviceBufferView(staging, offset, write.StagingSize),
-                write);
-            offset += write.StagingSize;
-            BindPendingTexture(handle);
-        }
+        foreach (var step in _uploads.Steps)
+            switch (step.Kind)
+            {
+                case UploadBatchStepKind.TextureWrite:
+                {
+                    var write = step.TextureWrite!;
+                    var image = GetTexture(step.Handle)!;
+                    cmd.ImageBarrier(image, write.CoversWholeImage ? ImageLayout.Undefined : image.Layout,
+                        ImageLayout.TransferDst);
+                    WriteRecorder.RecordTextureCopy(cmd, image,
+                        new DeviceBufferView(staging, offset, write.StagingSize), write);
+                    offset += write.StagingSize;
+                    BindPendingTexture(step.Handle);
+                    break;
+                }
+                case UploadBatchStepKind.BufferWrites:
+                {
+                    var size = WriteRecorder.StagingSize(step.BufferWrites);
+                    WriteRecorder.RecordBufferWrites(cmd, step.Handle, new DeviceBufferView(staging, offset, size),
+                        step.BufferWrites);
+                    offset += size;
+                    break;
+                }
+                case UploadBatchStepKind.Copy:
+                    WriteRecorder.RecordCopy(cmd, step.Shared!.Action);
+                    break;
+            }
 
-        foreach (var (handle, _) in _uploads.Textures)
-            if (GetTexture(handle) is { Layout: ImageLayout.TransferDst } image)
+        foreach (var step in _uploads.Steps)
+        {
+            var texture = step.WrittenTexture;
+            if (texture.Id != 0 && GetTexture(texture) is { Layout: ImageLayout.TransferDst } image)
                 cmd.ImageBarrier(image, ImageLayout.TransferDst, ImageLayout.ShaderReadOnly);
-
-        foreach (var (handle, writes) in _uploads.Buffers)
-        {
-            var size = WriteRecorder.StagingSize(writes);
-            WriteRecorder.RecordBufferWrites(cmd, handle, new DeviceBufferView(staging, offset, size), writes);
-            offset += size;
         }
     }
 
@@ -599,7 +681,7 @@ public partial class VulkanGraphicsModule
                         if (_textures.Free(handle) is not { } resource) break;
                         Debug.Assert(resource.Source is not null);
                         disposes.Add(resource.Source.Dispose);
-                        _textureWrites.Drop(handle);
+                        _pendingActions.Drop(handle);
                     }
                         break;
                     case ResourceType.Cubemap:
@@ -634,7 +716,7 @@ public partial class VulkanGraphicsModule
                     {
                         if (_buffers.Free(handle) is not { } resource) break;
                         if (resource.Source is { } buffer) disposes.Add(buffer.Dispose);
-                        _bufferWrites.Drop(handle);
+                        _pendingActions.Drop(handle);
                     }
                         break;
                     default:
@@ -799,18 +881,22 @@ public partial class VulkanGraphicsModule
         var completion = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         var write = new PendingBufferWrite(PooledMemory<byte>.CopyFrom(data.Span), offset);
         write.Tasks.Add(completion);
-        _bufferWrites.Enqueue(handle, write);
+        _pendingActions.EnqueueBuffer(handle, write);
         return completion.Task;
     }
 
-    internal bool HasBufferWrites(in ResourceHandle handle)
+    public Task QueueBufferCopy(ResourceHandle src, ResourceHandle dst, ulong srcOffset, ulong dstOffset, ulong size)
     {
-        return _bufferWrites.Peek(handle, out _) > 0;
-    }
+        var source = ResolveBuffer(src) ?? throw new ArgumentException("Invalid or unresolvable buffer handle", nameof(src));
+        var destination = ResolveBuffer(dst) ??
+                          throw new ArgumentException("Invalid or unresolvable buffer handle", nameof(dst));
+        Debug.Assert(srcOffset + size <= source.Size, "Copy runs past the end of the source buffer");
+        Debug.Assert(dstOffset + size <= destination.Size, "Copy runs past the end of the target buffer");
+        Debug.Assert(!src.Equals(dst) || srcOffset + size <= dstOffset || dstOffset + size <= srcOffset,
+            "Regions of a copy within one buffer must not overlap");
+        if (size == 0) return Task.CompletedTask;
 
-    internal void TakeBufferWrites(in ResourceHandle handle, List<PendingBufferWrite> into)
-    {
-        _bufferWrites.TryTake(handle, int.MaxValue, into);
+        return EnqueueCopy(new BufferCopy(src, dst, srcOffset, dstOffset, size));
     }
 
     public IVulkanDeviceBuffer? ResolveBuffer(in ResourceHandle handle) => _buffers.Resolve(handle)?.Source;

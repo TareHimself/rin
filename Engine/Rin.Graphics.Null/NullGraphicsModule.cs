@@ -97,6 +97,29 @@ public sealed class NullGraphicsModule : IGraphicsModule
         return Task.CompletedTask;
     }
 
+    public Task QueueBufferCopy(ResourceHandle src, ResourceHandle dst, ulong srcOffset, ulong dstOffset, ulong size)
+    {
+        return Task.CompletedTask;
+    }
+
+    public Task QueueTextureCopy(ResourceHandle src, ResourceHandle dst, Offset2D srcOffset, Offset2D dstOffset,
+        Extent2D extent)
+    {
+        return Task.CompletedTask;
+    }
+
+    public Task QueueBufferToTextureCopy(ResourceHandle src, ResourceHandle dst, ulong srcOffset, Offset2D dstOffset,
+        Extent2D extent)
+    {
+        return Task.CompletedTask;
+    }
+
+    public Task QueueTextureToBufferCopy(ResourceHandle src, ResourceHandle dst, Offset2D srcOffset, Extent2D extent,
+        ulong dstOffset)
+    {
+        return Task.CompletedTask;
+    }
+
     public ResourceHandle CreateTexture(in Extent2D extent, ImageFormat format, bool mips = false,
         ImageCreateFlags flags = ImageCreateFlags.None)
     {
