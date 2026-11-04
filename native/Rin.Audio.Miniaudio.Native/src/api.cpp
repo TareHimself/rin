@@ -13,6 +13,9 @@
 #include <string>
 #include <unordered_map>
 #include <vector>
+#ifdef _WIN32
+#include <windows.h>
+#endif
 
 static ma_engine g_engine;
 static std::atomic<std::uint64_t> g_nextId{1};
@@ -244,6 +247,16 @@ static ma_data_source_vtable g_pushSourceVtable = {
     0
 };
 
+#ifdef _WIN32
+static std::wstring utf8ToWide(const std::string& utf8)
+{
+    const int length = MultiByteToWideChar(CP_UTF8, 0, utf8.data(), static_cast<int>(utf8.size()), nullptr, 0);
+    std::wstring wide(static_cast<std::size_t>(length), L'\0');
+    MultiByteToWideChar(CP_UTF8, 0, utf8.data(), static_cast<int>(utf8.size()), wide.data(), length);
+    return wide;
+}
+#endif
+
 static ma_result initSoundFromSample(const AudioSample& sample, ActiveAudio& active,
                                      const ma_uint32 soundFlags, ma_sound_group* pGroup)
 {
@@ -252,7 +265,13 @@ static ma_result initSoundFromSample(const AudioSample& sample, ActiveAudio& act
         const ma_uint32 flags = sample.isStream
                                     ? (soundFlags | MA_SOUND_FLAG_STREAM)
                                     : (soundFlags | MA_SOUND_FLAG_DECODE);
+#ifdef _WIN32
+        // miniaudio opens char paths in the ANSI codepage, but managed code passes UTF-8.
+        const std::wstring widePath = utf8ToWide(sample.filePath);
+        return ma_sound_init_from_file_w(&g_engine, widePath.c_str(), flags, pGroup, nullptr, &active.sound);
+#else
         return ma_sound_init_from_file(&g_engine, sample.filePath.c_str(), flags, pGroup, nullptr, &active.sound);
+#endif
     }
     // Memory-backed audio always decodes — MA_SOUND_FLAG_STREAM requires a file path
     active.ownedData = sample.fileData;

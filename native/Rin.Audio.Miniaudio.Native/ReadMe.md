@@ -15,3 +15,4 @@ See [../ReadMe.md](../ReadMe.md) for the packing flow and the `silo sync` and `s
 No fake exists for it. CI uses the stub package.
 
 - `audioInit`, every factory (`audioMake*`, `audioSampleMakeActive`, `audioMixerCreate`, `audioMixerPlay`, `audioMixerCreatePushStream`, `audioCreateScene`, `audioScenePlay*`) and `audioMixerAddEffect` return an `AudioResult` from `src/result.hpp` and hand the new handle back through an out parameter. `MiniaudioEngine.AudioResult` in `Engine/Rin.Audio.Miniaudio/MiniaudioEngine.cs` mirrors the enum. The `audioActive*` play, pause, volume and seek exports still return 1 or 0 for "applied".
+- File paths arrive as UTF-8. On Windows they are converted to UTF-16 and opened with `ma_sound_init_from_file_w`, since miniaudio opens `char` paths in the ANSI codepage.

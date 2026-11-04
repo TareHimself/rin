@@ -1,5 +1,6 @@
 using Examples.AudioPlayer.Library;
 using Examples.Common;
+using Rin.Core;
 using Rin.Core.Audio;
 
 namespace Examples.AudioPlayer.Playback;
@@ -94,9 +95,18 @@ public sealed class Player : IDisposable
         CloseAudio();
         CurrentIndex = index;
         Log.Info($"Playing '{_queue[index].Info.Title}' ({_queue[index].Info.Path})");
-        _sample = IAudioModule.Get().MakeStream(_queue[index].Info.Path);
-        _audio = _sample.MakeActive();
-        _audio.Play();
+        try
+        {
+            _sample = IAudioModule.Get().MakeStream(_queue[index].Info.Path);
+            _audio = _sample.MakeActive();
+        }
+        catch (NativeException e)
+        {
+            Log.Warn($"Could not play '{_queue[index].Info.Path}': {e.Message}");
+            CloseAudio();
+        }
+
+        _audio?.Play();
         TrackChanged?.Invoke();
     }
 
