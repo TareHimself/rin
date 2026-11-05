@@ -20,7 +20,7 @@ public class BepuPhysicsSystem : IPhysicsSystem
     private readonly List<uint> _versions = [];
     private readonly Stack<uint> _freeIndices = new();
     private readonly Dictionary<int, TimeDilation> _timeDilation = [];
-    private readonly HashSet<int> _dilatedBodiesSeenThisStep = [];
+    private int _stepIndex;
     private readonly Dictionary<int, BepuBody> _bodyHandleLookup = [];
     private readonly Dictionary<int, BepuBody> _staticHandleLookup = [];
     private Vector3 _gravity = new(0, -9.81f, 0);
@@ -288,7 +288,7 @@ public class BepuPhysicsSystem : IPhysicsSystem
 
     public void Update(float deltaTime)
     {
-        _dilatedBodiesSeenThisStep.Clear();
+        _stepIndex++;
         _contacts.BeginStep();
         Simulation.Timestep(deltaTime, _threadDispatcher);
         _contacts.EndStep();
@@ -611,6 +611,7 @@ public class BepuPhysicsSystem : IPhysicsSystem
     private sealed class TimeDilation
     {
         public float Scale = 1f;
+        public int LastSeenStep;
         public Vector3 TrueLinearVelocity;
         public Vector3 TrueAngularVelocity;
     }
@@ -797,7 +798,11 @@ public class BepuPhysicsSystem : IPhysicsSystem
 
                 var bodyHandle = activeSet.IndexToHandle[bodyIndex].Value;
                 if (!physicsSystem._timeDilation.TryGetValue(bodyHandle, out var dilation)) continue;
-                if (physicsSystem._dilatedBodiesSeenThisStep.Add(bodyHandle)) continue;
+                if (dilation.LastSeenStep != physicsSystem._stepIndex)
+                {
+                    dilation.LastSeenStep = physicsSystem._stepIndex;
+                    continue;
+                }
 
                 var laneDt = GatherScatter.Get(ref dt, lane);
                 dilation.TrueLinearVelocity += physicsSystem._gravity * laneDt;
