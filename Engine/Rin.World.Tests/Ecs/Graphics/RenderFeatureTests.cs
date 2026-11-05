@@ -1,9 +1,12 @@
 using System.Numerics;
 using Rin.World.Graphics.Mesh;
 using Rin.World.Ecs;
+using Rin.World.Ecs.Animation;
 using Rin.World.Ecs.Graphics;
 using Rin.World.Ecs.Transforms;
 using Rin.World.Graphics;
+using Rin.World.Mesh.Skinning;
+using SkinnedMesh = Rin.World.Ecs.Graphics.SkinnedMesh;
 
 namespace Rin.World.Tests.Ecs.Graphics;
 
@@ -205,4 +208,89 @@ public class RenderFeatureTests
         Assert.That(light.Radius, Is.EqualTo(7f));
         Assert.That(_world.Get<PointLight>(entity).IsDirty, Is.False);
     }
+
+    [Test]
+    public void AddingASkinnedMeshCreatesASkinnedProxyFromItsPoseSource()
+    {
+        var skeleton = TestSkeletons.WithSocket(Vector3.UnitX);
+        var source = new FakePoseSource { Skeleton = skeleton, Pose = new SkeletalPose(2) };
+        var entity = _world.Spawn();
+
+        _world.Add(entity, SkinnedMeshOf(source));
+
+        var (handle, desc) = _render.CreatedSkinnedMeshes.Single();
+        Assert.That(_world.Get<RenderProxy>(entity).Handle, Is.EqualTo(handle));
+        Assert.That(desc.Skeleton, Is.SameAs(skeleton));
+        Assert.That(desc.Pose.BoneTransforms, Is.SameAs(source.Pose.BoneTransforms));
+    }
+
+    [Test]
+    public void AddingASkinnedMeshThroughTheCommandBufferCreatesTheProxyOnPlayback()
+    {
+        var entity = _world.Spawn();
+        _world.Commands.Add(entity, SkinnedMeshOf(new FakePoseSource { Skeleton = TestSkeletons.WithSocket(Vector3.UnitX) }));
+
+        Assert.That(_render.CreatedSkinnedMeshes, Is.Empty);
+
+        _world.Commands.Playback();
+
+        Assert.That(_render.CreatedSkinnedMeshes, Has.Count.EqualTo(1));
+        Assert.That(_world.Has<RenderProxy>(entity), Is.True);
+    }
+
+    [Test]
+    public void RemovingTheSkinnedMeshDestroysTheProxy()
+    {
+        var entity = _world.Spawn();
+        _world.Add(entity, SkinnedMeshOf(new FakePoseSource { Skeleton = TestSkeletons.WithSocket(Vector3.UnitX) }));
+        var handle = _world.Get<RenderProxy>(entity).Handle;
+
+        _world.Remove<SkinnedMesh>(entity);
+
+        Assert.That(_render.Destroyed, Is.EqualTo(new[] { handle }));
+        Assert.That(_world.Has<RenderProxy>(entity), Is.False);
+    }
+
+    [Test]
+    public void DespawningASkinnedMeshThroughTheCommandBufferDestroysTheProxy()
+    {
+        var entity = _world.Spawn();
+        _world.Add(entity, SkinnedMeshOf(new FakePoseSource { Skeleton = TestSkeletons.WithSocket(Vector3.UnitX) }));
+        _world.Commands.Despawn(entity);
+
+        _world.Update(0f);
+
+        Assert.That(_render.LiveCount, Is.Zero);
+    }
+
+    [Test]
+    public void ASkinnedMeshWithoutAPoseSourceThrows()
+    {
+        var entity = _world.Spawn();
+
+        Assert.Throws<InvalidOperationException>(() =>
+            _world.Add(entity, new SkinnedMesh { MeshId = _meshes.Register(new FakeMesh()) }));
+    }
+
+    [Test]
+    public void AttachingToAnUnknownBoneThrows()
+    {
+        var parent = _world.Spawn();
+        _world.Add(parent, SkinnedMeshOf(new FakePoseSource { Skeleton = TestSkeletons.WithSocket(Vector3.UnitX) }));
+
+        Assert.Throws<ArgumentException>(() => _feature.AttachToBone(_world.Spawn(), parent, "tail"));
+    }
+
+    [Test]
+    public void AttachingToAParentWithoutASkinnedMeshThrows()
+    {
+        Assert.Throws<InvalidOperationException>(() =>
+            _feature.AttachToBone(_world.Spawn(), _world.Spawn(), TestSkeletons.SocketBone));
+    }
+
+    private SkinnedMesh SkinnedMeshOf(IPoseSource source) => new()
+    {
+        MeshId = _meshes.Register(new FakeMesh()),
+        PoseSource = _feature.PoseSources.Add(source)
+    };
 }

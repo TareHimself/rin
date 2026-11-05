@@ -35,9 +35,12 @@ public static class TransformExtensions
     {
         var matrix = Matrix4x4.Identity;
         for (var current = entity; current.IsValid && world.Has<LocalTransform>(current); current = world.GetParent(current))
-            matrix *= world.Get<LocalTransform>(current).ToMatrix();
+            matrix *= world.ComputeLocalMatrix(current, world.Get<LocalTransform>(current));
         return matrix;
     }
+
+    internal static Matrix4x4 ComputeLocalMatrix(this EntityWorld world, Entity entity, in LocalTransform local) =>
+        world.Has<AttachSocket>(entity) ? local.ToMatrix() * world.Get<AttachSocket>(entity).SocketMatrix : local.ToMatrix();
 
     private static ref LocalTransform GetOrAddTransform(this EntityWorld world, Entity entity)
     {

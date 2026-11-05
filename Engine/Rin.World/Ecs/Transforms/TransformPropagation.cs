@@ -8,7 +8,8 @@ namespace Rin.World.Ecs.Transforms;
 ///     recomputes <see cref="WorldTransform" /> for dirty entities and for children whose parent matrix changed.
 /// </summary>
 /// <remarks>
-///     A subtree is reached only through parents that have both transform components.
+///     A subtree is reached only through parents that have both transform components. A child with
+///     <see cref="AttachSocket" /> is placed relative to its socket instead of its parent's origin.
 /// </remarks>
 internal sealed class TransformPropagation : FrameSystem
 {
@@ -21,6 +22,8 @@ internal sealed class TransformPropagation : FrameSystem
     {
         _world = world;
         _transforms = world.Query<LocalTransform, WorldTransform>();
+        world.OnAdd<AttachSocket>(MarkDirty);
+        world.OnRemove<AttachSocket>(MarkDirty);
     }
 
     public override void Update(in FrameContext context)
@@ -48,7 +51,7 @@ internal sealed class TransformPropagation : FrameSystem
         var changed = false;
         if (dirty || node.ParentChanged)
         {
-            var matrix = local.ToMatrix() * node.ParentWorld;
+            var matrix = _world.ComputeLocalMatrix(entity, local) * node.ParentWorld;
             if (matrix != worldTransform.Matrix)
             {
                 worldTransform.Matrix = matrix;
@@ -59,6 +62,11 @@ internal sealed class TransformPropagation : FrameSystem
 
         var children = _world.GetChildren(entity);
         for (var i = children.Count - 1; i >= 0; i--) Push(new PendingNode(children[i], worldTransform.Matrix, changed));
+    }
+
+    private void MarkDirty(Entity entity, ref AttachSocket socket)
+    {
+        if (_world.Has<LocalTransform>(entity)) _world.Get<LocalTransform>(entity).IsDirty = true;
     }
 
     private void Push(in PendingNode node)

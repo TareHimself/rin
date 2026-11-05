@@ -1,4 +1,5 @@
 using System.Numerics;
+using Rin.World.Ecs.Animation;
 using Rin.World.Ecs.Scheduling;
 using Rin.World.Ecs.Transforms;
 using Rin.World.Graphics;
@@ -6,37 +7,46 @@ using Rin.World.Graphics;
 namespace Rin.World.Ecs.Graphics;
 
 /// <summary>
-///     Pushes mesh transforms whose <see cref="WorldTransform.Version" /> changed, dirty or moved lights, and the world's
-///     interpolation alpha to the render system.
+///     Pushes mesh transforms whose <see cref="WorldTransform.Version" /> changed, every skinned pose, dirty or moved
+///     lights, and the world's interpolation alpha to the render system.
 /// </summary>
 internal sealed class RenderExtract : FrameSystem
 {
     private readonly EntityWorld _world;
     private readonly IRenderSystem _renderSystem;
-    private readonly Query<StaticMesh, WorldTransform, RenderProxy> _meshes;
+    private readonly PoseSources _poseSources;
+    private readonly Query<StaticMesh, WorldTransform, RenderProxy> _staticMeshes;
+    private readonly Query<SkinnedMesh, WorldTransform, RenderProxy> _skinnedMeshTransforms;
+    private readonly Query<SkinnedMesh, RenderProxy> _skinnedMeshPoses;
     private readonly Query<PointLight, RenderProxy> _pointLights;
     private readonly Query<DirectionalLight, RenderProxy> _directionalLights;
 
-    public RenderExtract(EntityWorld world, IRenderSystem renderSystem)
+    public RenderExtract(EntityWorld world, IRenderSystem renderSystem, PoseSources poseSources)
     {
         _world = world;
         _renderSystem = renderSystem;
-        _meshes = world.Query<StaticMesh, WorldTransform, RenderProxy>();
+        _poseSources = poseSources;
+        _staticMeshes = world.Query<StaticMesh, WorldTransform, RenderProxy>();
+        _skinnedMeshTransforms = world.Query<SkinnedMesh, WorldTransform, RenderProxy>();
+        _skinnedMeshPoses = world.Query<SkinnedMesh, RenderProxy>();
         _pointLights = world.Query<PointLight, RenderProxy>();
         _directionalLights = world.Query<DirectionalLight, RenderProxy>();
     }
 
     public override void Update(in FrameContext context)
     {
-        PushMeshTransforms();
+        PushMeshTransforms(_staticMeshes);
+        PushMeshTransforms(_skinnedMeshTransforms);
+        PushSkinnedPoses();
         PushPointLights();
         PushDirectionalLights();
         _renderSystem.SetInterpolationAlpha(context.InterpolationAlpha);
     }
 
-    private void PushMeshTransforms()
+    private void PushMeshTransforms<TMesh>(Query<TMesh, WorldTransform, RenderProxy> meshes)
+        where TMesh : struct, IComponentData
     {
-        foreach (var (_, transforms, proxies) in _meshes)
+        foreach (var (_, transforms, proxies) in meshes)
             for (var i = 0; i < transforms.Length; i++)
             {
                 ref readonly var transform = ref transforms[i];
@@ -46,6 +56,14 @@ internal sealed class RenderExtract : FrameSystem
                 _renderSystem.UpdateProxyTransform(proxy.Handle, transform.Matrix);
                 proxy.LastPushedVersion = transform.Version;
             }
+    }
+
+    // Poses have no cheap change check, so every one is pushed each frame.
+    private void PushSkinnedPoses()
+    {
+        foreach (var (meshes, proxies) in _skinnedMeshPoses)
+            for (var i = 0; i < meshes.Length; i++)
+                _renderSystem.UpdateSkinnedProxyPose(proxies[i].Handle, _poseSources.Get(meshes[i].PoseSource).GetPose());
     }
 
     private void PushPointLights()

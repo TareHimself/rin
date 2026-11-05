@@ -4,6 +4,8 @@ using Rin.World.Ecs;
 using Rin.World.Ecs.Graphics;
 using Rin.World.Ecs.Transforms;
 using Rin.World.Graphics;
+using Rin.World.Mesh.Skinning;
+using SkinnedMesh = Rin.World.Ecs.Graphics.SkinnedMesh;
 
 namespace Rin.World.Tests.Ecs.Graphics;
 
@@ -12,6 +14,7 @@ public class RenderExtractTests
     private EntityWorld _world = null!;
     private FakeRenderSystem _render = null!;
     private FakeMeshFactory _meshes = null!;
+    private RenderFeature _feature = null!;
 
     [SetUp]
     public void SetUp()
@@ -19,7 +22,7 @@ public class RenderExtractTests
         _world = new EntityWorld();
         _render = new FakeRenderSystem();
         _meshes = new FakeMeshFactory();
-        _ = new RenderFeature(_world, _render, _meshes);
+        _feature = new RenderFeature(_world, _render, _meshes);
     }
 
     [TearDown]
@@ -153,6 +156,49 @@ public class RenderExtractTests
         var allocated = GC.GetAllocatedBytesForCurrentThread() - before;
 
         Assert.That(allocated, Is.Zero);
+    }
+
+    [Test]
+    public void EverySkinnedPoseIsPushedEachFrame()
+    {
+        var source = new FakePoseSource { Skeleton = TestSkeletons.WithSocket(Vector3.UnitX), Pose = new SkeletalPose(2) };
+        var entity = SpawnSkinnedMesh(source, Vector3.Zero);
+        var handle = _world.Get<RenderProxy>(entity).Handle;
+
+        _world.Update(0f);
+        _world.Update(0f);
+
+        Assert.That(_render.PushedPoses, Has.Count.EqualTo(2));
+        Assert.That(_render.PushedPoses.Select(push => push.Handle), Is.All.EqualTo(handle));
+        Assert.That(_render.PushedPoses[1].Pose.BoneTransforms, Is.SameAs(source.Pose.BoneTransforms));
+    }
+
+    [Test]
+    public void ASkinnedMeshTransformIsPushedOnlyWhenItsVersionChanges()
+    {
+        var entity = SpawnSkinnedMesh(new FakePoseSource { Skeleton = TestSkeletons.WithSocket(Vector3.UnitX) }, Vector3.Zero);
+        _world.Update(0f);
+        _render.PushedTransforms.Clear();
+
+        _world.Update(0f);
+        Assert.That(_render.PushedTransforms, Is.Empty);
+
+        _world.SetPosition(entity, new Vector3(0, 0, 7));
+        _world.Update(0f);
+
+        Assert.That(_render.PushedTransforms.Single().Transform.Translation, Is.EqualTo(new Vector3(0, 0, 7)));
+    }
+
+    private Entity SpawnSkinnedMesh(IPoseSource source, Vector3 position)
+    {
+        var entity = _world.Spawn();
+        _world.SetPosition(entity, position);
+        _world.Add(entity, new SkinnedMesh
+        {
+            MeshId = _meshes.Register(new FakeMesh()),
+            PoseSource = _feature.PoseSources.Add(source)
+        });
+        return entity;
     }
 
     private Entity SpawnMesh(Vector3 position)

@@ -1,5 +1,4 @@
 using System.Numerics;
-using Examples.AssetViewer;
 using Examples.Common;
 using Examples.Common.Views;
 using experiments.Docking.Model;
@@ -18,7 +17,6 @@ using Rin.GLTF;
 using Rin.World.Ecs;
 using Rin.World.Ecs.Graphics;
 using Rin.World.Ecs.Physics;
-using Rin.World.Ecs.Scheduling;
 using Rin.World.Ecs.Transforms;
 using Rin.World.Graphics.Default;
 using Rin.World.Graphics.Mesh;
@@ -183,8 +181,10 @@ public sealed class SceneTestExample : Example
         GltfMeshImporter.LoadSkinnedMesh(foxPath).DispatchMain(skinned =>
         {
             if (_render != render || skinned is null) return;
-            if (IMeshFactory.Get().GetMesh(skinned.MeshId) is not { } deviceMesh) return;
+            if (!IMeshFactory.Get().IsMeshReady(skinned.MeshId)) return;
 
+            var world = render.World;
+            var materials = render.Materials.Add(material);
             var clips = GltfAnimationImporter.LoadAnimationClips(foxPath);
             foreach (var (x, clipName) in new[] { (-30f, "Survey"), (0f, "Walk"), (30f, "Run") })
             {
@@ -192,9 +192,15 @@ public sealed class SceneTestExample : Example
                 if (clips.TryGetValue(clipName, out var clip))
                     graph.Root = new ClipPlayerNode(clip.Bind(skinned.Skeleton)) { Loop = true };
 
-                var transform = Matrix4x4.CreateScale(0.05f) * Matrix4x4.CreateTranslation(x, -5f, 55f);
-                render.World.AddSystem(FramePhase.Update,
-                    new AnimatedModel(render.RenderSystem, deviceMesh, skinned.Skeleton, graph, transform, material));
+                var fox = world.Spawn();
+                world.SetPosition(fox, new Vector3(x, -5f, 55f));
+                world.SetScale(fox, new Vector3(0.05f));
+                world.Add(fox, new SkinnedMesh
+                {
+                    MeshId = skinned.MeshId,
+                    Materials = materials,
+                    PoseSource = render.PoseSources.Add(graph)
+                });
             }
         });
     }

@@ -1,4 +1,5 @@
 using Rin.Core.Extensions;
+using Rin.World.Ecs.Animation;
 using Rin.World.Ecs.Scheduling;
 using Rin.World.Ecs.Transforms;
 using Rin.World.Graphics;
@@ -9,8 +10,9 @@ namespace Rin.World.Ecs.Graphics;
 
 /// <summary>
 ///     Connects an <see cref="EntityWorld" /> to an <see cref="IRenderSystem" />. Hooks create a render proxy and a
-///     <see cref="RenderProxy" /> component when a <see cref="StaticMesh" />, <see cref="PointLight" /> or
-///     <see cref="DirectionalLight" /> is added and destroy both when it is removed or despawned. A
+///     <see cref="RenderProxy" /> component when a <see cref="StaticMesh" />, <see cref="SkinnedMesh" />,
+///     <see cref="PointLight" /> or <see cref="DirectionalLight" /> is added and destroy both when it is removed or
+///     despawned. <see cref="FramePhase.Update" /> systems advance pose sources and bone sockets, and a
 ///     <see cref="FramePhase.Extract" /> system added after transform propagation pushes the changes every frame.
 /// </summary>
 /// <remarks>
@@ -28,12 +30,16 @@ public sealed class RenderFeature
         _meshFactory = meshFactory;
 
         world.OnAdd<StaticMesh>(CreateStaticMeshProxy);
+        world.OnAdd<SkinnedMesh>(CreateSkinnedMeshProxy);
         world.OnAdd<PointLight>(CreatePointLightProxy);
         world.OnAdd<DirectionalLight>(CreateDirectionalLightProxy);
         world.OnRemove<StaticMesh>(DestroyProxy);
+        world.OnRemove<SkinnedMesh>(DestroyProxy);
         world.OnRemove<PointLight>(DestroyProxy);
         world.OnRemove<DirectionalLight>(DestroyProxy);
-        world.AddSystem(FramePhase.Extract, new RenderExtract(world, renderSystem));
+        world.AddSystem(FramePhase.Update, new AnimationSystem(world, PoseSources));
+        world.AddSystem(FramePhase.Update, new BoneSocketSync(world, PoseSources));
+        world.AddSystem(FramePhase.Extract, new RenderExtract(world, renderSystem, PoseSources));
     }
 
     public EntityWorld World { get; }
@@ -41,6 +47,25 @@ public sealed class RenderFeature
     public IRenderSystem RenderSystem { get; }
 
     public MaterialSets Materials { get; } = new();
+
+    public PoseSources PoseSources { get; } = new();
+
+    /// <summary>
+    ///     Parents <paramref name="child" /> to <paramref name="parent" /> and attaches it to the named bone of the
+    ///     parent's <see cref="SkinnedMesh" /> pose. A structural change, so not for use inside a query loop.
+    /// </summary>
+    public void AttachToBone(Entity child, Entity parent, string boneName)
+    {
+        if (!World.Has<SkinnedMesh>(parent))
+            throw new InvalidOperationException($"{parent} has no {nameof(SkinnedMesh)} to attach to.");
+
+        var poseSource = PoseSources.Entry(World.Get<SkinnedMesh>(parent).PoseSource);
+        if (!poseSource.Source.Skeleton.BoneNameToIndex.TryGetValue(boneName, out var boneIndex))
+            throw new ArgumentException($"The skeleton of {parent} has no bone named '{boneName}'.", nameof(boneName));
+
+        World.SetParent(child, parent);
+        World.Add(child, new AttachSocket(boneIndex) { SocketMatrix = poseSource.BoneMatrices[boneIndex] });
+    }
 
     private void CreateStaticMeshProxy(Entity entity, ref StaticMesh staticMesh)
     {
@@ -52,6 +77,28 @@ public sealed class RenderFeature
         var handle = RenderSystem.CreateStaticMeshProxy(new StaticMeshProxyDesc
         {
             Mesh = mesh,
+            Transform = transform.Matrix,
+            SurfaceIndices = surfaceIndices,
+            Materials = materials
+        });
+        AddProxy(entity, handle, transform.Version);
+    }
+
+    private void CreateSkinnedMeshProxy(Entity entity, ref SkinnedMesh skinnedMesh)
+    {
+        EnsureNoProxy(entity);
+        if (!skinnedMesh.PoseSource.IsValid)
+            throw new InvalidOperationException($"The {nameof(SkinnedMesh)} of {entity} needs a pose source.");
+        if (_meshFactory.GetMesh(skinnedMesh.MeshId) is not { } mesh) return;
+
+        var poseSource = PoseSources.Get(skinnedMesh.PoseSource);
+        var (surfaceIndices, materials) = ResolveSurfaceMaterials(mesh, Materials.Get(skinnedMesh.Materials));
+        var transform = CurrentWorldTransform(entity);
+        var handle = RenderSystem.CreateSkinnedMeshProxy(new SkinnedMeshProxyDesc
+        {
+            Mesh = mesh,
+            Skeleton = poseSource.Skeleton,
+            Pose = poseSource.GetPose(),
             Transform = transform.Matrix,
             SurfaceIndices = surfaceIndices,
             Materials = materials

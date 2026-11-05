@@ -121,8 +121,16 @@ internal sealed class FakePoseSource : IPoseSource
 {
     public required Skeleton Skeleton { get; init; }
     public SkeletalPose Pose;
+    public int TickCount { get; private set; }
+    public float TickedSeconds { get; private set; }
 
     public SkeletalPose GetPose() => Pose;
+
+    public void Tick(float deltaSeconds)
+    {
+        TickCount++;
+        TickedSeconds += deltaSeconds;
+    }
 }
 
 /// <summary>
@@ -189,6 +197,7 @@ internal sealed class FakeRenderSystem : IRenderSystem
     public List<(RenderProxyHandle Handle, SkeletalPose Pose)> PushedPoses { get; } = [];
     public List<(RenderProxyHandle Handle, LightInfo Light)> PushedLights { get; } = [];
     public List<(RenderProxyHandle Handle, StaticMeshProxyDesc Desc)> CreatedStaticMeshes { get; } = [];
+    public List<(RenderProxyHandle Handle, SkinnedMeshProxyDesc Desc)> CreatedSkinnedMeshes { get; } = [];
     public List<(RenderProxyHandle Handle, LightInfo Light)> CreatedLights { get; } = [];
     public List<RenderProxyHandle> Destroyed { get; } = [];
     public int DestroyCount => Destroyed.Count;
@@ -202,7 +211,13 @@ internal sealed class FakeRenderSystem : IRenderSystem
         return handle;
     }
 
-    public RenderProxyHandle CreateSkinnedMeshProxy(in SkinnedMeshProxyDesc desc) => Create();
+    public RenderProxyHandle CreateSkinnedMeshProxy(in SkinnedMeshProxyDesc desc)
+    {
+        var handle = Create();
+        CreatedSkinnedMeshes.Add((handle, desc));
+        return handle;
+    }
+
     public RenderProxyHandle CreateLightProxy(in LightInfo desc)
     {
         var handle = Create();
@@ -479,3 +494,16 @@ internal record struct Armor(int Value) : IComponentData;
 internal record struct Ammo(int Value) : IComponentData;
 
 internal struct Stunned : ITagData;
+
+internal static class TestSkeletons
+{
+    public const string SocketBone = "hand";
+
+    public static Skeleton WithSocket(Vector3 socketOffset)
+    {
+        var root = new Bone { Name = "root", LocalTransform = new Transform() };
+        var socket = new Bone { Name = SocketBone, Parent = root, LocalTransform = new Transform { Position = socketOffset } };
+        root.Children = [socket];
+        return new Skeleton([root, socket]);
+    }
+}

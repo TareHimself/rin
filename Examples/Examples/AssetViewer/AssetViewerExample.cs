@@ -6,7 +6,6 @@ using Rin.Core.Shared.Math;
 using Rin.GLTF;
 using Rin.World.Ecs;
 using Rin.World.Ecs.Graphics;
-using Rin.World.Ecs.Scheduling;
 using Rin.World.Ecs.Transforms;
 using Rin.World.Graphics.Default;
 using Rin.World.Graphics.Mesh;
@@ -82,7 +81,8 @@ public sealed class AssetViewerExample : Example
         {
             if (_render != render) return;
             var deviceMesh = IMeshFactory.Get().GetMesh(mesh.MeshId)!;
-            render.World.AddSystem(FramePhase.Update, new AnimatedModel(render.RenderSystem, deviceMesh, mesh.Skeleton, graph));
+            var model = render.World.Spawn();
+            render.World.Add(model, new SkinnedMesh { MeshId = mesh.MeshId, PoseSource = render.PoseSources.Add(graph) });
 
             var bounds = deviceMesh.GetBounds();
             var center = (bounds.Min + bounds.Max) / 2f;

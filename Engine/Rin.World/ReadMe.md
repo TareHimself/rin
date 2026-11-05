@@ -56,13 +56,13 @@ flowchart TD
         T1[Input] --> T2[Gameplay] --> T3["Tasks (empty)"] --> T4["Physics: push, step, pull, contacts<br/>(with a PhysicsFeature)"] --> T5["play back Commands, TickIndex++"]
     end
     T --> I[InterpolationAlpha = leftover / TickInterval]
-    I --> F1[Frame: Update]
+    I --> F1["Frame: Update<br/>(animation and bone sockets with a RenderFeature)"]
     F1 --> F2[Frame: Late]
     F2 --> F3["Frame: Extract, TransformPropagation first"]
     F3 --> F4[play back Commands]
 ```
 
-`TransformPropagation` walks each hierarchy depth first from its roots. It recomputes `world = local x parentWorld` (row vectors, like `WorldComponent`) for dirty entities and for children of a parent whose matrix changed, clears `IsDirty`, and bumps `Version` only when the matrix changed. It reaches a subtree only through parents that have both transform components.
+`TransformPropagation` walks each hierarchy depth first from its roots. It recomputes `world = local x parentWorld` (row vectors, like `WorldComponent`), or `local x socket x parentWorld` for an entity with `AttachSocket`, for dirty entities and for children of a parent whose matrix changed, clears `IsDirty`, and bumps `Version` only when the matrix changed. It reaches a subtree only through parents that have both transform components.
 
 ### Rendering entities
 
@@ -71,25 +71,50 @@ flowchart TD
 | Component | What it does |
 | --- | --- |
 | `StaticMesh` | Mesh id plus `MaterialSet`. Surface `i` uses material `i`, a missing one reuses the previous surface's material, an empty set draws the default material. A mesh that is not ready when the component is added gets no proxy. |
+| `SkinnedMesh` | Like `StaticMesh`, plus a `PoseSourceHandle` from `RenderFeature.PoseSources`, which supplies the skeleton and the pose. Adding one without a pose source throws. See [Skinning and sockets](#skinning-and-sockets). |
 | `PointLight`, `DirectionalLight` | Color, radiance and radius. Every setter sets `IsDirty`, like `LocalTransform`. The directional light shines along the entity's world forward axis. |
 | `Camera` | Field of view and clip planes. `world.GetCameraView(entity)` combines it with `WorldTransform` into a `CameraView`. |
 | `RenderProxy` | Added by the feature: the proxy handle and the `WorldTransform.Version` last pushed. |
 
-An entity holds at most one of `StaticMesh`, `PointLight` and `DirectionalLight` (a second one throws), so use child entities for more.
+An entity holds at most one of `StaticMesh`, `SkinnedMesh`, `PointLight` and `DirectionalLight` (a second one throws), so use child entities for more.
 
 ```mermaid
 flowchart LR
-    A["Add StaticMesh or a light<br/>(directly or by Commands playback)"] -- "OnAdd hook" --> C["Create proxy at the current world pose,<br/>add RenderProxy"]
+    A["Add a mesh or a light<br/>(directly or by Commands playback)"] -- "OnAdd hook" --> C["Create proxy at the current world pose,<br/>add RenderProxy"]
     R["Remove it, or despawn<br/>(children too)"] -- "OnRemove hook" --> D["DestroyProxy,<br/>remove RenderProxy"]
     subgraph L["Frame: Extract"]
         P[TransformPropagation] --> E["RenderExtract"]
     end
     E -- "Version changed" --> T[UpdateProxyTransform]
     E -- "IsDirty or Version changed" --> U[UpdateLightProxy]
+    E -- "every skinned mesh, every frame" --> K[UpdateSkinnedProxyPose]
     E --> S["SetInterpolationAlpha(world alpha)"]
 ```
 
 The proxy starts at the world pose computed from the local transforms, not the stored `WorldTransform`, which is stale until propagation runs. An entity without transforms gets an identity proxy. `RenderExtract` does not allocate.
+
+### Skinning and sockets
+
+Animation is presentation, so it runs per frame on the time-scaled frame delta (`TimeScale` 0 freezes it), not on the fixed tick. Managed pose sources (`IPoseSource`, usually an `AnimationGraph`) live in `RenderFeature.PoseSources`, and `SkinnedMesh` refers to one by handle.
+
+```mermaid
+flowchart LR
+    subgraph U["Frame: Update"]
+        A["AnimationSystem: Tick each pose source once,<br/>then dispatch its notifies"] --> B["BoneSocketSync: bone matrix<br/>into AttachSocket, mark dirty if changed"]
+    end
+    subgraph X["Frame: Extract"]
+        P["TransformPropagation:<br/>local x socket x parentWorld"] --> E["RenderExtract:<br/>UpdateSkinnedProxyPose"]
+    end
+    U --> X
+```
+
+| Piece | What it does |
+| --- | --- |
+| `AnimationSystem` | Ticks the pose source of every `SkinnedMesh` entity. A source shared by several entities ticks once per frame. Notifies of an `AnimationGraph` fire after the query loop with the world and the entity (`IAnimationNotify.Notify(world, entity, graph)`, `IAnimationNotifyState.NotifyBegin`/`NotifyEnd`), so they may change structure directly, and are then released. |
+| `AttachSocket` | Bone index plus the bone's matrix in the parent's space. `renderFeature.AttachToBone(child, parent, "boneName")` resolves the name once, parents the child and adds the socket with the current bone matrix. Adding or removing it marks the child dirty. |
+| `BoneSocketSync` | For each socketed child whose parent has a `SkinnedMesh`, copies the bone matrix from the parent's pose. Bone matrices are resolved once per pose change, only when a socket asks. |
+
+The animation, socket and extract systems do not allocate. The pose sources can: `AnimationGraph.Tick` allocates its evaluated pose, about 4.9 KB per tick for a 60 bone clip player.
 
 ### Physics for entities
 
