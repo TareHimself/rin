@@ -10,12 +10,19 @@ namespace Rin.World.Scripting;
 public abstract class Script
 {
     private ScriptFeature? _feature;
+    private World? _world;
 
+    /// <summary>
+    ///     The entity this script is attached to, or was last attached to.
+    /// </summary>
     public Entity Entity { get; private set; }
 
     public bool IsAttached => _feature is not null;
 
-    public World World => Feature.World;
+    /// <summary>
+    ///     Stays usable after the script is detached or its entity despawned, so code after a self-despawn can keep going.
+    /// </summary>
+    public World World => _world ?? throw new InvalidOperationException($"{GetType().Name} was never attached.");
 
     /// <summary>
     ///     Starts tasks owned by <see cref="Entity" />. They are cancelled when the script stops.
@@ -57,12 +64,12 @@ public abstract class Script
     internal void Bind(ScriptFeature feature, Entity entity)
     {
         _feature = feature;
+        _world = feature.World;
         Entity = entity;
     }
 
     internal void Unbind()
     {
         _feature = null;
-        Entity = default;
     }
 }

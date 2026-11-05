@@ -141,9 +141,48 @@ public class ScriptFeatureTests
         Assert.That(_log, Is.EqualTo(new[] { $"restore {first}", $"restore {second}", $"{first} done@0", $"{second} done@0" }));
     }
 
+    [Test]
+    public void ADetachedScriptKeepsItsWorldAndEntity()
+    {
+        var entity = _world.Spawn();
+        var script = new Recorder("a", _log);
+        _scripts.Attach(entity, script);
+
+        _world.Despawn(entity);
+
+        Assert.That(script.IsAttached, Is.False);
+        Assert.That(script.World, Is.SameAs(_world));
+        Assert.That(script.Entity, Is.EqualTo(entity));
+        Assert.That(script.World.IsAlive(script.Entity), Is.False);
+    }
+
+    [Test]
+    public void ATaskThatDespawnsItsOwnEntityCanKeepUsingTheWorld()
+    {
+        var entity = _world.Spawn();
+        _scripts.Attach(entity, new SelfDespawner(_log));
+
+        Tick(2);
+
+        Assert.That(_log, Is.EqualTo(new[] { "despawned", "alive=False" }));
+    }
+
     private void Tick(int count)
     {
         for (var i = 0; i < count; i++) _world.Update(Interval);
+    }
+
+    private sealed class SelfDespawner(List<string> log) : Script
+    {
+        protected override void Start() => Tasks.Run(Run);
+
+        private async GameTask Run(TaskContext ctx)
+        {
+            await ctx.NextTick();
+            World.Despawn(Entity);
+            log.Add("despawned");
+            log.Add($"alive={World.IsAlive(Entity)}");
+        }
     }
 
     private sealed class Recorder(string name, List<string> log) : Script
