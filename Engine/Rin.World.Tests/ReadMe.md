@@ -11,6 +11,7 @@ CI passes `-p:RinShadeSkipCompile=true` for this project.
 | Folder | Covers |
 | --- | --- |
 | `Components/` | Light, skinned mesh and transform components, and contact event routing from the fake physics system to components |
+| `Ecs/` | The ECS seam: entity handles, the hierarchy, hooks and the command buffer, queries and their zero-allocation check (`Ecs/Backend/`), the tick and frame scheduler (`Ecs/Scheduling/`) and transform propagation (`Ecs/Transforms/`) |
 | `Graphics/` | The default render system, its view data, skinned proxy poses and render proxy handles |
 | `Physics/` | Queries, contact and trigger events, mesh and hull bodies and time dilation against the real Bepu system, plus body handles and the world facade against the fakes |
 | `Skinning/` | Skeleton poses, animation clips and the animation graph nodes (mirrors `Mesh/Skinning/`) |

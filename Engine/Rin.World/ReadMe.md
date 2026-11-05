@@ -11,7 +11,7 @@ Without `RinShadeSkipCompile=true` the build also compiles the shaders and needs
 
 ## Actors and components
 
-There is no ECS. An actor is a bag of components keyed by type with an optional root `WorldComponent`, and transform calls on the actor forward to that root. A component overrides `Start`, `Stop`, `PrePhysicsUpdate`, `Update` and `LateUpdate`.
+This is the scene model the examples use today. The [ECS](#ecs-in-progress) below is replacing it and both exist until the migration finishes. An actor is a bag of components keyed by type with an optional root `WorldComponent`, and transform calls on the actor forward to that root. A component overrides `Start`, `Stop`, `PrePhysicsUpdate`, `Update` and `LateUpdate`.
 
 | Component | What it does |
 | --- | --- |
@@ -32,6 +32,36 @@ flowchart TD
 ```
 
 Physics queries (ray and shape casts, overlaps) take a `ref struct` handler or a `Span` buffer, so a query never allocates.
+
+## ECS (in progress)
+
+`EntityWorld` is an archetype ECS that will replace actors and components. It runs on [Friflo.Engine.ECS](https://github.com/friflo/Friflo.Engine.ECS), but only `Ecs/Backend/` may reference Friflo: `BannedSymbols.txt` bans the namespace and `.editorconfig` turns the ban into a build error everywhere else in this project. Gameplay code sees only Rin types.
+
+| Piece | What it is |
+| --- | --- |
+| `Entity` | An id plus generation handle. A despawned entity's handle stops matching when the id is reused. |
+| `IComponentData`, `ITagData` | Markers for component and tag structs. |
+| `Query<T1>` to `Query<T1, T2, T3, T4>` | `foreach (var chunk in query)` gives one `Span<T>` per component and the chunk's entities, without allocating. Structural changes inside the loop throw, so record them in a `CommandBuffer`. |
+| `CommandBuffer` | Records spawn, despawn, add, set, remove and tag changes, and applies them in record order. Spawn creates the entity at once so ids follow record order. Commands for an entity that is gone by playback are skipped. |
+| Hierarchy | `SetParent`, `ClearParent`, `GetParent`, `GetChildren`. Despawning an entity despawns its descendants, depth first. Reparenting marks the child dirty. |
+| Hooks | `OnAdd<T>` fires when a component is new, `OnRemove<T>` fires before it is removed, also on despawn. |
+| Transforms | `LocalTransform` and `WorldTransform` (matrix plus `Version`). Every `LocalTransform` setter sets its `IsDirty` flag, so a write through a query span needs no structural change. `SetPosition`, `SetRotation`, `SetScale` and `SetLocalTransform` add both components when missing. |
+
+`EntityWorld.Update(dt)` runs fixed ticks of `TickInterval` (1/60 s by default) from the time-scaled delta, then the frame phases. Systems run in the order they were added to their phase.
+
+```mermaid
+flowchart TD
+    A["Update(dt x TimeScale), clamped to 0.25 s"] --> T
+    subgraph T["each TickInterval, at most MaxTicksPerFrame (backlog dropped at the cap)"]
+        T1[Input] --> T2[Gameplay] --> T3["Tasks (empty)"] --> T4["Physics (empty)"] --> T5["play back Commands, TickIndex++"]
+    end
+    T --> I[InterpolationAlpha = leftover / TickInterval]
+    I --> F1[Frame: Update]
+    F1 --> F2["Frame: Late, TransformPropagation first"]
+    F2 --> F3[play back Commands]
+```
+
+`TransformPropagation` walks each hierarchy depth first from its roots. It recomputes `world = local x parentWorld` (row vectors, like `WorldComponent`) for dirty entities and for children of a parent whose matrix changed, clears `IsDirty`, and bumps `Version` only when the matrix changed. It reaches a subtree only through parents that have both transform components.
 
 ## From components to the GPU
 
@@ -73,4 +103,4 @@ Meshes are batched by index buffer plus material, so each batch is one `DrawInde
 
 The examples build `new World(new DefaultRenderSystem(), new BepuPhysicsSystem())`, call `Start()` and give a camera actor a `Viewport`.
 
-References: Rin.Core, Rin.Shade (plus its source generator), Rin.SourceGenerators. Packages: BepuPhysics. Referenced by Rin.GLTF, Examples and Rin.World.Tests.
+References: Rin.Core, Rin.Shade (plus its source generator), Rin.SourceGenerators. Packages: BepuPhysics, Friflo.Engine.ECS, Microsoft.CodeAnalysis.BannedApiAnalyzers (build only). Referenced by Rin.GLTF, Examples and Rin.World.Tests.

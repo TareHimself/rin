@@ -1,0 +1,1 @@
+N:Friflo.Engine.ECS;Use the Rin.World.Ecs seam, only Ecs/Backend may reference Friflo

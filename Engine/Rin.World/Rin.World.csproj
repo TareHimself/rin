@@ -25,6 +25,12 @@
 
     <ItemGroup>
         <PackageReference Include="BepuPhysics"/>
+        <PackageReference Include="Friflo.Engine.ECS"/>
+    </ItemGroup>
+
+    <ItemGroup Label="ECS seam">
+        <PackageReference Include="Microsoft.CodeAnalysis.BannedApiAnalyzers" PrivateAssets="All" />
+        <AdditionalFiles Include="BannedSymbols.txt" />
     </ItemGroup>
 
 </Project>

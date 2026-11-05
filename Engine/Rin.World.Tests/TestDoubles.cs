@@ -4,6 +4,7 @@ using Rin.Core.Graphics;
 using Rin.Core.Shared;
 using Rin.Core.Shared.Math;
 using Rin.World.Components;
+using Rin.World.Ecs;
 using Rin.World.Graphics;
 using Rin.World.Graphics.Mesh;
 using Rin.World.Math;
@@ -408,3 +409,13 @@ internal sealed class FakePhysicsSystem : IPhysicsSystem
         where THandler : struct, IPhysicsOverlapHandler =>
         OverlapSphere(radius + halfHeight, center, ref handler, channel);
 }
+
+internal record struct Health(int Value) : IComponentData;
+
+internal record struct Speed(float Value) : IComponentData;
+
+internal record struct Armor(int Value) : IComponentData;
+
+internal record struct Ammo(int Value) : IComponentData;
+
+internal struct Stunned : ITagData;

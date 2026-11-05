@@ -9,3 +9,10 @@ charset = utf-8
 [*.sln]
 end_of_line = unset
 charset = unset
+
+# Only the ECS backend may reference Friflo (see Engine/Rin.World/BannedSymbols.txt).
+[Engine/Rin.World/**.cs]
+dotnet_diagnostic.RS0030.severity = error
+
+[Engine/Rin.World/Ecs/Backend/**.cs]
+dotnet_diagnostic.RS0030.severity = none
