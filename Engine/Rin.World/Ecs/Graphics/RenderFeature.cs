@@ -1,4 +1,3 @@
-using System.Numerics;
 using Rin.Core.Extensions;
 using Rin.World.Ecs.Scheduling;
 using Rin.World.Ecs.Transforms;
@@ -98,13 +97,7 @@ public sealed class RenderFeature
     private WorldTransform CurrentWorldTransform(Entity entity)
     {
         var transform = World.Has<WorldTransform>(entity) ? World.Get<WorldTransform>(entity) : new WorldTransform();
-        if (!World.Has<LocalTransform>(entity)) return transform;
-
-        var matrix = Matrix4x4.Identity;
-        for (var current = entity; current.IsValid && World.Has<LocalTransform>(current); current = World.GetParent(current))
-            matrix *= World.Get<LocalTransform>(current).ToMatrix();
-
-        transform.Matrix = matrix;
+        if (World.Has<LocalTransform>(entity)) transform.Matrix = World.ComputeWorldMatrix(entity);
         return transform;
     }
 

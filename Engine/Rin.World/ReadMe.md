@@ -11,7 +11,7 @@ Without `RinShadeSkipCompile=true` the build also compiles the shaders and needs
 
 ## Actors and components
 
-This is the scene model `SceneTest` and the headless example use. The [ECS](#ecs-in-progress) below is replacing it (`Sponza` and `AssetViewer` already run on it) and both exist until the migration finishes. An actor is a bag of components keyed by type with an optional root `WorldComponent`, and transform calls on the actor forward to that root. A component overrides `Start`, `Stop`, `PrePhysicsUpdate`, `Update` and `LateUpdate`.
+This is the scene model the headless example uses. The [ECS](#ecs-in-progress) below is replacing it (`Sponza`, `AssetViewer` and `SceneTest` already run on it) and both exist until the migration finishes. An actor is a bag of components keyed by type with an optional root `WorldComponent`, and transform calls on the actor forward to that root. A component overrides `Start`, `Stop`, `PrePhysicsUpdate`, `Update` and `LateUpdate`.
 
 | Component | What it does |
 | --- | --- |
@@ -53,7 +53,7 @@ Physics queries (ray and shape casts, overlaps) take a `ref struct` handler or a
 flowchart TD
     A["Update(dt x TimeScale), clamped to 0.25 s"] --> T
     subgraph T["each TickInterval, at most MaxTicksPerFrame (backlog dropped at the cap)"]
-        T1[Input] --> T2[Gameplay] --> T3["Tasks (empty)"] --> T4["Physics (empty)"] --> T5["play back Commands, TickIndex++"]
+        T1[Input] --> T2[Gameplay] --> T3["Tasks (empty)"] --> T4["Physics: push, step, pull, contacts<br/>(with a PhysicsFeature)"] --> T5["play back Commands, TickIndex++"]
     end
     T --> I[InterpolationAlpha = leftover / TickInterval]
     I --> F1[Frame: Update]
@@ -90,6 +90,43 @@ flowchart LR
 ```
 
 The proxy starts at the world pose computed from the local transforms, not the stored `WorldTransform`, which is stale until propagation runs. An entity without transforms gets an identity proxy. `RenderExtract` does not allocate.
+
+### Physics for entities
+
+`new PhysicsFeature(entityWorld, physicsSystem)` connects an `EntityWorld` to an `IPhysicsSystem` such as `BepuPhysicsSystem`, the same way `RenderFeature` connects it to the renderer.
+
+| Component | What it does |
+| --- | --- |
+| `RigidBody` | A `ColliderShape` (box size, sphere radius, or capsule radius plus half height), `PhysicsState`, mass, `IsTrigger` and collision channel. Read once when it is added: overwriting it does not rebuild the body, so remove and add it to change the shape or state. |
+| `Velocity` | Linear and angular velocity. Every setter sets `IsDirty` and a dirty velocity is pushed to the body before the next step. Simulated bodies write the stepped velocity back without setting it. |
+| `PhysicsBody` | Added by the feature: the body handle and the state it was created with. |
+
+The body is created at the entity's world pose computed from the local transforms (stale `WorldTransform` is not used), including its world scale, which `BepuPhysicsSystem` multiplies into the shape size. The feature maps body handles back to entities with a dense array indexed by the handle, so `FindEntity(handle)` is an array read.
+
+```mermaid
+flowchart LR
+    A["Add RigidBody<br/>(directly or by Commands playback)"] -- "OnAdd hook" --> C["Create the body at the current world pose,<br/>add PhysicsBody, map handle to entity"]
+    R["Remove it, or despawn<br/>(children too)"] -- "OnRemove hook" --> D["DestroyBody, unmap,<br/>remove PhysicsBody"]
+    subgraph P["Tick: Physics"]
+        P1["PhysicsPush: Controlled pose,<br/>dirty Velocity"] --> P2["IPhysicsSystem.Update(TickInterval)"]
+        P2 --> P3["PhysicsPull: Simulated pose into LocalTransform,<br/>Velocity"]
+        P3 --> P4["ContactDispatch: ContactEvents to EntityContact"]
+    end
+```
+
+| `PhysicsState` | Push (before the step) | Pull (after the step) |
+| --- | --- | --- |
+| `Static` | Never moved after creation | Nothing |
+| `Controlled` | `SetPosition`, `SetOrientation` from the entity world pose, every tick | Nothing |
+| `Simulated` | Only a dirty `Velocity` | Position and rotation into `LocalTransform`, converted into the parent's space for a child (scale untouched), and the velocity |
+
+`WorldTransform` is only propagated per frame, so push and pull compute a child's world pose from the `LocalTransform` chain, one lookup per ancestor. Roots read their local transform directly. Pull writes roots before children so a child converts against its parent's new pose, and writes only values that changed, so a resting body does not dirty propagation.
+
+`PhysicsFeature.Contacts` is a `ReadOnlySpan<EntityContact>` (both entities, begin or end, trigger) of the last step. It is replaced in every tick's `ContactDispatch` and kept until the next one, so gameplay in tick N+1 reads the contacts of tick N, before its own step. A body without an entity shows up as `default`, a contact where neither body has one is dropped, and an entity may have been despawned since the contact.
+
+Queries mirror `IPhysicsSystem`: `RayCast`, `SphereCast`, `BoxCast` and `CapsuleCast` return an `EntityHit` (entity plus the `RayCastResult`), the "all" forms fill a `Span<EntityHit>`, and `OverlapSphere`, `OverlapBox` and `OverlapCapsule` fill a `Span<Entity>`, skipping bodies without an entity. The tick systems and the span queries do not allocate.
+
+Rendering stays smooth the same way as with actors: pull writes the stepped pose every tick, `RenderExtract` pushes it once per frame, and the render system blends its previous and current transform by the world's `InterpolationAlpha`.
 
 ## From components to the GPU
 
@@ -129,6 +166,6 @@ Meshes are batched by index buffer plus material, so each batch is one `DrawInde
 
 `Viewport` (a Rin.Core `ContentView`) takes a `CameraComponent`, or a `RenderFeature` and a camera entity. It builds a `CameraView` (world matrix plus projection parameters), snapshots the render system with it in `CollectContent`, and `ViewportCommandHandler` writes the pipeline above into the graph and draws the result with `ViewportShader`. A primary click cycles the `ViewportChannel` (scene, each G-buffer channel, radiance), a secondary click captures the mouse for `OnMouseDelta`. The render size follows the content size only after it has been stable for `Viewport.SettleFrames` frames, so a resize stretches the last render instead of reallocating the G-buffers every frame.
 
-`SceneTest` builds `new World(new DefaultRenderSystem(), new BepuPhysicsSystem())`, calls `Start()` and gives a camera actor a `Viewport`. `Sponza` and `AssetViewer` build an `EntityWorld` with a `RenderFeature` and give a camera entity a `Viewport`.
+`Sponza`, `AssetViewer` and `SceneTest` build an `EntityWorld` with a `RenderFeature` (`SceneTest` adds a `PhysicsFeature` on `BepuPhysicsSystem`) and give a camera entity a `Viewport`.
 
 References: Rin.Core, Rin.Shade (plus its source generator), Rin.SourceGenerators. Packages: BepuPhysics, Friflo.Engine.ECS, Microsoft.CodeAnalysis.BannedApiAnalyzers (build only). Referenced by Rin.GLTF, Examples and Rin.World.Tests.

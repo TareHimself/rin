@@ -9,8 +9,8 @@ using Rin.World.Mesh.Skinning.Animation;
 namespace Examples.AssetViewer;
 
 /// <summary>
-///     Draws one skinned mesh at the origin and plays its animation graph. Stands in for an ECS skinned mesh component
-///     until the ECS has one.
+///     Draws one skinned mesh with a single material and plays its animation graph. Stands in for an ECS skinned mesh
+///     component until the ECS has one.
 /// </summary>
 internal sealed class AnimatedModel : FrameSystem
 {
@@ -19,6 +19,12 @@ internal sealed class AnimatedModel : FrameSystem
     private readonly RenderProxyHandle _proxy;
 
     public AnimatedModel(IRenderSystem renderSystem, IMesh mesh, Skeleton skeleton, AnimationGraph graph)
+        : this(renderSystem, mesh, skeleton, graph, Matrix4x4.Identity, DefaultMeshMaterial.DefaultMesh)
+    {
+    }
+
+    public AnimatedModel(IRenderSystem renderSystem, IMesh mesh, Skeleton skeleton, AnimationGraph graph,
+        in Matrix4x4 transform, IMeshMaterial material)
     {
         _renderSystem = renderSystem;
         _graph = graph;
@@ -29,7 +35,7 @@ internal sealed class AnimatedModel : FrameSystem
         for (var i = 0; i < surfaceCount; i++)
         {
             surfaceIndices[i] = i;
-            materials[i] = DefaultMeshMaterial.DefaultMesh;
+            materials[i] = material;
         }
 
         _proxy = renderSystem.CreateSkinnedMeshProxy(new SkinnedMeshProxyDesc
@@ -37,7 +43,7 @@ internal sealed class AnimatedModel : FrameSystem
             Skeleton = skeleton,
             Pose = graph.GetPose(),
             Mesh = mesh,
-            Transform = Matrix4x4.Identity,
+            Transform = transform,
             SurfaceIndices = surfaceIndices,
             Materials = materials
         });

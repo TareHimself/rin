@@ -27,6 +27,18 @@ public static class TransformExtensions
     public static void SetScale(this EntityWorld world, Entity entity, in Vector3 scale) =>
         world.GetOrAddTransform(entity).Scale = scale;
 
+    /// <summary>
+    ///     The world matrix from the <see cref="LocalTransform" /> chain, current even before <see cref="TransformPropagation" />
+    ///     has run. The walk stops at the first ancestor without a <see cref="LocalTransform" />.
+    /// </summary>
+    public static Matrix4x4 ComputeWorldMatrix(this EntityWorld world, Entity entity)
+    {
+        var matrix = Matrix4x4.Identity;
+        for (var current = entity; current.IsValid && world.Has<LocalTransform>(current); current = world.GetParent(current))
+            matrix *= world.Get<LocalTransform>(current).ToMatrix();
+        return matrix;
+    }
+
     private static ref LocalTransform GetOrAddTransform(this EntityWorld world, Entity entity)
     {
         if (!world.Has<LocalTransform>(entity)) world.Add(entity, new LocalTransform());

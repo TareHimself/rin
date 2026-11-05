@@ -283,6 +283,8 @@ internal sealed class FakePhysicsSystem : IPhysicsSystem
     /// </summary>
     public PhysicsBodyHandle LastCreated { get; private set; }
 
+    public int BodyCount => _bodies.Count;
+
     /// <summary>
     ///     Stands in for a real physics step; tests call <see cref="SetPosition" /> etc. from here.
     /// </summary>
