@@ -18,7 +18,7 @@ public sealed class EntityWorld
     public EntityWorld()
     {
         Commands = new CommandBuffer(this);
-        _schedule.Add(FramePhase.Late, new TransformPropagation(this));
+        _schedule.Add(FramePhase.Extract, new TransformPropagation(this));
     }
 
     /// <summary>

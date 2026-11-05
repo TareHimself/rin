@@ -1,22 +1,17 @@
 using System.Numerics;
 using Examples.Common;
 using Rin.Core;
-using Rin.Core.Extensions;
-using Rin.Core.Graphics;
 using Rin.Core.Graphics.Windows;
 using Rin.Core.Shared.Math;
 using Rin.GLTF;
-using Rin.World;
-using Rin.World.Actors;
-using Rin.World.Components;
-using Rin.World.Components.Lights;
+using Rin.World.Ecs;
+using Rin.World.Ecs.Graphics;
+using Rin.World.Ecs.Scheduling;
+using Rin.World.Ecs.Transforms;
 using Rin.World.Graphics.Default;
 using Rin.World.Graphics.Mesh;
-using Rin.World.Math;
 using Rin.World.Mesh.Skinning.Animation;
-using Rin.World.Physics.Bepu;
 using Rin.World.Views;
-using Rin.Core.Views;
 
 namespace Examples.AssetViewer;
 
@@ -31,8 +26,7 @@ public sealed class AssetViewerExample : Example
     private const string ModelPath = "assets/models/fox.glb";
     private const string ClipName = "Run";
 
-    private World? _scene;
-    private CameraComponent? _camera;
+    private RenderFeature? _render;
     private IMeshFactory? _meshFactory;
 
     public override string Name => "asset-viewer";
@@ -41,43 +35,39 @@ public sealed class AssetViewerExample : Example
 
     public override void Start(ExampleContext context)
     {
-        _meshFactory = Global.Provider.AddSingle<IMeshFactory>(new MeshFactory());
+        var meshFactory = _meshFactory = Global.Provider.AddSingle<IMeshFactory>(new MeshFactory());
 
-        var scene = _scene = new World(new DefaultRenderSystem(), new BepuPhysicsSystem());
-        scene.Start();
+        var world = new EntityWorld();
+        var render = _render = new RenderFeature(world, new DefaultRenderSystem(), meshFactory);
 
-        var camera = _camera = new CameraComponent { FarClipPlane = 1000f };
-        scene.AddActor(new Actor { RootComponent = camera });
+        var camera = world.Spawn();
+        world.SetPosition(camera, Vector3.Zero);
+        world.Add(camera, new Camera { FarClipPlane = 1000f });
 
-        scene.AddActor(new Actor
-        {
-            RootComponent = new DirectionalLightComponent
-            {
-                Radiance = 8.0f,
-                Location = new Vector3(0f, 50f, 0f)
-            }
-        });
-        scene.AddActor(new Actor
-        {
-            RootComponent = new PointLightComponent { Location = new Vector3(0f, 20f, -20f), Radiance = 800f }
-        });
+        var sun = world.Spawn();
+        world.SetPosition(sun, new Vector3(0f, 50f, 0f));
+        world.Add(sun, new DirectionalLight { Radiance = 8.0f });
 
-        LoadAndSpawnModel(scene, camera);
+        var fill = world.Spawn();
+        world.SetPosition(fill, new Vector3(0f, 20f, -20f));
+        world.Add(fill, new PointLight { Radiance = 800f });
 
-        context.Add(new Viewport(camera));
+        LoadAndSpawnModel(render, camera);
 
-        context.OnUpdate(scene.Update);
+        context.Add(new Viewport(render, camera));
+
+        context.OnUpdate(world.Update);
     }
 
     public override void Stop()
     {
-        _scene?.Stop();
-        _scene = null;
+        _render?.RenderSystem.Dispose();
+        _render = null;
         _meshFactory?.Dispose();
         _meshFactory = null;
     }
 
-    private static async void LoadAndSpawnModel(World scene, CameraComponent camera)
+    private async void LoadAndSpawnModel(RenderFeature render, Entity camera)
     {
         var path = Path.Join(Global.Directory, ModelPath);
         var mesh = await GltfMeshImporter.LoadSkinnedMesh(path);
@@ -90,20 +80,18 @@ public sealed class AssetViewerExample : Example
 
         IApplication.Get().MainDispatcher.Enqueue(() =>
         {
-            if (!scene.Active) return;
-            scene.AddActor(new Actor
-            {
-                RootComponent = new SkinnedMeshComponent { Mesh = mesh, PoseSource = graph }
-            });
+            if (_render != render) return;
+            var deviceMesh = IMeshFactory.Get().GetMesh(mesh.MeshId)!;
+            render.World.AddSystem(FramePhase.Update, new AnimatedModel(render.RenderSystem, deviceMesh, mesh.Skeleton, graph));
 
-            var bounds = IMeshFactory.Get().GetMesh(mesh.MeshId)!.GetBounds();
+            var bounds = deviceMesh.GetBounds();
             var center = (bounds.Min + bounds.Max) / 2f;
             var radius = (bounds.Max - bounds.Min).Length() / 2f;
             var distance = float.Max(radius * 2.5f, 1f);
 
             var cameraPos = center + new Vector3(-distance, radius * 0.5f, 0f);
-            camera.SetLocation(cameraPos, Space.World);
-            camera.SetRotation(MathR.LookTowards(center - cameraPos), Space.World);
+            render.World.SetPosition(camera, cameraPos);
+            render.World.SetRotation(camera, MathR.LookTowards(center - cameraPos));
         });
     }
 }

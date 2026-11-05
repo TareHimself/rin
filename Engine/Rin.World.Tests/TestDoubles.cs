@@ -2,6 +2,7 @@
 using System.Numerics;
 using Rin.Core.Graphics;
 using Rin.Core.Shared;
+using Rin.Core.Shared.Buffers;
 using Rin.Core.Shared.Math;
 using Rin.World.Components;
 using Rin.World.Ecs;
@@ -16,7 +17,9 @@ namespace Rin.World.Tests;
 internal sealed class FakeMesh : IMesh
 {
     public ulong GetVertexFormatSize() => throw new NotSupportedException();
-    public MeshSurface[] GetSurfaces() => [];
+    public MeshSurface[] Surfaces { get; init; } = [];
+
+    public MeshSurface[] GetSurfaces() => Surfaces;
     public MeshSurface GetSurface(int surfaceIndex) => throw new NotSupportedException();
     public DeviceBufferView GetVertices() => default;
     public DeviceBufferView GetVertices(int surfaceIndex) => default;
@@ -24,6 +27,45 @@ internal sealed class FakeMesh : IMesh
     public uint GetVertexCount(int surfaceIndex) => 0;
     public DeviceBufferView GetIndices() => default;
     public Bounds3D GetBounds() => default;
+}
+
+internal sealed class FakeMeshMaterial : IMeshMaterial
+{
+    public bool Translucent => false;
+    public IMaterialPass ColorPass => throw new NotSupportedException();
+    public IMaterialPass DepthPass => throw new NotSupportedException();
+}
+
+internal sealed class FakeMeshFactory : IMeshFactory
+{
+    private readonly Dictionary<int, IMesh> _meshes = [];
+
+    public int Register(IMesh mesh)
+    {
+        var id = _meshes.Count + 1;
+        _meshes.Add(id, mesh);
+        return id;
+    }
+
+    public IMesh? GetMesh(int meshId) => _meshes.GetValueOrDefault(meshId);
+
+    public bool IsMeshReady(int meshId) => _meshes.ContainsKey(meshId);
+
+    public Task? GetPendingMesh(int meshId) => null;
+
+    public Task CreateMesh<TVertexFormat>(out int meshId, Buffer<TVertexFormat> vertices, Buffer<uint> indices,
+        MeshSurface[] surfaces) where TVertexFormat : unmanaged, IVertex => throw new NotSupportedException();
+
+    public Task CreateMesh(out int meshId, Buffer<Vertex> vertices, Buffer<uint> indices, MeshSurface[] surfaces) =>
+        throw new NotSupportedException();
+
+    public void FreeMeshes(params ReadOnlySpan<int> meshIds)
+    {
+    }
+
+    public void Dispose()
+    {
+    }
 }
 
 /// <summary>
@@ -146,12 +188,27 @@ internal sealed class FakeRenderSystem : IRenderSystem
     public List<(RenderProxyHandle Handle, Matrix4x4 Transform)> PushedTransforms { get; } = [];
     public List<(RenderProxyHandle Handle, SkeletalPose Pose)> PushedPoses { get; } = [];
     public List<(RenderProxyHandle Handle, LightInfo Light)> PushedLights { get; } = [];
-    public int DestroyCount { get; private set; }
+    public List<(RenderProxyHandle Handle, StaticMeshProxyDesc Desc)> CreatedStaticMeshes { get; } = [];
+    public List<(RenderProxyHandle Handle, LightInfo Light)> CreatedLights { get; } = [];
+    public List<RenderProxyHandle> Destroyed { get; } = [];
+    public int DestroyCount => Destroyed.Count;
+    public int LiveCount => _live.Count;
     public float LastInterpolationAlpha { get; private set; } = 1f;
 
-    public RenderProxyHandle CreateStaticMeshProxy(in StaticMeshProxyDesc desc) => Create();
+    public RenderProxyHandle CreateStaticMeshProxy(in StaticMeshProxyDesc desc)
+    {
+        var handle = Create();
+        CreatedStaticMeshes.Add((handle, desc));
+        return handle;
+    }
+
     public RenderProxyHandle CreateSkinnedMeshProxy(in SkinnedMeshProxyDesc desc) => Create();
-    public RenderProxyHandle CreateLightProxy(in LightInfo desc) => Create();
+    public RenderProxyHandle CreateLightProxy(in LightInfo desc)
+    {
+        var handle = Create();
+        CreatedLights.Add((handle, desc));
+        return handle;
+    }
 
     private RenderProxyHandle Create()
     {
@@ -178,18 +235,19 @@ internal sealed class FakeRenderSystem : IRenderSystem
 
     public void UpdateLightProxy(RenderProxyHandle handle, in LightInfo desc)
     {
+        if (!_live.Contains(handle)) throw new InvalidOperationException("Stale or unknown proxy handle");
         PushedLights.Add((handle, desc));
     }
 
     public void DestroyProxy(RenderProxyHandle handle)
     {
-        _live.Remove(handle);
-        DestroyCount++;
+        if (!_live.Remove(handle)) throw new InvalidOperationException("Stale or unknown proxy handle");
+        Destroyed.Add(handle);
     }
 
     public void SetInterpolationAlpha(float alpha) => LastInterpolationAlpha = alpha;
 
-    public IWorldCollectedData Snapshot(CameraComponent view, in Extent2D extent) => throw new NotSupportedException();
+    public IWorldCollectedData Snapshot(in CameraView view, in Extent2D extent) => throw new NotSupportedException();
     public void Dispose()
     {
     }

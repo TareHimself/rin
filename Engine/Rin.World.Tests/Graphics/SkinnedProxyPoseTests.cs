@@ -22,7 +22,7 @@ public class SkinnedProxyPoseTests
             SurfaceIndices = [],
             Materials = []
         });
-        render.Snapshot(new CameraComponent(), new Extent2D(1, 1));
+        render.Snapshot(new CameraComponent().ToCameraView(), new Extent2D(1, 1));
         return (skeleton, handle);
     }
 
@@ -36,7 +36,7 @@ public class SkinnedProxyPoseTests
         pushed.Set(0, new Transform { Position = new Vector3(1, 2, 3) });
         render.UpdateSkinnedProxyPose(handle, pushed);
 
-        var context = (DefaultWorldViewData)render.Snapshot(new CameraComponent(), new Extent2D(1, 1));
+        var context = (DefaultWorldViewData)render.Snapshot(new CameraComponent().ToCameraView(), new Extent2D(1, 1));
 
         Assert.That(context.Snapshot.SkinnedGeometry[0].Pose.IsSet(0), Is.True,
             "before this method existed, a proxy's pose was frozen at whatever Start() pushed and never refreshed");

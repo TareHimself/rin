@@ -10,16 +10,14 @@ using Rin.Core.Shared.Math;
 using Rin.Core.Views;
 using Rin.Core.Views.Composite;
 using Rin.Core.Views.Layouts;
-using Rin.World;
-using Rin.World.Actors;
-using Rin.World.Components;
-using Rin.World.Components.Lights;
+using Rin.World.Ecs;
+using Rin.World.Ecs.Graphics;
+using Rin.World.Ecs.Transforms;
 using Rin.World.Graphics;
 using Rin.World.Graphics.Default;
 using Rin.World.Graphics.Mesh;
-using Rin.World.Mesh;
-using Rin.World.Physics.Bepu;
 using SharpGLTF.Schema2;
+using Camera = Rin.World.Ecs.Graphics.Camera;
 using Texture = SharpGLTF.Schema2.Texture;
 
 namespace Examples.Sponza;
@@ -30,7 +28,7 @@ public sealed class SponzaExample : Example
 
     private readonly Lock _lock = new();
     private IMeshFactory? _meshFactory;
-    private World? _world;
+    private RenderFeature? _render;
     private ResourceHandle[] _textures = [];
 
     public override string Name => "sponza";
@@ -48,22 +46,20 @@ public sealed class SponzaExample : Example
             LoadSponza(Path.Join(Global.Directory, "assets", "models", "sponza.glb"))
                 .DispatchMain(loaded =>
                 {
-                    var world = loaded.World;
+                    var render = loaded.Render;
                     if (!context.IsActive)
                     {
-                        world.Stop();
+                        render.RenderSystem.Dispose();
                         IGraphicsModule.Get().FreeResourceHandles(loaded.Textures);
                         return;
                     }
 
-                    _world = world;
+                    _render = render;
                     _textures = loaded.Textures;
-                    var camera = world.AddActor<CameraActor>();
-                    var light = camera.AddComponent<PointLightComponent>();
-                    
-                    light.Radiance = 100000;
+                    var world = render.World;
+                    var camera = SpawnCamera(world);
 
-                    context.Add(new TestViewport(camera));
+                    context.Add(new TestViewport(render, camera));
                     context.Add(new PanelView
                     {
                         InitSlots =
@@ -85,12 +81,29 @@ public sealed class SponzaExample : Example
 
     public override void Stop()
     {
-        _world?.Stop();
-        _world = null;
+        _render?.RenderSystem.Dispose();
+        _render = null;
         IGraphicsModule.Get().FreeResourceHandles(_textures);
         _textures = [];
         _meshFactory?.Dispose();
         _meshFactory = null;
+    }
+
+    private static Entity SpawnCamera(EntityWorld world)
+    {
+        var camera = world.Spawn();
+        world.SetPosition(camera, new Vector3(0, 100, 0));
+        world.Add(camera, new Camera());
+
+        foreach (var radiance in new[] { 200.0f, 100000.0f })
+        {
+            var light = world.Spawn();
+            world.SetPosition(light, Vector3.Zero);
+            world.SetParent(light, camera);
+            world.Add(light, new PointLight { Radiance = radiance });
+        }
+
+        return camera;
     }
 
     private ResourceHandle LoadImage(Texture? texture, Dictionary<int, ResourceHandle> cache)
@@ -121,7 +134,7 @@ public sealed class SponzaExample : Example
         }
     }
 
-    private sealed record LoadedScene(World World, ResourceHandle[] Textures);
+    private sealed record LoadedScene(RenderFeature Render, ResourceHandle[] Textures);
 
     private async Task<LoadedScene> LoadSponza(string filename)
     {
@@ -196,24 +209,13 @@ public sealed class SponzaExample : Example
 
         var sceneBounds = CollectionsMarshal.AsSpan(vertices).ComputeBounds();
 
-        var task = IMeshFactory.Get()
-            .CreateMesh(out var id, vertices.ToBuffer(), indices.ToBuffer(), surfaces.ToArray());
+        var meshFactory = IMeshFactory.Get();
+        var task = meshFactory.CreateMesh(out var id, vertices.ToBuffer(), indices.ToBuffer(), surfaces.ToArray());
         await task;
 
-        var world = new World(new DefaultRenderSystem(), new BepuPhysicsSystem());
-        world.Start();
-
-        world.AddActor(new Actor
-        {
-            RootComponent = new StaticMeshComponent
-            {
-                Materials = materials,
-                Mesh = new StaticMesh
-                {
-                    MeshId = id
-                }
-            }
-        });
+        var world = new EntityWorld();
+        var render = new RenderFeature(world, new DefaultRenderSystem(), meshFactory);
+        world.Add(world.Spawn(), new StaticMesh { MeshId = id, Materials = render.Materials.Add(materials) });
 
         var sceneCenter = (sceneBounds.Min + sceneBounds.Max) / 2f;
         var sceneHeight = sceneBounds.Max.Y - sceneBounds.Min.Y;
@@ -223,27 +225,19 @@ public sealed class SponzaExample : Example
         var sunPosition = new Vector3(sceneCenter.X - sceneWidth * 0.4f, sceneBounds.Max.Y + sceneHeight,
             sceneCenter.Z);
         var sunDirection = Vector3.Normalize(sceneCenter - sunPosition);
-        // world.AddActor(new Actor
-        // {
-        //     RootComponent = new DirectionalLightComponent
-        //     {
-        //         Radiance = 4,
-        //         Rotation = MathR.LookTowards(sunPosition, sunDirection, MathR.Up)
-        //     }
-        // });
+        // var sun = world.Spawn();
+        // world.SetRotation(sun, MathR.LookTowards(sunPosition, sunDirection, MathR.Up));
+        // world.Add(sun, new DirectionalLight { Radiance = 4 });
 
         // // Interior fill lights; Radiance is scaled up for inverse-square falloff.
         // var fillHeight = sceneBounds.Min.Y + sceneHeight * 0.6f;
         // foreach (var xFraction in new[] { 0.2f, 0.5f, 0.8f })
-        //     world.AddActor(new Actor
-        //     {
-        //         RootComponent = new PointLightComponent
-        //         {
-        //             Location = new Vector3(sceneBounds.Min.X + sceneWidth * xFraction, fillHeight, sceneCenter.Z),
-        //             Radiance = 800
-        //         }
-        //     });
+        // {
+        //     var fill = world.Spawn();
+        //     world.SetPosition(fill, new Vector3(sceneBounds.Min.X + sceneWidth * xFraction, fillHeight, sceneCenter.Z));
+        //     world.Add(fill, new PointLight { Radiance = 800 });
+        // }
 
-        return new LoadedScene(world, textures.Values.ToArray());
+        return new LoadedScene(render, textures.Values.ToArray());
     }
 }

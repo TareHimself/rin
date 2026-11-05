@@ -11,7 +11,7 @@ Without `RinShadeSkipCompile=true` the build also compiles the shaders and needs
 
 ## Actors and components
 
-This is the scene model the examples use today. The [ECS](#ecs-in-progress) below is replacing it and both exist until the migration finishes. An actor is a bag of components keyed by type with an optional root `WorldComponent`, and transform calls on the actor forward to that root. A component overrides `Start`, `Stop`, `PrePhysicsUpdate`, `Update` and `LateUpdate`.
+This is the scene model `SceneTest` and the headless example use. The [ECS](#ecs-in-progress) below is replacing it (`Sponza` and `AssetViewer` already run on it) and both exist until the migration finishes. An actor is a bag of components keyed by type with an optional root `WorldComponent`, and transform calls on the actor forward to that root. A component overrides `Start`, `Stop`, `PrePhysicsUpdate`, `Update` and `LateUpdate`.
 
 | Component | What it does |
 | --- | --- |
@@ -57,11 +57,39 @@ flowchart TD
     end
     T --> I[InterpolationAlpha = leftover / TickInterval]
     I --> F1[Frame: Update]
-    F1 --> F2["Frame: Late, TransformPropagation first"]
-    F2 --> F3[play back Commands]
+    F1 --> F2[Frame: Late]
+    F2 --> F3["Frame: Extract, TransformPropagation first"]
+    F3 --> F4[play back Commands]
 ```
 
 `TransformPropagation` walks each hierarchy depth first from its roots. It recomputes `world = local x parentWorld` (row vectors, like `WorldComponent`) for dirty entities and for children of a parent whose matrix changed, clears `IsDirty`, and bumps `Version` only when the matrix changed. It reaches a subtree only through parents that have both transform components.
+
+### Rendering entities
+
+`new RenderFeature(entityWorld, renderSystem, meshFactory)` connects an `EntityWorld` to an `IRenderSystem`. Components hold only unmanaged data: a mesh is its `IMeshFactory` id, and its materials are a `MaterialSet` handle from `RenderFeature.Materials`.
+
+| Component | What it does |
+| --- | --- |
+| `StaticMesh` | Mesh id plus `MaterialSet`. Surface `i` uses material `i`, a missing one reuses the previous surface's material, an empty set draws the default material. A mesh that is not ready when the component is added gets no proxy. |
+| `PointLight`, `DirectionalLight` | Color, radiance and radius. Every setter sets `IsDirty`, like `LocalTransform`. The directional light shines along the entity's world forward axis. |
+| `Camera` | Field of view and clip planes. `world.GetCameraView(entity)` combines it with `WorldTransform` into a `CameraView`. |
+| `RenderProxy` | Added by the feature: the proxy handle and the `WorldTransform.Version` last pushed. |
+
+An entity holds at most one of `StaticMesh`, `PointLight` and `DirectionalLight` (a second one throws), so use child entities for more.
+
+```mermaid
+flowchart LR
+    A["Add StaticMesh or a light<br/>(directly or by Commands playback)"] -- "OnAdd hook" --> C["Create proxy at the current world pose,<br/>add RenderProxy"]
+    R["Remove it, or despawn<br/>(children too)"] -- "OnRemove hook" --> D["DestroyProxy,<br/>remove RenderProxy"]
+    subgraph L["Frame: Extract"]
+        P[TransformPropagation] --> E["RenderExtract"]
+    end
+    E -- "Version changed" --> T[UpdateProxyTransform]
+    E -- "IsDirty or Version changed" --> U[UpdateLightProxy]
+    E --> S["SetInterpolationAlpha(world alpha)"]
+```
+
+The proxy starts at the world pose computed from the local transforms, not the stored `WorldTransform`, which is stale until propagation runs. An entity without transforms gets an identity proxy. `RenderExtract` does not allocate.
 
 ## From components to the GPU
 
@@ -76,7 +104,7 @@ flowchart LR
     V -- "Write(builder)" --> G["render graph passes"]
 ```
 
-The snapshot blends each proxy's previous and current transform by the interpolation alpha, so fixed-step physics renders smoothly. Mesh components push a transform only when their `TransformVersion` changed.
+The snapshot blends each proxy's previous and current transform by the interpolation alpha, so fixed-step physics renders smoothly. Mesh components push a transform only when their `TransformVersion` changed. ECS entities feed the same proxies through `RenderFeature` (see [Rendering entities](#rendering-entities)).
 
 ## The default render pipeline
 
@@ -99,8 +127,8 @@ Meshes are batched by index buffer plus material, so each batch is one `DrawInde
 
 ## Showing a world
 
-`Viewport` (a Rin.Core `ContentView`) takes a `CameraComponent`, snapshots the render system in `CollectContent`, and `ViewportCommandHandler` writes the pipeline above into the graph and draws the result with `ViewportShader`. A primary click cycles the `ViewportChannel` (scene, each G-buffer channel, radiance), a secondary click captures the mouse for `OnMouseDelta`. The render size follows the content size only after it has been stable for `Viewport.SettleFrames` frames, so a resize stretches the last render instead of reallocating the G-buffers every frame.
+`Viewport` (a Rin.Core `ContentView`) takes a `CameraComponent`, or a `RenderFeature` and a camera entity. It builds a `CameraView` (world matrix plus projection parameters), snapshots the render system with it in `CollectContent`, and `ViewportCommandHandler` writes the pipeline above into the graph and draws the result with `ViewportShader`. A primary click cycles the `ViewportChannel` (scene, each G-buffer channel, radiance), a secondary click captures the mouse for `OnMouseDelta`. The render size follows the content size only after it has been stable for `Viewport.SettleFrames` frames, so a resize stretches the last render instead of reallocating the G-buffers every frame.
 
-The examples build `new World(new DefaultRenderSystem(), new BepuPhysicsSystem())`, call `Start()` and give a camera actor a `Viewport`.
+`SceneTest` builds `new World(new DefaultRenderSystem(), new BepuPhysicsSystem())`, calls `Start()` and gives a camera actor a `Viewport`. `Sponza` and `AssetViewer` build an `EntityWorld` with a `RenderFeature` and give a camera entity a `Viewport`.
 
 References: Rin.Core, Rin.Shade (plus its source generator), Rin.SourceGenerators. Packages: BepuPhysics, Friflo.Engine.ECS, Microsoft.CodeAnalysis.BannedApiAnalyzers (build only). Referenced by Rin.GLTF, Examples and Rin.World.Tests.

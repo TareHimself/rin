@@ -11,6 +11,7 @@ internal sealed class SystemSchedule
     private readonly List<TickSystem> _physics = [];
     private readonly List<FrameSystem> _update = [];
     private readonly List<FrameSystem> _late = [];
+    private readonly List<FrameSystem> _extract = [];
 
     public void Add(TickPhase phase, TickSystem system) => TickList(phase).Add(system);
 
@@ -28,6 +29,7 @@ internal sealed class SystemSchedule
     {
         Run(_update, context);
         Run(_late, context);
+        Run(_extract, context);
     }
 
     private static void Run(List<TickSystem> systems, in TickContext context)
@@ -53,6 +55,7 @@ internal sealed class SystemSchedule
     {
         FramePhase.Update => _update,
         FramePhase.Late => _late,
+        FramePhase.Extract => _extract,
         _ => throw new ArgumentOutOfRangeException(nameof(phase), phase, null)
     };
 }

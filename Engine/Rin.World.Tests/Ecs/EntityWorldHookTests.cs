@@ -69,6 +69,23 @@ public class EntityWorldHookTests
     }
 
     [Test]
+    public void DespawnSkipsTheRemoveHookOfAComponentAnEarlierHookRemoved()
+    {
+        var world = new EntityWorld();
+        var speedPresentInHook = new List<bool>();
+        world.OnRemove((Entity entity, ref Health _) => world.Remove<Speed>(entity));
+        world.OnRemove((Entity entity, ref Speed _) => speedPresentInHook.Add(world.Has<Speed>(entity)));
+        var entity = world.Spawn();
+        world.Add(entity, new Health(1));
+        world.Add(entity, new Speed(1f));
+
+        world.Despawn(entity);
+
+        Assert.That(speedPresentInHook, Is.Not.Empty.And.All.True);
+        Assert.That(world.IsAlive(entity), Is.False);
+    }
+
+    [Test]
     public void FiringHooksDoesNotAllocate()
     {
         var world = new EntityWorld();

@@ -14,6 +14,8 @@ using Rin.Core.Views.Graphics.PassConfigs;
 using Rin.Core.Views.Graphics.Quads;
 using Rin.World.Components;
 using Rin.Shade;
+using Rin.World.Ecs;
+using Rin.World.Ecs.Graphics;
 using Rin.World.Graphics;
 using Rin.World.Graphics.Default.Shaders;
 using Rin.World.Views.Shaders;
@@ -160,7 +162,9 @@ public class Viewport : ContentView
     /// <summary>Frames the content size must hold steady before the render target follows it.</summary>
     public static int SettleFrames = 5;
 
-    private readonly CameraComponent _targetCamera;
+    private readonly CameraComponent? _cameraComponent;
+    private readonly RenderFeature? _render;
+    private readonly Entity _cameraEntity;
     private bool _captureMouse;
     private ViewportChannel _channel = ViewportChannel.Scene;
     private bool _ignoreNextMove;
@@ -175,8 +179,17 @@ public class Viewport : ContentView
 
     public Viewport(CameraComponent camera)
     {
-        _targetCamera = camera;
-        GetModeText();
+        _cameraComponent = camera;
+    }
+
+    /// <summary>
+    ///     Renders <paramref name="render" />'s world from <paramref name="camera" />, an entity with a
+    ///     <see cref="Camera" /> component.
+    /// </summary>
+    public Viewport(RenderFeature render, Entity camera)
+    {
+        _render = render;
+        _cameraEntity = camera;
     }
 
     public override bool IsFocusable => true;
@@ -310,12 +323,17 @@ public class Viewport : ContentView
     public override void CollectContent(in Matrix4x4 transform, CommandList commands)
     {
         // Runs on the collect (main) thread, inside the render barrier — safe to walk the World.
-        var renderSystem = _targetCamera.Owner!.World!.RenderSystem;
-        var context = renderSystem.Snapshot(_targetCamera, GetRenderSize().ToExtent());
+        var context = Snapshot(GetRenderSize().ToExtent());
         commands.Add(new DrawViewportCommand(context, GetContentSize(), transform, _channel));
         commands.AddText(transform, "Noto Sans", GetModeText());
     }
 
+
+    private IWorldCollectedData Snapshot(in Extent2D extent)
+    {
+        if (_render is not null) return _render.RenderSystem.Snapshot(_render.World.GetCameraView(_cameraEntity), extent);
+        return _cameraComponent!.Owner!.World!.RenderSystem.Snapshot(_cameraComponent.ToCameraView(), extent);
+    }
 
     protected virtual void OnMouseDelta(Vector2 delta)
     {

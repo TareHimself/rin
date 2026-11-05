@@ -3,7 +3,6 @@ using JetBrains.Annotations;
 using Rin.Core.Graphics;
 using Rin.Core.Graphics.Graph;
 using Rin.Core.Shared.Math;
-using Rin.World.Components;
 using Rin.World.Graphics.Default.Passes;
 using Rin.World.Math;
 
@@ -15,10 +14,10 @@ namespace Rin.World.Graphics.Default;
 /// </summary>
 public class DefaultWorldViewData : IWorldCollectedData
 {
-    public DefaultWorldViewData(CameraComponent viewer, in Extent2D extent, DefaultWorldSnapshot snapshot)
+    public DefaultWorldViewData(in CameraView viewer, in Extent2D extent, DefaultWorldSnapshot snapshot)
     {
         Snapshot = snapshot;
-        ViewTransform = viewer.GetTransform(Space.World) with { Scale = Vector3.One };
+        ViewTransform = Transform.From(viewer.World) with { Scale = Vector3.One };
         View = ViewTransform.ToMatrix().Inverse();
         FieldOfView = viewer.FieldOfView;
         NearClip = viewer.NearClipPlane;

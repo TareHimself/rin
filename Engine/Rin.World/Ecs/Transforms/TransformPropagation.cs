@@ -4,8 +4,8 @@ using Rin.World.Ecs.Scheduling;
 namespace Rin.World.Ecs.Transforms;
 
 /// <summary>
-///     Built-in <see cref="FramePhase.Late" /> system. Walks every hierarchy depth first from its roots and recomputes
-///     <see cref="WorldTransform" /> for dirty entities and for children whose parent matrix changed.
+///     Built-in first <see cref="FramePhase.Extract" /> system. Walks every hierarchy depth first from its roots and
+///     recomputes <see cref="WorldTransform" /> for dirty entities and for children whose parent matrix changed.
 /// </summary>
 /// <remarks>
 ///     A subtree is reached only through parents that have both transform components.

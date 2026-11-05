@@ -6,5 +6,6 @@ namespace Rin.World.Ecs.Scheduling;
 public enum FramePhase
 {
     Update,
-    Late
+    Late,
+    Extract
 }

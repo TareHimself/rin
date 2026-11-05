@@ -18,7 +18,11 @@ internal sealed class ComponentHooks<T> : ComponentHooks where T : struct, IComp
 
     public void FireAdded(FrifloEntity entity) => Fire(_added, entity);
 
-    public override void FireRemoved(FrifloEntity entity) => Fire(_removed, entity);
+    public override void FireRemoved(FrifloEntity entity)
+    {
+        // During despawn an earlier remove hook may already have removed this component.
+        if (entity.HasComponent<T>()) Fire(_removed, entity);
+    }
 
     private static void Fire(List<ComponentHook<T>> handlers, FrifloEntity entity)
     {
