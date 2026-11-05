@@ -10,14 +10,13 @@ using Rin.Core.Shared.Math;
 using Rin.Core.Views;
 using Rin.Core.Views.Composite;
 using Rin.Core.Views.Layouts;
-using Rin.World.Ecs;
-using Rin.World.Ecs.Graphics;
-using Rin.World.Ecs.Transforms;
+using Rin.World;
 using Rin.World.Graphics;
+using Rin.World.Transforms;
 using Rin.World.Graphics.Default;
 using Rin.World.Graphics.Mesh;
 using SharpGLTF.Schema2;
-using Camera = Rin.World.Ecs.Graphics.Camera;
+using Camera = Rin.World.Graphics.Camera;
 using Texture = SharpGLTF.Schema2.Texture;
 
 namespace Examples.Sponza;
@@ -89,7 +88,7 @@ public sealed class SponzaExample : Example
         _meshFactory = null;
     }
 
-    private static Entity SpawnCamera(EntityWorld world)
+    private static Entity SpawnCamera(World world)
     {
         var camera = world.Spawn();
         world.SetPosition(camera, new Vector3(0, 100, 0));
@@ -213,7 +212,7 @@ public sealed class SponzaExample : Example
         var task = meshFactory.CreateMesh(out var id, vertices.ToBuffer(), indices.ToBuffer(), surfaces.ToArray());
         await task;
 
-        var world = new EntityWorld();
+        var world = new World();
         var render = new RenderFeature(world, new DefaultRenderSystem(), meshFactory);
         world.Add(world.Spawn(), new StaticMesh { MeshId = id, Materials = render.Materials.Add(materials) });
 

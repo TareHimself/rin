@@ -14,5 +14,5 @@ charset = unset
 [Engine/Rin.World/**.cs]
 dotnet_diagnostic.RS0030.severity = error
 
-[Engine/Rin.World/Ecs/Backend/**.cs]
+[Engine/Rin.World/Ecs/**.cs]
 dotnet_diagnostic.RS0030.severity = none

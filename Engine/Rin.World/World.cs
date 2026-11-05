@@ -1,157 +1,169 @@
-﻿using System.Numerics;
-using JetBrains.Annotations;
-using Rin.Core;
-using Rin.Core.Shared.Math;
-using Rin.World.Actors;
-using Rin.World.Components;
-using Rin.World.Graphics;
-using Rin.World.Physics;
+using Rin.World.Ecs;
+using Rin.World.Scheduling;
+using Rin.World.Transforms;
 
 namespace Rin.World;
 
-public class World : IUpdatable
+/// <summary>
+///     Owns the entity store and runs the systems: fixed ticks first, then the frame phases.
+/// </summary>
+public sealed class World
 {
-    private readonly Dictionary<string, Actor> _actors = [];
-    private readonly Dictionary<PhysicsBodyHandle, IWorldComponent> _physicsOwners = [];
+    private const float MaxFrameDeltaSeconds = 0.25f;
 
-    private float _remainingPhysicsTime;
+    private readonly EcsStore _store = new();
+    private readonly SystemSchedule _schedule = new();
+    private float _accumulator;
 
-    public World(IRenderSystem renderSystem, IPhysicsSystem physicsSystem)
+    public World()
     {
-        RenderSystem = renderSystem;
-        PhysicsSystem = physicsSystem;
+        Commands = new CommandBuffer(this);
+        _schedule.Add(FramePhase.Extract, new TransformPropagation(this));
     }
 
-    [PublicAPI] public IRenderSystem RenderSystem { get; }
-    [PublicAPI] public IPhysicsSystem PhysicsSystem { get; }
+    /// <summary>
+    ///     Played back after every tick and after the frame phases.
+    /// </summary>
+    public CommandBuffer Commands { get; }
 
-    public Matrix4x4 WorldTransform { get; set; } = Matrix4x4.Identity;
+    public float TickInterval
+    {
+        get;
+        set => field = value > 0f ? value : throw new ArgumentOutOfRangeException(nameof(value), value, "Must be positive.");
+    } = 1f / 60f;
 
-    [PublicAPI] public float PhysicsUpdateInterval { get; set; } = 1.0f / 60.0f;
+    /// <summary>
+    ///     When a frame hits this many ticks the remaining backlog is dropped instead of carried over.
+    /// </summary>
+    public int MaxTicksPerFrame { get; set; } = 4;
 
-    /// <summary>Ceiling on fixed physics steps per frame — when hit, the backlog is dropped rather than spiralling.</summary>
-    [PublicAPI] public int MaxPhysicsStepsPerFrame { get; set; } = 4;
-
-    /// <summary>Scales simulated time for the whole world; per-body <see cref="IPhysicsSystem.SetTimeScale"/> is relative to this.</summary>
-    [PublicAPI]
     public float TimeScale
     {
         get;
-        // Negative would drive the physics accumulator steadily negative instead of reversing time.
         set => field = float.Max(0f, value);
-    } = 1.0f;
+    } = 1f;
 
-    [PublicAPI] public bool Active { get; protected set; }
+    public long TickIndex { get; private set; }
+
+    /// <summary>
+    ///     How far the current frame is between the last tick and the next, from 0 to 1.
+    /// </summary>
+    public float InterpolationAlpha { get; private set; }
+
+    public int EntityCount => _store.EntityCount;
+
+    public void AddSystem(TickPhase phase, TickSystem system) => _schedule.Add(phase, system);
+
+    public void AddSystem(FramePhase phase, FrameSystem system) => _schedule.Add(phase, system);
 
     public void Update(float deltaSeconds)
     {
-        if (!Active) return;
+        var scaledDeltaSeconds = float.Max(0f, deltaSeconds * TimeScale);
+        _accumulator += float.Min(scaledDeltaSeconds, MaxFrameDeltaSeconds);
 
-        var scaledDeltaSeconds = deltaSeconds * TimeScale;
-
-        foreach (var actor in GetActors())
+        var ticks = 0;
+        while (_accumulator >= TickInterval && ticks < MaxTicksPerFrame)
         {
-            if (!actor.Active) continue;
-            actor.PrePhysicsUpdate();
+            RunTick();
+            _accumulator -= TickInterval;
+            ticks++;
         }
 
-        // Clamp the frame delta so a hitch doesn't schedule a huge catch-up, then run a bounded
-        // number of fixed steps. If we still can't keep up, drop the remainder instead of
-        // accumulating an ever-growing backlog (spiral of death).
-        _remainingPhysicsTime += float.Min(scaledDeltaSeconds, 0.25f);
-        var steps = 0;
-        while (_remainingPhysicsTime >= PhysicsUpdateInterval && steps < MaxPhysicsStepsPerFrame)
-        {
-            PhysicsSystem.Update(PhysicsUpdateInterval);
-            DispatchContactEvents();
-            _remainingPhysicsTime -= PhysicsUpdateInterval;
-            steps++;
-        }
+        if (_accumulator >= TickInterval) _accumulator = 0f;
+        InterpolationAlpha = _accumulator / TickInterval;
 
-        if (steps == MaxPhysicsStepsPerFrame) _remainingPhysicsTime = 0f;
-
-        RenderSystem.SetInterpolationAlpha(PhysicsUpdateInterval > 0f ? _remainingPhysicsTime / PhysicsUpdateInterval : 1f);
-
-        foreach (var actor in GetActors())
-        {
-            if (!actor.Active) continue;
-            actor.Update(scaledDeltaSeconds);
-        }
-
-        foreach (var actor in GetActors())
-        {
-            if (!actor.Active) continue;
-            actor.LateUpdate(scaledDeltaSeconds);
-        }
+        _schedule.RunFrame(new FrameContext(this, scaledDeltaSeconds, InterpolationAlpha));
+        Commands.Playback();
     }
 
-    public void Start()
+    public Entity Spawn() => _store.Spawn();
+
+    /// <summary>
+    ///     Despawns the entity and all of its descendants. Does nothing for an entity that is not alive.
+    /// </summary>
+    public void Despawn(Entity entity) => _store.Despawn(entity);
+
+    public bool IsAlive(Entity entity) => _store.IsAlive(entity);
+
+    public bool Has<T>(Entity entity) where T : struct, IComponentData => _store.Has<T>(entity);
+
+    public ref T Get<T>(Entity entity) where T : struct, IComponentData => ref _store.Get<T>(entity);
+
+    /// <summary>
+    ///     Adds the component, or overwrites it when present. <see cref="OnAdd{T}" /> hooks fire only for a new component.
+    /// </summary>
+    public void Add<T>(Entity entity, in T component) where T : struct, IComponentData => _store.Add(entity, component);
+
+    /// <summary>
+    ///     Overwrites a component the entity already has.
+    /// </summary>
+    public void Set<T>(Entity entity, in T component) where T : struct, IComponentData => _store.Set(entity, component);
+
+    public bool Remove<T>(Entity entity) where T : struct, IComponentData => _store.Remove<T>(entity);
+
+    public bool HasTag<T>(Entity entity) where T : struct, ITagData => _store.HasTag<T>(entity);
+
+    public void AddTag<T>(Entity entity) where T : struct, ITagData => _store.AddTag<T>(entity);
+
+    public void RemoveTag<T>(Entity entity) where T : struct, ITagData => _store.RemoveTag<T>(entity);
+
+    public void SetParent(Entity child, Entity parent)
     {
-        if (Active) return;
-        Active = true;
-        foreach (var actor in GetActors()) actor.Start();
+        _store.SetParent(child, parent);
+        MarkTransformDirty(child);
     }
 
-    public void Stop()
+    public void ClearParent(Entity child)
     {
-        if (!Active) return;
-        Active = false;
-        foreach (var actor in GetActors()) actor.Stop();
-        PhysicsSystem.Destroy();
-        RenderSystem.Dispose();
+        _store.ClearParent(child);
+        MarkTransformDirty(child);
     }
 
-    [PublicAPI]
-    public Actor AddActor(Actor actor)
+    /// <summary>
+    ///     The parent, or <c>default</c> for a root.
+    /// </summary>
+    public Entity GetParent(Entity child) => _store.GetParent(child);
+
+    public EntityChildren GetChildren(Entity parent) => _store.GetChildren(parent);
+
+    public void OnAdd<T>(ComponentHook<T> handler) where T : struct, IComponentData => _store.OnAdd(handler);
+
+    /// <summary>
+    ///     Fires before the component is removed, including when its entity is despawned.
+    /// </summary>
+    public void OnRemove<T>(ComponentHook<T> handler) where T : struct, IComponentData => _store.OnRemove(handler);
+
+    public Query<T1> Query<T1>()
+        where T1 : struct, IComponentData
+        => _store.Query<T1>();
+
+    public Query<T1, T2> Query<T1, T2>()
+        where T1 : struct, IComponentData
+        where T2 : struct, IComponentData
+        => _store.Query<T1, T2>();
+
+    public Query<T1, T2, T3> Query<T1, T2, T3>()
+        where T1 : struct, IComponentData
+        where T2 : struct, IComponentData
+        where T3 : struct, IComponentData
+        => _store.Query<T1, T2, T3>();
+
+    public Query<T1, T2, T3, T4> Query<T1, T2, T3, T4>()
+        where T1 : struct, IComponentData
+        where T2 : struct, IComponentData
+        where T3 : struct, IComponentData
+        where T4 : struct, IComponentData
+        => _store.Query<T1, T2, T3, T4>();
+
+    private void RunTick()
     {
-        _actors.Add(actor.Id, actor);
-        actor.World = this;
-
-        if (Active) actor.Start();
-        return actor;
+        _schedule.RunTick(new TickContext(this, TickIndex, TickInterval));
+        Commands.Playback();
+        TickIndex++;
     }
 
-    [PublicAPI]
-    public T AddActor<T>() where T : Actor, new()
+    private void MarkTransformDirty(Entity entity)
     {
-        var actor = new T();
-        AddActor(actor);
-        return actor;
+        if (_store.Has<LocalTransform>(entity)) _store.Get<LocalTransform>(entity).IsDirty = true;
     }
-
-    [PublicAPI]
-    public Actor[] GetActors()
-    {
-        return _actors.Values.ToArray();
-    }
-
-    [PublicAPI]
-    public WorldComponent[] GetRoots()
-    {
-        return _actors.Values.Select(actor => actor.RootComponent).OfType<WorldComponent>().ToArray();
-    }
-
-    [PublicAPI]
-    public WorldComponent[] GetPureRoots()
-    {
-        return GetRoots().Where(root => root.TransformParent is null).ToArray();
-    }
-
-    private void DispatchContactEvents()
-    {
-        foreach (var contact in PhysicsSystem.ContactEvents)
-        {
-            var ownerA = FindPhysicsOwner(contact.A);
-            var ownerB = FindPhysicsOwner(contact.B);
-            if (ownerA is IPhysicsContactReceiver receiverA) receiverA.OnPhysicsContact(contact, ownerB);
-            if (ownerB is IPhysicsContactReceiver receiverB) receiverB.OnPhysicsContact(contact, ownerA);
-        }
-    }
-
-    [PublicAPI] public void RegisterPhysicsBody(PhysicsBodyHandle handle, IWorldComponent owner) => _physicsOwners[handle] = owner;
-    [PublicAPI] public void UnregisterPhysicsBody(PhysicsBodyHandle handle) => _physicsOwners.Remove(handle);
-    [PublicAPI] public IWorldComponent? FindPhysicsOwner(PhysicsBodyHandle handle) => _physicsOwners.GetValueOrDefault(handle);
-
-    [PublicAPI] public Vector3 GetGravity() => PhysicsSystem.GetGravity();
-    [PublicAPI] public void SetGravity(in Vector3 gravity) => PhysicsSystem.SetGravity(gravity);
 }

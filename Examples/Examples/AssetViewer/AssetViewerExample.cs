@@ -4,9 +4,9 @@ using Rin.Core;
 using Rin.Core.Graphics.Windows;
 using Rin.Core.Shared.Math;
 using Rin.GLTF;
-using Rin.World.Ecs;
-using Rin.World.Ecs.Graphics;
-using Rin.World.Ecs.Transforms;
+using Rin.World;
+using Rin.World.Graphics;
+using Rin.World.Transforms;
 using Rin.World.Graphics.Default;
 using Rin.World.Graphics.Mesh;
 using Rin.World.Mesh.Skinning.Animation;
@@ -36,7 +36,7 @@ public sealed class AssetViewerExample : Example
     {
         var meshFactory = _meshFactory = Global.Provider.AddSingle<IMeshFactory>(new MeshFactory());
 
-        var world = new EntityWorld();
+        var world = new World();
         var render = _render = new RenderFeature(world, new DefaultRenderSystem(), meshFactory);
 
         var camera = world.Spawn();

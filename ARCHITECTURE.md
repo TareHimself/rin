@@ -23,7 +23,7 @@ flowchart BT
         VK["Rin.Graphics.Vulkan"]
         GN["Rin.Graphics.Null"]
         AUD["Rin.Audio.Miniaudio / Rin.Audio.Null"]
-        WORLD["Rin.World<br/>actors, components, physics,<br/>default render pipeline"]
+        WORLD["Rin.World<br/>ECS world, render and physics features,<br/>default render pipeline"]
         GLTF["Rin.GLTF"]
     end
 
@@ -92,7 +92,24 @@ A **pass** declares the images and buffers it reads and writes in `Configure`, a
 
 ## Worlds on a surface
 
-`Rin.World` models a world as actors with components, with a fixed-step physics system (Bepu), and the ECS entities replacing them reach the same physics system through `PhysicsFeature`. The world does not draw directly. Components (and, through `RenderFeature`, the ECS entities that are replacing them) push changes into a command queue, the renderer takes a **snapshot** of them, and the default pipeline turns the snapshot into passes: skinning, culling, indirect draw preparation (or plain per-mesh draws on devices without indirect rendering), a G-buffer fill, and a lighting pass. A `Viewport` view and its command handler put the world's output on a surface. See [Engine/Rin.World/ReadMe.md](Engine/Rin.World/ReadMe.md).
+`Rin.World` models a world as an ECS: a `World` of entities with struct components, and ordered systems that run on a fixed tick and then per frame. The world does not draw or simulate by itself. Features connect it to the backends through component hooks and systems:
+
+```mermaid
+flowchart LR
+    APP["OnUpdate"] --> U["World.Update(dt)"]
+    subgraph TICK["each fixed tick"]
+        SC["ScriptFeature<br/>scripts, then GameTasks"] --> PH["PhysicsFeature<br/>push, step, pull, contacts"]
+    end
+    U --> TICK
+    TICK --> FR["frame: animation, sockets,<br/>transform propagation"]
+    FR --> EX["RenderFeature: RenderExtract"]
+    PH <--> BEPU["IPhysicsSystem<br/>(BepuPhysicsSystem)"]
+    EX --> RS["IRenderSystem proxies<br/>(DefaultRenderSystem)"]
+    RS -- "Snapshot per camera" --> VP["Viewport"]
+    VP --> GRAPH["render graph passes"]
+```
+
+Adding a `StaticMesh`, `SkinnedMesh` or light creates a render proxy and adding a `RigidBody` creates a physics body, both in `OnAdd` hooks. Physics writes simulated poses back into `LocalTransform` every tick, and once per frame `RenderExtract` pushes changed transforms, lights and poses to the render system. The renderer takes a **snapshot** of its proxies, blended by the world's interpolation alpha, and the default pipeline turns it into passes: skinning, culling, indirect draw preparation (or plain per-mesh draws on devices without indirect rendering), a G-buffer fill, and a lighting pass. A `Viewport` view renders a camera entity and its command handler puts the output on a surface. See [Engine/Rin.World/ReadMe.md](Engine/Rin.World/ReadMe.md).
 
 ## Shaders
 

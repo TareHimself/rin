@@ -75,7 +75,7 @@ How the pieces fit together is in [`ARCHITECTURE.md`](ARCHITECTURE.md). Conventi
 - [Rin.SourceGenerators.Tests](Engine/Rin.SourceGenerators.Tests/ReadMe.md): xUnit tests for the generators in Rin.SourceGenerators.
 - [Rin.SourceGenerators](Engine/Rin.SourceGenerators/ReadMe.md): Roslyn incremental source generators, referenced as an analyzer by Rin.Core and Rin.World.
 - [Rin.World.Tests](Engine/Rin.World.Tests/ReadMe.md): NUnit tests for Rin.World.
-- [Rin.World](Engine/Rin.World/ReadMe.md): The scene layer: actors, components, physics and the default render pipeline.
+- [Rin.World](Engine/Rin.World/ReadMe.md): The scene layer: an ECS world with render, physics and script features, and the default render pipeline.
 
 **Shade** ([overview](Shade/ReadMe.md))
 

@@ -14,19 +14,18 @@ using Rin.Core.Views.Content;
 using Rin.Core.Views.Events;
 using Rin.Core.Views.Layouts;
 using Rin.GLTF;
-using Rin.World.Ecs;
-using Rin.World.Ecs.Graphics;
-using Rin.World.Ecs.Physics;
-using Rin.World.Ecs.Scripting;
-using Rin.World.Ecs.Transforms;
+using Rin.World;
+using Rin.World.Graphics;
+using Rin.World.Physics;
+using Rin.World.Scripting;
+using Rin.World.Transforms;
 using Rin.World.Graphics.Default;
 using Rin.World.Graphics.Mesh;
 using Rin.World.Mesh;
 using Rin.World.Mesh.Skinning.Animation;
-using Rin.World.Physics;
 using Rin.World.Physics.Bepu;
-using Camera = Rin.World.Ecs.Graphics.Camera;
-using StaticMesh = Rin.World.Ecs.Graphics.StaticMesh;
+using Camera = Rin.World.Graphics.Camera;
+using StaticMesh = Rin.World.Graphics.StaticMesh;
 
 namespace Examples.SceneTest;
 
@@ -55,7 +54,7 @@ public sealed class SceneTestExample : Example
         _textures = context.Application.Textures;
         var surf = context.Surface;
 
-        var world = new EntityWorld();
+        var world = new World();
         var render = _render = new RenderFeature(world, new DefaultRenderSystem(), meshFactory);
         _physics = new PhysicsFeature(world, new BepuPhysicsSystem());
         var scripts = new ScriptFeature(world);
@@ -116,7 +115,7 @@ public sealed class SceneTestExample : Example
         _meshFactory = null;
     }
 
-    private static Entity SpawnCamera(EntityWorld world, Vector3 position, Quaternion rotation)
+    private static Entity SpawnCamera(World world, Vector3 position, Quaternion rotation)
     {
         var camera = world.Spawn();
         world.SetPosition(camera, position);
@@ -130,7 +129,7 @@ public sealed class SceneTestExample : Example
         return camera;
     }
 
-    private static void SpawnPointLight(EntityWorld world, Vector3 position)
+    private static void SpawnPointLight(World world, Vector3 position)
     {
         var light = world.Spawn();
         world.SetPosition(light, position);
@@ -138,7 +137,7 @@ public sealed class SceneTestExample : Example
     }
 
     // The physics system multiplies the box size by the entity scale, as the old SceneTest did with the same values.
-    private void SpawnBox(EntityWorld world, Vector3 position, Vector3 size, PhysicsState state, int? meshId)
+    private void SpawnBox(World world, Vector3 position, Vector3 size, PhysicsState state, int? meshId)
     {
         var box = world.Spawn();
         world.SetLocalTransform(box, new LocalTransform { Position = position, Scale = size });
@@ -259,7 +258,7 @@ public sealed class SceneTestExample : Example
 
     private const float MaxTimeScale = 3f;
 
-    private static IView BuildTimeScaleControl(EntityWorld scene)
+    private static IView BuildTimeScaleControl(World scene)
     {
         var label = new LiveLabelView(() => $"TimeScale: {scene.TimeScale:F2}x") { FontSize = 14f };
         var slider = new SliderView(

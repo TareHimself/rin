@@ -4,11 +4,8 @@ using Rin.Core.Graphics;
 using Rin.Core.Shared;
 using Rin.Core.Shared.Buffers;
 using Rin.Core.Shared.Math;
-using Rin.World.Components;
-using Rin.World.Ecs;
 using Rin.World.Graphics;
 using Rin.World.Graphics.Mesh;
-using Rin.World.Math;
 using Rin.World.Mesh.Skinning;
 using Rin.World.Physics;
 
@@ -68,55 +65,6 @@ internal sealed class FakeMeshFactory : IMeshFactory
     }
 }
 
-/// <summary>
-///     Mirrors <c>StaticMeshComponent</c>'s proxy push idiom without the <c>IMeshFactory</c> singleton.
-/// </summary>
-internal sealed class TestMeshComponent : WorldComponent
-{
-    private static readonly IMesh Mesh = new FakeMesh();
-
-    private RenderProxyHandle _proxy = RenderProxyHandle.Invalid;
-    private uint _lastPushedVersion;
-
-    public RenderProxyHandle Proxy => _proxy;
-
-    public override void Start()
-    {
-        base.Start();
-        _proxy = Owner!.World!.RenderSystem.CreateStaticMeshProxy(new StaticMeshProxyDesc
-        {
-            Mesh = Mesh,
-            Transform = GetTransform(Space.World).ToMatrix(),
-            SurfaceIndices = [],
-            Materials = []
-        });
-        _lastPushedVersion = TransformVersion;
-    }
-
-    public override void Stop()
-    {
-        if (_proxy.IsValid)
-        {
-            Owner!.World!.RenderSystem.DestroyProxy(_proxy);
-            _proxy = RenderProxyHandle.Invalid;
-        }
-
-        base.Stop();
-    }
-
-    public override void LateUpdate(float deltaSeconds)
-    {
-        base.LateUpdate(deltaSeconds);
-        if (!_proxy.IsValid) return;
-        var worldTransform = GetTransform(Space.World);
-        if (TransformVersion != _lastPushedVersion)
-        {
-            Owner!.World!.RenderSystem.UpdateProxyTransform(_proxy, worldTransform.ToMatrix());
-            _lastPushedVersion = TransformVersion;
-        }
-    }
-}
-
 internal sealed class FakePoseSource : IPoseSource
 {
     public required Skeleton Skeleton { get; init; }
@@ -130,61 +78,6 @@ internal sealed class FakePoseSource : IPoseSource
     {
         TickCount++;
         TickedSeconds += deltaSeconds;
-    }
-}
-
-/// <summary>
-///     Mirrors <c>SkinnedMeshComponent</c>'s proxy push idiom without the <c>IMeshFactory</c> singleton.
-/// </summary>
-internal sealed class TestSkinnedMeshComponent : WorldComponent
-{
-    private static readonly IMesh Mesh = new FakeMesh();
-    private static readonly Skeleton Skeleton = new([new Bone { Name = "root" }]);
-
-    private RenderProxyHandle _proxy = RenderProxyHandle.Invalid;
-    private uint _lastPushedVersion;
-
-    public IPoseSource? PoseSource { get; set; }
-    public RenderProxyHandle Proxy => _proxy;
-
-    public override void Start()
-    {
-        base.Start();
-        _proxy = Owner!.World!.RenderSystem.CreateSkinnedMeshProxy(new SkinnedMeshProxyDesc
-        {
-            Skeleton = Skeleton,
-            Pose = PoseSource?.GetPose() ?? Skeleton.BasePose,
-            Mesh = Mesh,
-            Transform = GetTransform(Space.World).ToMatrix(),
-            SurfaceIndices = [],
-            Materials = []
-        });
-        _lastPushedVersion = TransformVersion;
-    }
-
-    public override void Stop()
-    {
-        if (_proxy.IsValid)
-        {
-            Owner!.World!.RenderSystem.DestroyProxy(_proxy);
-            _proxy = RenderProxyHandle.Invalid;
-        }
-
-        base.Stop();
-    }
-
-    public override void LateUpdate(float deltaSeconds)
-    {
-        base.LateUpdate(deltaSeconds);
-        if (!_proxy.IsValid) return;
-        var worldTransform = GetTransform(Space.World);
-        if (TransformVersion != _lastPushedVersion)
-        {
-            Owner!.World!.RenderSystem.UpdateProxyTransform(_proxy, worldTransform.ToMatrix());
-            _lastPushedVersion = TransformVersion;
-        }
-
-        if (PoseSource is { } poseSource) Owner!.World!.RenderSystem.UpdateSkinnedProxyPose(_proxy, poseSource.GetPose());
     }
 }
 
@@ -294,7 +187,7 @@ internal sealed class FakePhysicsSystem : IPhysicsSystem
     private readonly Dictionary<PhysicsBodyHandle, Body> _bodies = [];
 
     /// <summary>
-    ///     The most recently created body's handle — enough for the single-body tests here.
+    ///     The most recently created body's handle, enough for the single-body tests here.
     /// </summary>
     public PhysicsBodyHandle LastCreated { get; private set; }
 
@@ -494,6 +387,11 @@ internal record struct Armor(int Value) : IComponentData;
 internal record struct Ammo(int Value) : IComponentData;
 
 internal struct Stunned : ITagData;
+
+internal static class TestCameras
+{
+    public static CameraView Identity => new(Matrix4x4.Identity, 90f, 0.01f, 50f);
+}
 
 internal static class TestSkeletons
 {

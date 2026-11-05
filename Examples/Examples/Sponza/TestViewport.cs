@@ -1,8 +1,8 @@
 ﻿using Examples.Common;
 using System.Numerics;
-using Rin.World.Ecs;
-using Rin.World.Ecs.Graphics;
-using Rin.World.Ecs.Transforms;
+using Rin.World;
+using Rin.World.Graphics;
+using Rin.World.Transforms;
 using Rin.World.Views;
 using Rin.Core.Graphics.Windows;
 using Rin.Core.Shared.Math;
@@ -14,7 +14,7 @@ public class TestViewport : Viewport
 {
     private static readonly Log Log = Log.For<TestViewport>();
 
-    private readonly EntityWorld _world;
+    private readonly World _world;
     private readonly Entity _camera;
 
     private float _forwardAxis;
@@ -63,12 +63,6 @@ public class TestViewport : Viewport
     public override void OnKeyboard(KeyboardSurfaceEvent e)
     {
         base.OnKeyboard(e);
-        if (e is { Key: InputKey.Space, State: InputState.Pressed })
-        {
-            // var world = camera.GetTransform(Space.World);
-            // world.Rotation = MathR.LookTowards(world.Location, new Vector3(8, 15, 0), MathR.Up);
-            // camera.SetTransform(world, Space.World);
-        }
 
         var moveSpeed = 1f;
         if (e is

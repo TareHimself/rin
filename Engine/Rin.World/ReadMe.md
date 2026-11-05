@@ -1,6 +1,6 @@
 # Rin.World
 
-The scene layer on top of [Rin.Core](../Rin.Core/ReadMe.md): a `World` owns actors, each actor owns components, and the world drives a fixed-step physics simulation on BepuPhysics and the default deferred render pipeline. `Viewport` shows a world inside a Rin.Core surface.
+The scene layer on top of [Rin.Core](../Rin.Core/ReadMe.md). A `World` is an archetype ECS: entities hold plain struct components and ordered systems run on a fixed tick and per frame. Features connect it to the rest of the engine: `RenderFeature` to an `IRenderSystem` (the default deferred pipeline), `PhysicsFeature` to an `IPhysicsSystem` (BepuPhysics) and `ScriptFeature` to scripts and `GameTask`s. `Viewport` shows a world inside a Rin.Core surface.
 
 ```
 dotnet build Engine/Rin.World/Rin.World.csproj
@@ -9,45 +9,35 @@ dotnet test Engine/Rin.World.Tests/Rin.World.Tests.csproj -p:RinShadeSkipCompile
 
 Without `RinShadeSkipCompile=true` the build also compiles the shaders and needs the real Slang native package. The tests live in [Rin.World.Tests](../Rin.World.Tests/ReadMe.md).
 
-## Actors and components
-
-This is the scene model the headless example uses. The [ECS](#ecs-in-progress) below is replacing it (`Sponza`, `AssetViewer` and `SceneTest` already run on it) and both exist until the migration finishes. An actor is a bag of components keyed by type with an optional root `WorldComponent`, and transform calls on the actor forward to that root. A component overrides `Start`, `Stop`, `PrePhysicsUpdate`, `Update` and `LateUpdate`.
-
-| Component | What it does |
-| --- | --- |
-| `StaticMeshComponent`, `SkinnedMeshComponent` | Draw a mesh with one `IMeshMaterial` per surface. The skinned one takes its pose from an `IPoseSource` such as `AnimationGraph`. |
-| `CameraComponent` | The view a `Viewport` renders from. |
-| `PointLightComponent`, `DirectionalLightComponent` | Lights, pushed to the renderer as `LightInfo`. |
-| `BoxPhysicsComponent`, `SpherePhysicsComponent`, `CapsulePhysicsComponent` | One Bepu body each. `PhysicsState` picks who drives the transform: `Static` is placed once, `Controlled` pushes the component transform into the body, `Simulated` reads it back. `IsTrigger` makes the body an overlap volume. |
-
-## The update step
-
 ```mermaid
-flowchart TD
-    A["World.Update(delta x TimeScale)"] --> B["every actor: PrePhysicsUpdate"]
-    B --> C["fixed physics steps of PhysicsUpdateInterval,<br/>at most MaxPhysicsStepsPerFrame (leftover dropped at the cap)"]
-    C --> D["after each step: contact events to IPhysicsContactReceiver owners"]
-    D --> E["RenderSystem.SetInterpolationAlpha"]
-    E --> F["every actor: Update, then LateUpdate"]
+flowchart LR
+    G["gameplay: systems, scripts, tasks"] --> W["World<br/>Entity, Query, CommandBuffer, hooks"]
+    W --> B["Ecs/<br/>Friflo.Engine.ECS backend"]
+    RF["RenderFeature"] --> W
+    RF --> RS["IRenderSystem<br/>DefaultRenderSystem"]
+    PF["PhysicsFeature"] --> W
+    PF --> PS["IPhysicsSystem<br/>BepuPhysicsSystem"]
+    SF["ScriptFeature"] --> W
+    V["Viewport"] --> RF
 ```
 
-Physics queries (ray and shape casts, overlaps) take a `ref struct` handler or a `Span` buffer, so a query never allocates.
+The ECS runs on [Friflo.Engine.ECS](https://github.com/friflo/Friflo.Engine.ECS), but only `Ecs/` may reference Friflo: `BannedSymbols.txt` bans the namespace and `.editorconfig` turns the ban into a build error everywhere else in this project. Gameplay code sees only Rin types, all in `Rin.World` and its subsystem namespaces (`Transforms`, `Scheduling`, `Graphics`, `Physics`, `Animation`, `Scripting`, `Tasks`).
 
-## ECS (in progress)
-
-`EntityWorld` is an archetype ECS that will replace actors and components. It runs on [Friflo.Engine.ECS](https://github.com/friflo/Friflo.Engine.ECS), but only `Ecs/Backend/` may reference Friflo: `BannedSymbols.txt` bans the namespace and `.editorconfig` turns the ban into a build error everywhere else in this project. Gameplay code sees only Rin types.
+## Entities
 
 | Piece | What it is |
 | --- | --- |
 | `Entity` | An id plus generation handle. A despawned entity's handle stops matching when the id is reused. |
 | `IComponentData`, `ITagData` | Markers for component and tag structs. |
 | `Query<T1>` to `Query<T1, T2, T3, T4>` | `foreach (var chunk in query)` gives one `Span<T>` per component and the chunk's entities, without allocating. Structural changes inside the loop throw, so record them in a `CommandBuffer`. |
-| `CommandBuffer` | Records spawn, despawn, add, set, remove and tag changes, and applies them in record order. Spawn creates the entity at once so ids follow record order. Commands for an entity that is gone by playback are skipped. |
+| `CommandBuffer` | `world.Commands` records spawn, despawn, add, set, remove and tag changes, and applies them in record order. Spawn creates the entity at once so ids follow record order. Commands for an entity that is gone by playback are skipped. |
 | Hierarchy | `SetParent`, `ClearParent`, `GetParent`, `GetChildren`. Despawning an entity despawns its descendants, depth first. Reparenting marks the child dirty. |
-| Hooks | `OnAdd<T>` fires when a component is new, `OnRemove<T>` fires before it is removed, also on despawn. |
+| Hooks | `OnAdd<T>` fires when a component is new, `OnRemove<T>` fires before it is removed, also on despawn. The features create and destroy proxies and bodies from them. |
 | Transforms | `LocalTransform` and `WorldTransform` (matrix plus `Version`). Every `LocalTransform` setter sets its `IsDirty` flag, so a write through a query span needs no structural change. `SetPosition`, `SetRotation`, `SetScale` and `SetLocalTransform` add both components when missing. |
 
-`EntityWorld.Update(dt)` runs fixed ticks of `TickInterval` (1/60 s by default) from the time-scaled delta, then the frame phases. Systems run in the order they were added to their phase.
+## The update step
+
+`World.Update(dt)` runs fixed ticks of `TickInterval` (1/60 s by default) from the time-scaled delta, then the frame phases. Systems run in the order they were added to their phase.
 
 ```mermaid
 flowchart TD
@@ -58,15 +48,15 @@ flowchart TD
     T --> I[InterpolationAlpha = leftover / TickInterval]
     I --> F1["Frame: Update<br/>(animation and bone sockets with a RenderFeature)"]
     F1 --> F2[Frame: Late]
-    F2 --> F3["Frame: Extract, TransformPropagation first"]
+    F2 --> F3["Frame: Extract, TransformPropagation first,<br/>then RenderExtract with a RenderFeature"]
     F3 --> F4[play back Commands]
 ```
 
-`TransformPropagation` walks each hierarchy depth first from its roots. It recomputes `world = local x parentWorld` (row vectors, like `WorldComponent`), or `local x socket x parentWorld` for an entity with `AttachSocket`, for dirty entities and for children of a parent whose matrix changed, clears `IsDirty`, and bumps `Version` only when the matrix changed. It reaches a subtree only through parents that have both transform components.
+`TransformPropagation` walks each hierarchy depth first from its roots. It recomputes `world = local x parentWorld` (row vectors), or `local x socket x parentWorld` for an entity with `AttachSocket`, for dirty entities and for children of a parent whose matrix changed, clears `IsDirty`, and bumps `Version` only when the matrix changed. It reaches a subtree only through parents that have both transform components.
 
-### Scripts and tasks
+## Scripts and tasks
 
-For one-off behaviour that is not worth a system. `new ScriptFeature(entityWorld)` adds a Gameplay system that ticks scripts and a `GameTaskScheduler` (`ScriptFeature.Tasks`) whose Tasks system resumes tasks. A scheduler can also be created on its own with `new GameTaskScheduler(entityWorld)`.
+For one-off behaviour that is not worth a system. `new ScriptFeature(world)` adds a Gameplay system that ticks scripts and a `GameTaskScheduler` (`ScriptFeature.Tasks`) whose Tasks system resumes tasks. A scheduler can also be created on its own with `new GameTaskScheduler(world)`.
 
 | Piece | What it does |
 | --- | --- |
@@ -91,13 +81,13 @@ flowchart LR
 | --- | --- |
 | Cancel (owner despawned, script stopped, `WhenAny` loser, `CancelAll`) | The task stops silently: the awaiting method is never resumed, so its `catch` and `finally` blocks do not run. A task awaiting a cancelled task is cancelled too. |
 | A task throws | The exception is rethrown at the `await` in the awaiting task. One that escapes a task started with `Run` is reported at the end of the Tasks phase to `GameTaskScheduler.TaskFaulted` with the owner, or rethrown from `Update` when nothing subscribed. The other tasks of the phase still resume. |
-| Snapshot restore (step 7) | `ScriptFeature.Restore()` cancels every task, then calls `Script.Restore` on each script in attach order. Script fields and task locals are never saved, so anything that must survive lives in components and `Restore` restarts the tasks from it. |
+| `ScriptFeature.Restore()` | Cancels every task, then calls `Script.Restore` on each script in attach order. Script fields and task locals are never saved, so anything that must survive lives in components and `Restore` restarts the tasks from it. |
 
 At steady state awaiting does not allocate: wait nodes, combinators and state machine nodes come from per-thread pools. The first suspension of a method type allocates its pooled node once, and in a Debug build the compiler allocates every async method's state machine as a class (about 80 bytes per call).
 
-### Rendering entities
+## Rendering
 
-`new RenderFeature(entityWorld, renderSystem, meshFactory)` connects an `EntityWorld` to an `IRenderSystem`. Components hold only unmanaged data: a mesh is its `IMeshFactory` id, and its materials are a `MaterialSet` handle from `RenderFeature.Materials`.
+`new RenderFeature(world, renderSystem, meshFactory)` connects a `World` to an `IRenderSystem`. Components hold only unmanaged data: a mesh is its `IMeshFactory` id, and its materials are a `MaterialSet` handle from `RenderFeature.Materials`.
 
 | Component | What it does |
 | --- | --- |
@@ -142,14 +132,14 @@ flowchart LR
 | Piece | What it does |
 | --- | --- |
 | `AnimationSystem` | Ticks the pose source of every `SkinnedMesh` entity. A source shared by several entities ticks once per frame. Notifies of an `AnimationGraph` fire after the query loop with the world and the entity (`IAnimationNotify.Notify(world, entity, graph)`, `IAnimationNotifyState.NotifyBegin`/`NotifyEnd`), so they may change structure directly, and are then released. |
-| `AttachSocket` | Bone index plus the bone's matrix in the parent's space. `renderFeature.AttachToBone(child, parent, "boneName")` resolves the name once, parents the child and adds the socket with the current bone matrix. Adding or removing it marks the child dirty. |
+| `AttachSocket` | Bone index plus the bone's matrix in the parent's space. `renderFeature.AttachToBone(child, parent, "boneName")` resolves the name once, parents the child and adds the socket with the current bone matrix. An unknown bone name throws. Adding or removing the socket marks the child dirty. |
 | `BoneSocketSync` | For each socketed child whose parent has a `SkinnedMesh`, copies the bone matrix from the parent's pose. Bone matrices are resolved once per pose change, only when a socket asks. |
 
 The animation, socket and extract systems do not allocate. The pose sources can: `AnimationGraph.Tick` allocates its evaluated pose, about 4.9 KB per tick for a 60 bone clip player.
 
-### Physics for entities
+## Physics
 
-`new PhysicsFeature(entityWorld, physicsSystem)` connects an `EntityWorld` to an `IPhysicsSystem` such as `BepuPhysicsSystem`, the same way `RenderFeature` connects it to the renderer.
+`new PhysicsFeature(world, physicsSystem)` connects a `World` to an `IPhysicsSystem` such as `BepuPhysicsSystem`, the same way `RenderFeature` connects it to the renderer.
 
 | Component | What it does |
 | --- | --- |
@@ -182,22 +172,22 @@ flowchart LR
 
 Queries mirror `IPhysicsSystem`: `RayCast`, `SphereCast`, `BoxCast` and `CapsuleCast` return an `EntityHit` (entity plus the `RayCastResult`), the "all" forms fill a `Span<EntityHit>`, and `OverlapSphere`, `OverlapBox` and `OverlapCapsule` fill a `Span<Entity>`, skipping bodies without an entity. The tick systems and the span queries do not allocate.
 
-Rendering stays smooth the same way as with actors: pull writes the stepped pose every tick, `RenderExtract` pushes it once per frame, and the render system blends its previous and current transform by the world's `InterpolationAlpha`.
+Pull writes the stepped pose every tick, `RenderExtract` pushes it once per frame, and the render system blends its previous and current transform by the world's `InterpolationAlpha`, so fixed-step bodies render smoothly.
 
-## From components to the GPU
+## From proxies to the GPU
 
-Components never touch GPU state. They create, update and destroy proxies on `IRenderSystem`, and `DefaultRenderSystem` queues every change until the next `Snapshot`.
+The world never touches GPU state. `RenderFeature` creates, updates and destroys proxies on `IRenderSystem`, and `DefaultRenderSystem` queues every change until the next `Snapshot`.
 
 ```mermaid
 flowchart LR
-    C["components<br/>Start, LateUpdate, Stop"] -- "Create / Update / DestroyProxy" --> Q["command queue"]
+    C["RenderFeature hooks<br/>and RenderExtract"] -- "Create / Update / DestroyProxy" --> Q["command queue"]
     Q -- "drained in Snapshot()" --> T["proxy table<br/>static, skinned, light"]
     T -- "rebuilt only when something changed" --> S["DefaultWorldSnapshot"]
     S --> V["DefaultWorldViewData<br/>one per camera"]
     V -- "Write(builder)" --> G["render graph passes"]
 ```
 
-The snapshot blends each proxy's previous and current transform by the interpolation alpha, so fixed-step physics renders smoothly. Mesh components push a transform only when their `TransformVersion` changed. ECS entities feed the same proxies through `RenderFeature` (see [Rendering entities](#rendering-entities)).
+The snapshot blends each proxy's previous and current transform by the interpolation alpha.
 
 ## The default render pipeline
 
@@ -220,8 +210,8 @@ Meshes are batched by index buffer plus material, so each batch is one `DrawInde
 
 ## Showing a world
 
-`Viewport` (a Rin.Core `ContentView`) takes a `CameraComponent`, or a `RenderFeature` and a camera entity. It builds a `CameraView` (world matrix plus projection parameters), snapshots the render system with it in `CollectContent`, and `ViewportCommandHandler` writes the pipeline above into the graph and draws the result with `ViewportShader`. A primary click cycles the `ViewportChannel` (scene, each G-buffer channel, radiance), a secondary click captures the mouse for `OnMouseDelta`. The render size follows the content size only after it has been stable for `Viewport.SettleFrames` frames, so a resize stretches the last render instead of reallocating the G-buffers every frame.
+`Viewport` (a Rin.Core `ContentView`) takes a `RenderFeature` and a camera entity. It builds the entity's `CameraView` (world matrix plus projection parameters), snapshots the render system with it in `CollectContent`, and `ViewportCommandHandler` writes the pipeline above into the graph and draws the result with `ViewportShader`. A primary click cycles the `ViewportChannel` (scene, each G-buffer channel, radiance), a secondary click captures the mouse for `OnMouseDelta`. The render size follows the content size only after it has been stable for `Viewport.SettleFrames` frames, so a resize stretches the last render instead of reallocating the G-buffers every frame.
 
-`Sponza`, `AssetViewer` and `SceneTest` build an `EntityWorld` with a `RenderFeature` (`SceneTest` adds a `PhysicsFeature` on `BepuPhysicsSystem`) and give a camera entity a `Viewport`.
+`Sponza`, `AssetViewer` and `SceneTest` build a `World` with a `RenderFeature` (`SceneTest` adds a `PhysicsFeature` on `BepuPhysicsSystem`) and give a camera entity a `Viewport`. The `headless` example runs a `World` with only a `PhysicsFeature`.
 
 References: Rin.Core, Rin.Shade (plus its source generator), Rin.SourceGenerators. Packages: BepuPhysics, Friflo.Engine.ECS, Microsoft.CodeAnalysis.BannedApiAnalyzers (build only). Referenced by Rin.GLTF, Examples and Rin.World.Tests.

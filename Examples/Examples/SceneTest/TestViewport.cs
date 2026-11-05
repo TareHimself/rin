@@ -2,9 +2,9 @@
 using Rin.Core.Graphics.Windows;
 using Rin.Core.Shared.Math;
 using Rin.Core.Views.Events;
-using Rin.World.Ecs;
-using Rin.World.Ecs.Graphics;
-using Rin.World.Ecs.Transforms;
+using Rin.World;
+using Rin.World.Graphics;
+using Rin.World.Transforms;
 using Rin.World.Views;
 
 namespace Examples.SceneTest;
@@ -13,7 +13,7 @@ public class TestViewport : Viewport
 {
     private const float Speed = 50f;
 
-    private readonly EntityWorld _world;
+    private readonly World _world;
     private readonly Entity _camera;
 
     private float _forwardAxis;

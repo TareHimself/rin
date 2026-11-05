@@ -1,5 +1,5 @@
-using Rin.World.Ecs.Scripting;
-using Rin.World.Ecs.Tasks;
+using Rin.World.Scripting;
+using Rin.World.Tasks;
 
 namespace Examples.SceneTest;
 

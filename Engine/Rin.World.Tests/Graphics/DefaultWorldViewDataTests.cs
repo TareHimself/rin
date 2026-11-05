@@ -1,6 +1,5 @@
 using System.Numerics;
 using Rin.Core.Graphics;
-using Rin.World.Components;
 using Rin.World.Graphics;
 using Rin.World.Graphics.Default;
 using Rin.World.Graphics.Default.Passes;
@@ -11,7 +10,7 @@ public class DefaultWorldViewDataTests
 {
     private static DefaultWorldViewData CreateView(DefaultRenderSystem render)
     {
-        return (DefaultWorldViewData)render.Snapshot(new CameraComponent().ToCameraView(), new Extent2D(1, 1));
+        return (DefaultWorldViewData)render.Snapshot(TestCameras.Identity, new Extent2D(1, 1));
     }
 
     [Test]

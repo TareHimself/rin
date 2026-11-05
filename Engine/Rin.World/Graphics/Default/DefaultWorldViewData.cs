@@ -4,7 +4,6 @@ using Rin.Core.Graphics;
 using Rin.Core.Graphics.Graph;
 using Rin.Core.Shared.Math;
 using Rin.World.Graphics.Default.Passes;
-using Rin.World.Math;
 
 namespace Rin.World.Graphics.Default;
 

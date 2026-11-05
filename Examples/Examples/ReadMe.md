@@ -24,7 +24,7 @@ With no argument a launcher window lists the examples and Back returns to it. Wi
 | `sponza` | `Sponza/` | `assets/models/sponza.glb` with a custom Shade mesh material and an FPS counter. | W, A, S, D and the mouse move the camera while the viewport is focused. |
 | `asset-viewer` | `AssetViewer/` | The skinned fox model looping its run animation. | None. |
 | `render-graph` | `RenderGraphViewer/` | A small scene with the render graph overlay open. | Capture snapshots a frame. |
-| `headless` | `HeadlessTest/` | The engine with no window and no GPU: drops a sphere in a physics world, prints its height and exits. | None. |
+| `headless` | `HeadlessTest/` | The engine with no window and no GPU: drops a sphere entity in a `World` with a `PhysicsFeature`, prints its height and exits after 3 seconds. | None. |
 
 ## How it fits together
 
