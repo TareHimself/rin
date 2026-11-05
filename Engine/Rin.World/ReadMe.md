@@ -53,7 +53,7 @@ Physics queries (ray and shape casts, overlaps) take a `ref struct` handler or a
 flowchart TD
     A["Update(dt x TimeScale), clamped to 0.25 s"] --> T
     subgraph T["each TickInterval, at most MaxTicksPerFrame (backlog dropped at the cap)"]
-        T1[Input] --> T2[Gameplay] --> T3["Tasks (empty)"] --> T4["Physics: push, step, pull, contacts<br/>(with a PhysicsFeature)"] --> T5["play back Commands, TickIndex++"]
+        T1[Input] --> T2["Gameplay<br/>(scripts with a ScriptFeature)"] --> T3["Tasks: resume due GameTasks<br/>(with a GameTaskScheduler)"] --> T4["Physics: push, step, pull, contacts<br/>(with a PhysicsFeature)"] --> T5["play back Commands, TickIndex++"]
     end
     T --> I[InterpolationAlpha = leftover / TickInterval]
     I --> F1["Frame: Update<br/>(animation and bone sockets with a RenderFeature)"]
@@ -63,6 +63,37 @@ flowchart TD
 ```
 
 `TransformPropagation` walks each hierarchy depth first from its roots. It recomputes `world = local x parentWorld` (row vectors, like `WorldComponent`), or `local x socket x parentWorld` for an entity with `AttachSocket`, for dirty entities and for children of a parent whose matrix changed, clears `IsDirty`, and bumps `Version` only when the matrix changed. It reaches a subtree only through parents that have both transform components.
+
+### Scripts and tasks
+
+For one-off behaviour that is not worth a system. `new ScriptFeature(entityWorld)` adds a Gameplay system that ticks scripts and a `GameTaskScheduler` (`ScriptFeature.Tasks`) whose Tasks system resumes tasks. A scheduler can also be created on its own with `new GameTaskScheduler(entityWorld)`.
+
+| Piece | What it does |
+| --- | --- |
+| `Script` | A managed class attached with `scripts.Attach(entity, script)`, which adds a `ScriptRef` component (a slot in the feature) and calls `Start` right away. `Tick(in TickContext)` runs every tick in attach order, from the first Gameplay phase after the attach. Removing `ScriptRef` (`Detach`) or despawning the entity cancels the script's tasks, then calls `Stop`. One script per entity. Exposes `Entity`, `World` and `Tasks`. |
+| `GameTask`, `GameTask<T>` | `async` return types with their own method builders. The method runs synchronously until its first suspension, which rents a pooled node for the state machine. Awaiting anything else (a `Task`, for one) faults the task, so nothing runs on the thread pool. A `GameTask` can be awaited once. |
+| `TaskContext` | `Ticks(n)` resumes in the n-th Tasks phase from now (awaited in Gameplay, `NextTick()` resumes in the same tick), `Seconds(s)` is `Ticks` rounded up from `TickInterval`, `Until(condition)` is checked once per Tasks phase, `Event<T>(entity)` takes the first `T` raised with `Raise(entity, value)` after the wait, `WhenAny(a, b)` returns the winner's index and cancels the loser, `WhenAll(a, b)` waits for both. `Run(body)` starts another task. |
+| `GameTaskScheduler` | Resumes due waits only in the Tasks phase, in the order they were queued. Every wait has an owner entity (the script's entity for `Script.Tasks`) and one whose owner is gone is cancelled instead of resumed. `Cancel(owner)` and `CancelAll()` cancel by hand. |
+
+```mermaid
+flowchart LR
+    S["Script.Start or Restore"] -- "Tasks.Run(body)" --> R["body runs until its first await"]
+    R --> Q["wait queued with owner and sequence"]
+    subgraph P["Tick: Tasks"]
+        C["each queued wait in order:<br/>owner gone: cancel<br/>due: collect"] --> M["resume collected waits in order"]
+        M --> E["drop events seen this phase,<br/>report faults"]
+    end
+    Q --> C
+    M -- "next await" --> Q
+```
+
+| Situation | What happens |
+| --- | --- |
+| Cancel (owner despawned, script stopped, `WhenAny` loser, `CancelAll`) | The task stops silently: the awaiting method is never resumed, so its `catch` and `finally` blocks do not run. A task awaiting a cancelled task is cancelled too. |
+| A task throws | The exception is rethrown at the `await` in the awaiting task. One that escapes a task started with `Run` is reported at the end of the Tasks phase to `GameTaskScheduler.TaskFaulted` with the owner, or rethrown from `Update` when nothing subscribed. The other tasks of the phase still resume. |
+| Snapshot restore (step 7) | `ScriptFeature.Restore()` cancels every task, then calls `Script.Restore` on each script in attach order. Script fields and task locals are never saved, so anything that must survive lives in components and `Restore` restarts the tasks from it. |
+
+At steady state awaiting does not allocate: wait nodes, combinators and state machine nodes come from per-thread pools. The first suspension of a method type allocates its pooled node once, and in a Debug build the compiler allocates every async method's state machine as a class (about 80 bytes per call).
 
 ### Rendering entities
 

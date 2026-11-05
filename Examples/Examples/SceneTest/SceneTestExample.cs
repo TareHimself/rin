@@ -17,6 +17,7 @@ using Rin.GLTF;
 using Rin.World.Ecs;
 using Rin.World.Ecs.Graphics;
 using Rin.World.Ecs.Physics;
+using Rin.World.Ecs.Scripting;
 using Rin.World.Ecs.Transforms;
 using Rin.World.Graphics.Default;
 using Rin.World.Graphics.Mesh;
@@ -34,6 +35,7 @@ public sealed class SceneTestExample : Example
     private const int BenchBoxCount = 2000;
     private const int BenchGridSide = 25;
     private const float BenchGridSpacing = 5f;
+    private const float BoxRainIntervalSeconds = 3f;
 
     private readonly Random _rng = new();
     private int? _cubeMeshId;
@@ -56,6 +58,7 @@ public sealed class SceneTestExample : Example
         var world = new EntityWorld();
         var render = _render = new RenderFeature(world, new DefaultRenderSystem(), meshFactory);
         _physics = new PhysicsFeature(world, new BepuPhysicsSystem());
+        var scripts = new ScriptFeature(world);
 
         // A perspective camera looking down +Z at the play area, and a top-down camera.
         var perspectiveCam = SpawnCamera(world, new Vector3(0f, 10f, -40f), Quaternion.Identity);
@@ -85,6 +88,7 @@ public sealed class SceneTestExample : Example
                 if (_render != render) return;
                 _boxMaterials = render.Materials.Add(material);
                 SpawnBoxes(30);
+                scripts.Attach(world.Spawn(), new BoxRain(BoxRainIntervalSeconds, () => SpawnBoxes(1)));
                 LoadFoxes(render, material);
             });
         });

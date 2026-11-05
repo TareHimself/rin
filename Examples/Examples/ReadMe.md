@@ -20,7 +20,7 @@ With no argument a launcher window lists the examples and Back returns to it. Wi
 | `windows` | `ChildWindows/` | Child windows and fullscreen, with a count of open child windows. Each child gets the same controls and can open its own. Children close when the example stops. | Open window, Fullscreen or Alt+Enter, F switches the module between 2 and 3 frames in flight. |
 | `text-input` | `TextInput/` | A single line and a multi line field with a readout of the caret, the composition and the code units. | Click a field and type, Escape drops focus. |
 | `audio-player` | `AudioPlayer/` | A music player: queue, albums, cover art, a blurred backdrop, a six band equalizer and a spectrum visualizer around the cover with several looks. | Plus button, drop files or pass paths. Space plays and pauses, Left and Right skip, `V` cycles the visualizer. |
-| `scene-test` | `SceneTest/` | A 3D world with physics in a dockable layout with a perspective and a top camera. | W, A, S, D move, P drops a grid of boxes, a button opens the render graph overlay. |
+| `scene-test` | `SceneTest/` | A 3D world with physics in a dockable layout with a perspective and a top camera. A `BoxRain` script drops a box every 3 seconds from a `GameTask`. | W, A, S, D move, P drops a grid of boxes, a button opens the render graph overlay. |
 | `sponza` | `Sponza/` | `assets/models/sponza.glb` with a custom Shade mesh material and an FPS counter. | W, A, S, D and the mouse move the camera while the viewport is focused. |
 | `asset-viewer` | `AssetViewer/` | The skinned fox model looping its run animation. | None. |
 | `render-graph` | `RenderGraphViewer/` | A small scene with the render graph overlay open. | Capture snapshots a frame. |
