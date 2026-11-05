@@ -91,6 +91,28 @@ public class ContactDispatchTests
     }
 
     [Test]
+    public void ContactsAreSortedByEntityThenKindWhateverTheEventOrder()
+    {
+        var a = SpawnBody();
+        var b = SpawnBody();
+        var c = SpawnBody();
+        _physics.EmitContact(HandleOf(b), HandleOf(c), PhysicsContactKind.Begin, false);
+        _physics.EmitContact(HandleOf(a), HandleOf(c), PhysicsContactKind.End, false);
+        _physics.EmitContact(HandleOf(a), HandleOf(b), PhysicsContactKind.End, false);
+        _physics.EmitContact(HandleOf(a), HandleOf(b), PhysicsContactKind.Begin, false);
+
+        Tick();
+
+        Assert.That(_feature.Contacts.ToArray(), Is.EqualTo(new[]
+        {
+            new EntityContact(a, b, PhysicsContactKind.Begin, false),
+            new EntityContact(a, b, PhysicsContactKind.End, false),
+            new EntityContact(a, c, PhysicsContactKind.End, false),
+            new EntityContact(b, c, PhysicsContactKind.Begin, false)
+        }));
+    }
+
+    [Test]
     public void ARealLandingIsReportedForTheFallingEntity()
     {
         var world = new World();

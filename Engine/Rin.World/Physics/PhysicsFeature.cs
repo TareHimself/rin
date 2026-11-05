@@ -10,9 +10,16 @@ namespace Rin.World.Physics;
 ///     despawned. Four <see cref="TickPhase.Physics" /> systems run in order: <see cref="PhysicsPush" />, the step,
 ///     <see cref="PhysicsPull" /> and <see cref="ContactDispatch" />.
 /// </summary>
-public sealed class PhysicsFeature
+/// <remarks>
+///     A snapshot restore destroys every entity body and creates a new one from <see cref="RigidBody" />, the restored
+///     world pose and <see cref="Velocity" />, and clears <see cref="Contacts" />. The physics system's own state (warm
+///     starting, sleeping, contact history) is not restored, so a restored run matches another run that restored the same
+///     way, but not a run that never restored.
+/// </remarks>
+public sealed class PhysicsFeature : IWorldRestoreListener
 {
     private readonly ContactDispatch _contacts;
+    private readonly Query<PhysicsBody, RigidBody> _bodies;
 
     public PhysicsFeature(World world, IPhysicsSystem physicsSystem)
     {
@@ -26,6 +33,8 @@ public sealed class PhysicsFeature
         world.AddSystem(TickPhase.Physics, new PhysicsStep(physicsSystem));
         world.AddSystem(TickPhase.Physics, new PhysicsPull(world, physicsSystem));
         world.AddSystem(TickPhase.Physics, _contacts);
+        world.AddRestoreListener(this);
+        _bodies = world.Query<PhysicsBody, RigidBody>();
     }
 
     public World World { get; }
@@ -45,16 +54,48 @@ public sealed class PhysicsFeature
 
     internal BodyEntityMap Bodies { get; } = new();
 
+    void IWorldRestoreListener.BeforeRestore()
+    {
+        foreach (var (bodies, _) in _bodies)
+            for (var i = 0; i < bodies.Length; i++)
+            {
+                var handle = bodies[i].Handle;
+                if (!handle.IsValid) continue;
+                Bodies.Remove(handle);
+                PhysicsSystem.DestroyBody(handle);
+            }
+
+        _contacts.Clear();
+    }
+
+    void IWorldRestoreListener.AfterRestore()
+    {
+        foreach (var (bodies, rigidBodies, entities) in _bodies)
+            for (var i = 0; i < bodies.Length; i++)
+            {
+                var entity = entities[i];
+                var handle = CreateBodyHandle(entity, rigidBodies[i]);
+                Bodies.Add(handle, entity);
+                bodies[i] = new PhysicsBody { Handle = handle, State = rigidBodies[i].State };
+            }
+    }
+
     private void CreateBody(Entity entity, ref RigidBody rigidBody)
     {
-        var desc = rigidBody;
+        var handle = CreateBodyHandle(entity, rigidBody);
+        Bodies.Add(handle, entity);
+        World.Add(entity, new PhysicsBody { Handle = handle, State = rigidBody.State });
+    }
+
+    private PhysicsBodyHandle CreateBodyHandle(Entity entity, in RigidBody desc)
+    {
         var pose = Transform.From(World.ComputeWorldMatrix(entity));
         var handle = desc.Shape.Kind switch
         {
             ColliderShapeKind.Box => PhysicsSystem.CreateBox(desc.Shape.Size, pose, desc.State),
             ColliderShapeKind.Sphere => PhysicsSystem.CreateSphere(desc.Shape.Radius, pose, desc.State),
             ColliderShapeKind.Capsule => PhysicsSystem.CreateCapsule(desc.Shape.Radius, desc.Shape.HalfHeight, pose, desc.State),
-            _ => throw new ArgumentOutOfRangeException(nameof(rigidBody), desc.Shape.Kind, "Unknown collider shape.")
+            _ => throw new ArgumentOutOfRangeException(nameof(desc), desc.Shape.Kind, "Unknown collider shape.")
         };
 
         PhysicsSystem.SetMass(handle, desc.Mass);
@@ -68,8 +109,7 @@ public sealed class PhysicsFeature
             velocity.IsDirty = false;
         }
 
-        Bodies.Add(handle, entity);
-        World.Add(entity, new PhysicsBody { Handle = handle, State = desc.State });
+        return handle;
     }
 
     private void DestroyBody(Entity entity, ref RigidBody rigidBody)

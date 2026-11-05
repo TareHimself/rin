@@ -2,9 +2,10 @@
 namespace Rin.World.Physics;
 
 /// <summary>
-///     Added and removed by <see cref="PhysicsFeature" /> alongside a <see cref="RigidBody" />.
+///     Added and removed by <see cref="PhysicsFeature" /> alongside a <see cref="RigidBody" />, and rebuilt by it after a
+///     snapshot restore.
 /// </summary>
-public struct PhysicsBody : IComponentData
+public struct PhysicsBody : IDerivedComponentData
 {
     public PhysicsBodyHandle Handle { get; internal set; }
 

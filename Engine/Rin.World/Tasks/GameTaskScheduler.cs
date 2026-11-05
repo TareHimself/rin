@@ -11,9 +11,10 @@ namespace Rin.World.Tasks;
 /// <remarks>
 ///     A cancelled task stops silently: the awaiting method is never resumed, so its <c>catch</c> and <c>finally</c>
 ///     blocks do not run. An exception that escapes a task started with <see cref="Run" /> is reported at the end of the
-///     Tasks phase to <see cref="TaskFaulted" />, or rethrown from it when nothing subscribed.
+///     Tasks phase to <see cref="TaskFaulted" />, or rethrown from it when nothing subscribed. A snapshot restore cancels
+///     every task and drops every raised event that was not delivered yet.
 /// </remarks>
-public sealed class GameTaskScheduler
+public sealed class GameTaskScheduler : IWorldRestoreListener
 {
     private readonly List<WaitEntry> _waiting = [];
     private readonly List<WaitEntry> _due = [];
@@ -26,6 +27,7 @@ public sealed class GameTaskScheduler
     {
         World = world;
         world.AddSystem(TickPhase.Tasks, new TaskResume(this));
+        world.AddRestoreListener(this);
     }
 
     public World World { get; }
@@ -68,6 +70,16 @@ public sealed class GameTaskScheduler
     public void Cancel(Entity owner) => CancelWaits(new CancelFilter(owner, null, false));
 
     public void CancelAll() => CancelWaits(new CancelFilter(default, null, true));
+
+    void IWorldRestoreListener.BeforeRestore()
+    {
+        CancelAll();
+        for (var i = 0; i < _channels.Count; i++) _channels[i].Clear();
+    }
+
+    void IWorldRestoreListener.AfterRestore()
+    {
+    }
 
     internal void Run(Entity owner, Script? script, Func<TaskContext, GameTask> body)
     {

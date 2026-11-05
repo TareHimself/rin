@@ -10,10 +10,13 @@ namespace Rin.World;
 public sealed class World
 {
     private const float MaxFrameDeltaSeconds = 0.25f;
+    private const int SnapshotFormat = 0x52534E31;
 
     private readonly EcsStore _store = new();
     private readonly SystemSchedule _schedule = new();
+    private readonly List<IWorldRestoreListener> _restoreListeners = [];
     private float _accumulator;
+    private bool _updating;
 
     public World()
     {
@@ -52,11 +55,74 @@ public sealed class World
 
     public int EntityCount => _store.EntityCount;
 
+    /// <summary>
+    ///     The simulation's random numbers, saved in every snapshot. Seed it before the first tick.
+    /// </summary>
+    public SimRandom Random { get; } = new();
+
     public void AddSystem(TickPhase phase, TickSystem system) => _schedule.Add(phase, system);
 
     public void AddSystem(FramePhase phase, FrameSystem system) => _schedule.Add(phase, system);
 
     public void Update(float deltaSeconds)
+    {
+        _updating = true;
+        try
+        {
+            RunUpdate(deltaSeconds);
+        }
+        finally
+        {
+            _updating = false;
+        }
+    }
+
+    /// <summary>
+    ///     Called around every <see cref="RestoreSnapshot" />, in registration order.
+    /// </summary>
+    public void AddRestoreListener(IWorldRestoreListener listener) => _restoreListeners.Add(listener);
+
+    /// <summary>
+    ///     Overwrites <paramref name="snapshot" /> with the simulation state: every entity with its components, tags and
+    ///     parent, the entity id allocator, <see cref="TickIndex" />, the tick accumulator and <see cref="Random" />.
+    ///     <see cref="IDerivedComponentData" /> bytes are left out.
+    /// </summary>
+    public void SaveSnapshot(WorldSnapshot snapshot)
+    {
+        snapshot.Clear();
+        snapshot.Write(SnapshotFormat);
+        snapshot.Write(TickIndex);
+        snapshot.Write(_accumulator);
+        snapshot.Write(Random.Current);
+        _store.Save(snapshot);
+        snapshot.TickIndex = TickIndex;
+    }
+
+    /// <summary>
+    ///     Replaces the simulation state with <paramref name="snapshot" />, between updates. Pending
+    ///     <see cref="Commands" /> are dropped, no hooks fire, and every <see cref="IWorldRestoreListener" /> rebuilds what
+    ///     lives outside the store.
+    /// </summary>
+    public void RestoreSnapshot(WorldSnapshot snapshot)
+    {
+        if (_updating) throw new InvalidOperationException("A snapshot cannot be restored during Update.");
+        var reader = snapshot.CreateReader();
+        if (snapshot.IsEmpty || reader.Read<int>() != SnapshotFormat)
+            throw new ArgumentException("The snapshot is empty or was not saved by a World.", nameof(snapshot));
+
+        for (var i = 0; i < _restoreListeners.Count; i++) _restoreListeners[i].BeforeRestore();
+
+        Commands.Clear();
+        TickIndex = reader.Read<long>();
+        _accumulator = reader.Read<float>();
+        InterpolationAlpha = _accumulator / TickInterval;
+        Random.Current = reader.Read<SimRandom.State>();
+        _store.Restore(ref reader);
+
+        for (var i = 0; i < _restoreListeners.Count; i++) _restoreListeners[i].AfterRestore();
+    }
+
+    private void RunUpdate(float deltaSeconds)
     {
         var scaledDeltaSeconds = float.Max(0f, deltaSeconds * TimeScale);
         _accumulator += float.Min(scaledDeltaSeconds, MaxFrameDeltaSeconds);

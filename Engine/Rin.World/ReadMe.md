@@ -27,12 +27,12 @@ The ECS runs on [Friflo.Engine.ECS](https://github.com/friflo/Friflo.Engine.ECS)
 
 | Piece | What it is |
 | --- | --- |
-| `Entity` | An id plus generation handle. A despawned entity's handle stops matching when the id is reused. |
+| `Entity` | An id plus generation handle. A despawned entity's handle stops matching when the id is reused. Ids come from the world's own allocator (last freed, first reused), so the same spawns and despawns give the same handles. |
 | `IComponentData`, `ITagData` | Markers for component and tag structs. |
 | `Query<T1>` to `Query<T1, T2, T3, T4>` | `foreach (var chunk in query)` gives one `Span<T>` per component and the chunk's entities, without allocating. Structural changes inside the loop throw, so record them in a `CommandBuffer`. |
 | `CommandBuffer` | `world.Commands` records spawn, despawn, add, set, remove and tag changes, and applies them in record order. Spawn creates the entity at once so ids follow record order. Commands for an entity that is gone by playback are skipped. |
 | Hierarchy | `SetParent`, `ClearParent`, `GetParent`, `GetChildren`. Despawning an entity despawns its descendants, depth first. Reparenting marks the child dirty. |
-| Hooks | `OnAdd<T>` fires when a component is new, `OnRemove<T>` fires before it is removed, also on despawn. The features create and destroy proxies and bodies from them. |
+| Hooks | `OnAdd<T>` fires when a component is new, `OnRemove<T>` fires before it is removed, also on despawn. The features create and destroy proxies and bodies from them. A snapshot restore fires none. |
 | Transforms | `LocalTransform` and `WorldTransform` (matrix plus `Version`). Every `LocalTransform` setter sets its `IsDirty` flag, so a write through a query span needs no structural change. `SetPosition`, `SetRotation`, `SetScale` and `SetLocalTransform` add both components when missing. |
 
 ## The update step
@@ -81,7 +81,7 @@ flowchart LR
 | --- | --- |
 | Cancel (owner despawned, script stopped, `WhenAny` loser, `CancelAll`) | The task stops silently: the awaiting method is never resumed, so its `catch` and `finally` blocks do not run. A task awaiting a cancelled task is cancelled too. |
 | A task throws | The exception is rethrown at the `await` in the awaiting task. One that escapes a task started with `Run` is reported at the end of the Tasks phase to `GameTaskScheduler.TaskFaulted` with the owner, or rethrown from `Update` when nothing subscribed. The other tasks of the phase still resume. |
-| `ScriptFeature.Restore()` | Cancels every task, then calls `Script.Restore` on each script in attach order. Script fields and task locals are never saved, so anything that must survive lives in components and `Restore` restarts the tasks from it. |
+| `ScriptFeature.Restore()` | Cancels every task, then calls `Script.Restore` on each script in attach order. Script fields and task locals are never saved, so anything that must survive lives in components and `Restore` restarts the tasks from it. A snapshot restore calls it, see [Determinism and snapshots](#determinism-and-snapshots). |
 
 At steady state awaiting does not allocate: wait nodes, combinators and state machine nodes come from per-thread pools. The first suspension of a method type allocates its pooled node once, and in a Debug build the compiler allocates every async method's state machine as a class (about 80 bytes per call).
 
@@ -95,7 +95,7 @@ At steady state awaiting does not allocate: wait nodes, combinators and state ma
 | `SkinnedMesh` | Like `StaticMesh`, plus a `PoseSourceHandle` from `RenderFeature.PoseSources`, which supplies the skeleton and the pose. Adding one without a pose source throws. See [Skinning and sockets](#skinning-and-sockets). |
 | `PointLight`, `DirectionalLight` | Color, radiance and radius. Every setter sets `IsDirty`, like `LocalTransform`. The directional light shines along the entity's world forward axis. |
 | `Camera` | Field of view and clip planes. `world.GetCameraView(entity)` combines it with `WorldTransform` into a `CameraView`. |
-| `RenderProxy` | Added by the feature: the proxy handle and the `WorldTransform.Version` last pushed. |
+| `RenderProxy` | Added by the feature: the proxy handle and the `WorldTransform.Version` last pushed. Rebuilt after a snapshot restore. |
 
 An entity holds at most one of `StaticMesh`, `SkinnedMesh`, `PointLight` and `DirectionalLight` (a second one throws), so use child entities for more.
 
@@ -145,7 +145,7 @@ The animation, socket and extract systems do not allocate. The pose sources can:
 | --- | --- |
 | `RigidBody` | A `ColliderShape` (box size, sphere radius, or capsule radius plus half height), `PhysicsState`, mass, `IsTrigger` and collision channel. Read once when it is added: overwriting it does not rebuild the body, so remove and add it to change the shape or state. |
 | `Velocity` | Linear and angular velocity. Every setter sets `IsDirty` and a dirty velocity is pushed to the body before the next step. Simulated bodies write the stepped velocity back without setting it. |
-| `PhysicsBody` | Added by the feature: the body handle and the state it was created with. |
+| `PhysicsBody` | Added by the feature: the body handle and the state it was created with. Rebuilt after a snapshot restore. |
 
 The body is created at the entity's world pose computed from the local transforms (stale `WorldTransform` is not used), including its world scale, which `BepuPhysicsSystem` multiplies into the shape size. The feature maps body handles back to entities with a dense array indexed by the handle, so `FindEntity(handle)` is an array read.
 
@@ -168,11 +168,52 @@ flowchart LR
 
 `WorldTransform` is only propagated per frame, so push and pull compute a child's world pose from the `LocalTransform` chain, one lookup per ancestor. Roots read their local transform directly. Pull writes roots before children so a child converts against its parent's new pose, and writes only values that changed, so a resting body does not dirty propagation.
 
-`PhysicsFeature.Contacts` is a `ReadOnlySpan<EntityContact>` (both entities, begin or end, trigger) of the last step. It is replaced in every tick's `ContactDispatch` and kept until the next one, so gameplay in tick N+1 reads the contacts of tick N, before its own step. A body without an entity shows up as `default`, a contact where neither body has one is dropped, and an entity may have been despawned since the contact.
+`PhysicsFeature.Contacts` is a `ReadOnlySpan<EntityContact>` (both entities, begin or end, trigger) of the last step, sorted by entity ids, then kind, because Bepu reports contacts in a different order every run. It is replaced in every tick's `ContactDispatch` and kept until the next one, so gameplay in tick N+1 reads the contacts of tick N, before its own step. A body without an entity shows up as `default`, a contact where neither body has one is dropped, and an entity may have been despawned since the contact.
 
 Queries mirror `IPhysicsSystem`: `RayCast`, `SphereCast`, `BoxCast` and `CapsuleCast` return an `EntityHit` (entity plus the `RayCastResult`), the "all" forms fill a `Span<EntityHit>`, and `OverlapSphere`, `OverlapBox` and `OverlapCapsule` fill a `Span<Entity>`, skipping bodies without an entity. The tick systems and the span queries do not allocate.
 
 Pull writes the stepped pose every tick, `RenderExtract` pushes it once per frame, and the render system blends its previous and current transform by the world's `InterpolationAlpha`, so fixed-step bodies render smoothly.
+
+## Determinism and snapshots
+
+The tick is deterministic on the same build and CPU family (floats are not portable, fixed point is out of scope), so lockstep and rollback can compare and rewind worlds. Code that runs in the tick follows these rules:
+
+- Read `TickContext.DeltaSeconds` (always `TickInterval`), never the frame delta.
+- Systems run in registration order. Never iterate a `Dictionary` or `HashSet` in tick code.
+- Spawn and despawn through `Commands`, so ids follow record order.
+- Draw random numbers from `world.Random` (or `TickContext.Random`), a seeded `SimRandom` (xoshiro256**).
+- Keep component data unmanaged. Managed data lives in a registry and the component stores its id (`SaveSnapshot` throws on a component with references).
+- A component that holds a handle into a subsystem implements `IDerivedComponentData`, and its feature rebuilds it from an `IWorldRestoreListener`.
+
+`world.SaveSnapshot(snapshot)` writes the state into a reusable `WorldSnapshot`, `world.RestoreSnapshot(snapshot)` loads it back between updates, and `snapshot.ComputeHash()` gives a 64-bit hash to compare worlds tick by tick. `BepuPhysicsSystem` turns on Bepu's deterministic mode by default (`new BepuPhysicsSystem(deterministic: false)` turns it off).
+
+| Saved in the snapshot | Rebuilt after a restore | Dropped by a restore |
+| --- | --- | --- |
+| The entity id allocator: free list and generation per id | `RenderProxy`: every proxy is destroyed, then recreated at the restored world pose for each entity that had one | Pending `Commands` |
+| Every archetype: component and tag set, entity ids in order, the raw bytes of each component column | `PhysicsBody`: every body is destroyed, then recreated from `RigidBody`, the restored world pose and `Velocity` | Running `GameTask`s and events not delivered yet |
+| Parent to children links, in child order | `ScriptRef`: rebound to the scripts that stay attached (below) | `PhysicsFeature.Contacts` |
+| `TickIndex`, the tick accumulator, `SimRandom` | | Bepu's own state: warm starting, sleeping, contact history |
+
+```mermaid
+flowchart TD
+    B["BeforeRestore listeners, in registration order:<br/>destroy proxies and bodies, cancel tasks, drop events"] --> C["drop pending Commands,<br/>load TickIndex, accumulator, SimRandom"]
+    C --> E["delete every entity, load the id allocator,<br/>recreate entities straight into their archetypes in saved order,<br/>copy the columns, clear derived columns, relink children"]
+    E --> A["AfterRestore listeners, in registration order:<br/>recreate proxies and bodies, rebind scripts, ScriptFeature.Restore()"]
+```
+
+Restore fires no `OnAdd` or `OnRemove` hooks. Because entities return to their archetypes in the saved order, queries see them in the same order as at save time.
+
+Scripts are managed objects and are not saved. After a restore:
+
+| Script | What happens |
+| --- | --- |
+| Its entity exists and had a `ScriptRef` in the snapshot | Stays attached. `Restore` restarts its tasks from component state. |
+| Its entity is gone, or got the script after the save | `Stop` runs (the entity may no longer exist) and the script is detached. |
+| Its entity had a script at save time that was detached since | Comes back without a script: a detached script cannot be reattached automatically. |
+
+Bepu's internal state is not restored, so a restored physics run matches another run that saved and restored at the same ticks, but not a run that never restored. Without physics a restored world matches one that never restored, which `DeterminismTests` checks along with the double run of a scripted input log (systems, scripts, tasks, rendering and Bepu) hashed every tick.
+
+Saving and restoring into a reused snapshot allocates nothing in the entity store and `ScriptFeature`. Rebuilding proxies and bodies allocates what creating them allocates (about 136 bytes per Bepu body). With 2000 settled boxes in Release, Bepu's deterministic mode raised the step from about 0.35 ms to 0.6 to 0.8 ms per tick.
 
 ## From proxies to the GPU
 

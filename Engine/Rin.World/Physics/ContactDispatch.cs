@@ -3,8 +3,9 @@ using Rin.World.Scheduling;
 namespace Rin.World.Physics;
 
 /// <summary>
-///     Maps the step's <see cref="IPhysicsSystem.ContactEvents" /> to entities, in the physics system's order. A contact
-///     whose bodies both have no entity is dropped.
+///     Maps the step's <see cref="IPhysicsSystem.ContactEvents" /> to entities and sorts them by entity ids, then kind,
+///     because the physics system's own order can change between runs. A contact whose bodies both have no entity is
+///     dropped.
 /// </summary>
 internal sealed class ContactDispatch(IPhysicsSystem physicsSystem, BodyEntityMap bodies) : TickSystem
 {
@@ -25,6 +26,27 @@ internal sealed class ContactDispatch(IPhysicsSystem physicsSystem, BodyEntityMa
             var b = bodies.Find(contact.B);
             if (!a.IsValid && !b.IsValid) continue;
             _contacts[_count++] = new EntityContact(a, b, contact.Kind, contact.IsTrigger);
+        }
+
+        _contacts.AsSpan(0, _count).Sort(new StableOrder());
+    }
+
+    public void Clear() => _count = 0;
+
+    private readonly struct StableOrder : IComparer<EntityContact>
+    {
+        public int Compare(EntityContact x, EntityContact y)
+        {
+            var order = Compare(x.A, y.A);
+            if (order == 0) order = Compare(x.B, y.B);
+            if (order == 0) order = x.Kind.CompareTo(y.Kind);
+            return order != 0 ? order : x.IsTrigger.CompareTo(y.IsTrigger);
+        }
+
+        private static int Compare(Entity x, Entity y)
+        {
+            var order = x.Id.CompareTo(y.Id);
+            return order != 0 ? order : x.Generation.CompareTo(y.Generation);
         }
     }
 }

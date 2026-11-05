@@ -1,3 +1,4 @@
+using System.Numerics;
 using Rin.Core.Extensions;
 using Rin.World.Animation;
 using Rin.World.Scheduling;
@@ -16,11 +17,14 @@ namespace Rin.World.Graphics;
 /// </summary>
 /// <remarks>
 ///     An entity holds at most one of those components; use child entities for more. A mesh that is not ready in the
-///     mesh factory when its component is added gets no proxy.
+///     mesh factory when its component is added gets no proxy. A snapshot restore destroys every proxy and recreates one,
+///     at the restored world pose, for each restored entity that had one.
 /// </remarks>
-public sealed class RenderFeature
+public sealed class RenderFeature : IWorldRestoreListener
 {
     private readonly IMeshFactory _meshFactory;
+    private readonly Query<RenderProxy> _proxies;
+    private readonly List<Entity> _lostProxies = [];
 
     public RenderFeature(World world, IRenderSystem renderSystem, IMeshFactory meshFactory)
     {
@@ -39,6 +43,8 @@ public sealed class RenderFeature
         world.AddSystem(FramePhase.Update, new AnimationSystem(world, PoseSources));
         world.AddSystem(FramePhase.Update, new BoneSocketSync(world, PoseSources));
         world.AddSystem(FramePhase.Extract, new RenderExtract(world, renderSystem, PoseSources));
+        world.AddRestoreListener(this);
+        _proxies = world.Query<RenderProxy>();
     }
 
     public World World { get; }
@@ -66,21 +72,47 @@ public sealed class RenderFeature
         World.Add(child, new AttachSocket(boneIndex) { SocketMatrix = poseSource.BoneMatrices[boneIndex] });
     }
 
+    void IWorldRestoreListener.BeforeRestore()
+    {
+        foreach (var (proxies, _) in _proxies)
+            for (var i = 0; i < proxies.Length; i++)
+                if (proxies[i].Handle.IsValid) RenderSystem.DestroyProxy(proxies[i].Handle);
+    }
+
+    void IWorldRestoreListener.AfterRestore()
+    {
+        foreach (var (proxies, entities) in _proxies)
+            for (var i = 0; i < proxies.Length; i++)
+            {
+                var entity = entities[i];
+                if (TryRecreateProxy(entity, out var handle, out var version))
+                    proxies[i] = new RenderProxy { Handle = handle, LastPushedVersion = version };
+                else
+                    _lostProxies.Add(entity);
+            }
+
+        foreach (var entity in _lostProxies) World.Remove<RenderProxy>(entity);
+        _lostProxies.Clear();
+    }
+
+    private bool TryRecreateProxy(Entity entity, out RenderProxyHandle handle, out uint version)
+    {
+        var transform = CurrentWorldTransform(entity);
+        version = transform.Version;
+        if (World.Has<StaticMesh>(entity)) handle = CreateStaticMeshHandle(World.Get<StaticMesh>(entity), transform.Matrix);
+        else if (World.Has<SkinnedMesh>(entity)) handle = CreateSkinnedMeshHandle(World.Get<SkinnedMesh>(entity), transform.Matrix);
+        else if (World.Has<PointLight>(entity)) handle = CreateLightHandle(ref World.Get<PointLight>(entity), transform.Matrix);
+        else if (World.Has<DirectionalLight>(entity)) handle = CreateLightHandle(ref World.Get<DirectionalLight>(entity), transform.Matrix);
+        else handle = default;
+        return handle.IsValid;
+    }
+
     private void CreateStaticMeshProxy(Entity entity, ref StaticMesh staticMesh)
     {
         EnsureNoProxy(entity);
-        if (_meshFactory.GetMesh(staticMesh.MeshId) is not { } mesh) return;
-
-        var (surfaceIndices, materials) = ResolveSurfaceMaterials(mesh, Materials.Get(staticMesh.Materials));
         var transform = CurrentWorldTransform(entity);
-        var handle = RenderSystem.CreateStaticMeshProxy(new StaticMeshProxyDesc
-        {
-            Mesh = mesh,
-            Transform = transform.Matrix,
-            SurfaceIndices = surfaceIndices,
-            Materials = materials
-        });
-        AddProxy(entity, handle, transform.Version);
+        var handle = CreateStaticMeshHandle(staticMesh, transform.Matrix);
+        if (handle.IsValid) AddProxy(entity, handle, transform.Version);
     }
 
     private void CreateSkinnedMeshProxy(Entity entity, ref SkinnedMesh skinnedMesh)
@@ -88,39 +120,67 @@ public sealed class RenderFeature
         EnsureNoProxy(entity);
         if (!skinnedMesh.PoseSource.IsValid)
             throw new InvalidOperationException($"The {nameof(SkinnedMesh)} of {entity} needs a pose source.");
-        if (_meshFactory.GetMesh(skinnedMesh.MeshId) is not { } mesh) return;
 
-        var poseSource = PoseSources.Get(skinnedMesh.PoseSource);
-        var (surfaceIndices, materials) = ResolveSurfaceMaterials(mesh, Materials.Get(skinnedMesh.Materials));
         var transform = CurrentWorldTransform(entity);
-        var handle = RenderSystem.CreateSkinnedMeshProxy(new SkinnedMeshProxyDesc
-        {
-            Mesh = mesh,
-            Skeleton = poseSource.Skeleton,
-            Pose = poseSource.GetPose(),
-            Transform = transform.Matrix,
-            SurfaceIndices = surfaceIndices,
-            Materials = materials
-        });
-        AddProxy(entity, handle, transform.Version);
+        var handle = CreateSkinnedMeshHandle(skinnedMesh, transform.Matrix);
+        if (handle.IsValid) AddProxy(entity, handle, transform.Version);
     }
 
     private void CreatePointLightProxy(Entity entity, ref PointLight light)
     {
         EnsureNoProxy(entity);
         var transform = CurrentWorldTransform(entity);
-        var handle = RenderSystem.CreateLightProxy(light.ToLightInfo(transform.Matrix));
-        light.IsDirty = false;
-        AddProxy(entity, handle, transform.Version);
+        AddProxy(entity, CreateLightHandle(ref light, transform.Matrix), transform.Version);
     }
 
     private void CreateDirectionalLightProxy(Entity entity, ref DirectionalLight light)
     {
         EnsureNoProxy(entity);
         var transform = CurrentWorldTransform(entity);
-        var handle = RenderSystem.CreateLightProxy(light.ToLightInfo(transform.Matrix));
+        AddProxy(entity, CreateLightHandle(ref light, transform.Matrix), transform.Version);
+    }
+
+    private RenderProxyHandle CreateStaticMeshHandle(in StaticMesh staticMesh, in Matrix4x4 transform)
+    {
+        if (_meshFactory.GetMesh(staticMesh.MeshId) is not { } mesh) return default;
+
+        var (surfaceIndices, materials) = ResolveSurfaceMaterials(mesh, Materials.Get(staticMesh.Materials));
+        return RenderSystem.CreateStaticMeshProxy(new StaticMeshProxyDesc
+        {
+            Mesh = mesh,
+            Transform = transform,
+            SurfaceIndices = surfaceIndices,
+            Materials = materials
+        });
+    }
+
+    private RenderProxyHandle CreateSkinnedMeshHandle(in SkinnedMesh skinnedMesh, in Matrix4x4 transform)
+    {
+        if (_meshFactory.GetMesh(skinnedMesh.MeshId) is not { } mesh) return default;
+
+        var poseSource = PoseSources.Get(skinnedMesh.PoseSource);
+        var (surfaceIndices, materials) = ResolveSurfaceMaterials(mesh, Materials.Get(skinnedMesh.Materials));
+        return RenderSystem.CreateSkinnedMeshProxy(new SkinnedMeshProxyDesc
+        {
+            Mesh = mesh,
+            Skeleton = poseSource.Skeleton,
+            Pose = poseSource.GetPose(),
+            Transform = transform,
+            SurfaceIndices = surfaceIndices,
+            Materials = materials
+        });
+    }
+
+    private RenderProxyHandle CreateLightHandle(ref PointLight light, in Matrix4x4 transform)
+    {
         light.IsDirty = false;
-        AddProxy(entity, handle, transform.Version);
+        return RenderSystem.CreateLightProxy(light.ToLightInfo(transform));
+    }
+
+    private RenderProxyHandle CreateLightHandle(ref DirectionalLight light, in Matrix4x4 transform)
+    {
+        light.IsDirty = false;
+        return RenderSystem.CreateLightProxy(light.ToLightInfo(transform));
     }
 
     private void DestroyProxy<T>(Entity entity, ref T component) where T : struct, IComponentData

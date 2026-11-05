@@ -7,18 +7,28 @@ namespace Rin.World.Ecs;
 ///     The Friflo-backed entity store behind <see cref="World" />. Hooks and cascading despawn are done here rather
 ///     than with Friflo events, because Friflo does not fire remove events on delete and leaves children orphaned.
 /// </summary>
-internal sealed class EcsStore
+/// <remarks>
+///     Ids come from a Rin <see cref="EntityIdAllocator" /> rather than Friflo's free list, which cannot be saved, so a
+///     snapshot restores the exact ids the next spawns get.
+/// </remarks>
+internal sealed partial class EcsStore
 {
-    private readonly EntityStore _store = new();
+    private readonly EntityStore _store = new() { RecycleIds = false };
+    private readonly EntityIdAllocator _ids = new();
     private readonly ComponentHooks?[] _hooks = new ComponentHooks?[EntityStore.GetEntitySchema().Components.Length];
-    private readonly List<FrifloEntity> _despawning = [];
+    private readonly List<Entity> _despawning = [];
     private readonly List<int> _walk = [];
 
     public int EntityCount => _store.Count;
 
-    public Entity Spawn() => _store.CreateEntity().ToHandle();
+    public Entity Spawn()
+    {
+        var entity = _ids.Allocate();
+        _store.CreateEntity(entity.Id);
+        return entity;
+    }
 
-    public bool IsAlive(Entity entity) => TryResolve(entity, out _);
+    public bool IsAlive(Entity entity) => _ids.IsAlive(entity);
 
     public void Despawn(Entity entity)
     {
@@ -32,9 +42,11 @@ internal sealed class EcsStore
         for (var i = start; i < end; i++)
         {
             var doomed = _despawning[i];
-            if (!IsCurrent(doomed)) continue;
-            FireRemovedHooks(doomed);
-            if (IsCurrent(doomed)) doomed.DeleteEntity();
+            if (!IsAlive(doomed)) continue;
+            FireRemovedHooks(_store.GetEntityById(doomed.Id), doomed);
+            if (!IsAlive(doomed)) continue;
+            _store.GetEntityById(doomed.Id).DeleteEntity();
+            _ids.Free(doomed.Id);
         }
 
         _despawning.RemoveRange(start, end - start);
@@ -52,7 +64,8 @@ internal sealed class EcsStore
     public void Add<T>(Entity entity, in T component) where T : struct, IComponentData
     {
         var resolved = Resolve(entity);
-        if (resolved.AddComponent(component)) HooksOf<T>()?.FireAdded(resolved);
+        ComponentColumns.Register<T>();
+        if (resolved.AddComponent(component)) HooksOf<T>()?.FireAdded(resolved, entity);
     }
 
     public void Set<T>(Entity entity, in T component) where T : struct, IComponentData => Get<T>(entity) = component;
@@ -61,7 +74,7 @@ internal sealed class EcsStore
     {
         var resolved = Resolve(entity);
         if (!resolved.HasComponent<T>()) return false;
-        HooksOf<T>()?.FireRemoved(resolved);
+        HooksOf<T>()?.FireRemoved(resolved, entity);
         return resolved.RemoveComponent<T>();
     }
 
@@ -80,9 +93,9 @@ internal sealed class EcsStore
         if (!parent.IsNull) parent.RemoveChild(resolved);
     }
 
-    public Entity GetParent(Entity child) => Resolve(child).Parent.ToHandle();
+    public Entity GetParent(Entity child) => HandleOf(Resolve(child).Parent);
 
-    public EntityChildren GetChildren(Entity parent) => new(Resolve(parent).ChildEntities);
+    public EntityChildren GetChildren(Entity parent) => new(Resolve(parent).ChildEntities, _ids);
 
     public void OnAdd<T>(ComponentHook<T> handler) where T : struct, IComponentData => GetOrCreateHooks<T>().OnAdd(handler);
 
@@ -90,25 +103,25 @@ internal sealed class EcsStore
 
     public Query<T1> Query<T1>()
         where T1 : struct, IComponentData
-        => new(_store.Query<T1>());
+        => new(_store.Query<T1>(), _ids);
 
     public Query<T1, T2> Query<T1, T2>()
         where T1 : struct, IComponentData
         where T2 : struct, IComponentData
-        => new(_store.Query<T1, T2>());
+        => new(_store.Query<T1, T2>(), _ids);
 
     public Query<T1, T2, T3> Query<T1, T2, T3>()
         where T1 : struct, IComponentData
         where T2 : struct, IComponentData
         where T3 : struct, IComponentData
-        => new(_store.Query<T1, T2, T3>());
+        => new(_store.Query<T1, T2, T3>(), _ids);
 
     public Query<T1, T2, T3, T4> Query<T1, T2, T3, T4>()
         where T1 : struct, IComponentData
         where T2 : struct, IComponentData
         where T3 : struct, IComponentData
         where T4 : struct, IComponentData
-        => new(_store.Query<T1, T2, T3, T4>());
+        => new(_store.Query<T1, T2, T3, T4>(), _ids);
 
     private void CollectDepthFirst(FrifloEntity root)
     {
@@ -117,17 +130,17 @@ internal sealed class EcsStore
         {
             var entity = _store.GetEntityById(_walk[^1]);
             _walk.RemoveAt(_walk.Count - 1);
-            _despawning.Add(entity);
+            _despawning.Add(_ids.HandleOf(entity.Id));
 
             var children = entity.ChildIds;
             for (var i = children.Length - 1; i >= 0; i--) _walk.Add(children[i]);
         }
     }
 
-    private void FireRemovedHooks(FrifloEntity entity)
+    private void FireRemovedHooks(FrifloEntity entity, Entity handle)
     {
         foreach (var componentType in entity.Archetype.ComponentTypes)
-            _hooks[componentType.StructIndex]?.FireRemoved(entity);
+            _hooks[componentType.StructIndex]?.FireRemoved(entity, handle);
     }
 
     private ComponentHooks<T>? HooksOf<T>() where T : struct, IComponentData =>
@@ -148,17 +161,18 @@ internal sealed class EcsStore
 
     private bool TryResolve(Entity entity, out FrifloEntity resolved)
     {
-        resolved = default;
-        return entity.IsValid && _store.TryGetEntityById(entity.Id, out resolved) && resolved.Revision == entity.Generation;
+        if (!_ids.IsAlive(entity))
+        {
+            resolved = default;
+            return false;
+        }
+
+        resolved = _store.GetEntityById(entity.Id);
+        return true;
     }
 
-    private bool IsCurrent(FrifloEntity entity) => TryResolve(entity.ToHandle(), out _);
+    private Entity HandleOf(FrifloEntity entity) => entity.IsNull ? default : _ids.HandleOf(entity.Id);
 
     private static InvalidOperationException MissingComponent<T>(Entity entity) =>
         new($"{entity} has no {typeof(T).Name}.");
-
-    private static class ComponentIndex<T> where T : struct, IComponentData
-    {
-        public static readonly int Value = EntityStore.GetEntitySchema().GetComponentType<T>().StructIndex;
-    }
 }

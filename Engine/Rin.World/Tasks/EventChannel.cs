@@ -11,6 +11,8 @@ internal abstract class EventChannel
     /// </summary>
     public abstract void TrimBefore(long cutoff);
 
+    public abstract void Clear();
+
     protected static int NextSlot() => Interlocked.Increment(ref _slotCount) - 1;
 }
 
@@ -42,6 +44,8 @@ internal sealed class EventChannel<T> : EventChannel where T : unmanaged
         value = default;
         return false;
     }
+
+    public override void Clear() => _raised.Clear();
 
     public override void TrimBefore(long cutoff)
     {

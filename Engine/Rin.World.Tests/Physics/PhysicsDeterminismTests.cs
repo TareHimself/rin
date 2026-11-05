@@ -24,8 +24,6 @@ public class PhysicsDeterminismTests
     {
         var world = new World();
         var physics = new BepuPhysicsSystem();
-        // Bepu is only deterministic across runs with threads when asked to sort its constraint work.
-        physics.Simulation.Deterministic = true;
         try
         {
             _ = new PhysicsFeature(world, physics);

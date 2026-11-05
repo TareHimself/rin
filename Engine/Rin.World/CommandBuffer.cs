@@ -53,9 +53,14 @@ public sealed class CommandBuffer
         }
         finally
         {
-            _commands.Clear();
-            foreach (var typed in _typed) typed?.Clear();
+            Clear();
         }
+    }
+
+    internal void Clear()
+    {
+        _commands.Clear();
+        foreach (var typed in _typed) typed?.Clear();
     }
 
     private void Record<T>(CommandKind kind, Entity entity, in T component) where T : struct, IComponentData
