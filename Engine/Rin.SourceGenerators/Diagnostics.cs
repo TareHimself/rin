@@ -197,4 +197,15 @@ internal static class Diagnostics
             defaultSeverity: DiagnosticSeverity.Error,
             isEnabledByDefault: true);
     }
+
+    internal static class Ecs
+    {
+        public static readonly DiagnosticDescriptor CannotRegisterComponent = new(
+            id: "RIN00024",
+            title: "Component cannot be registered automatically",
+            messageFormat: "'{0}' is not registered for NativeAOT because {1}",
+            category: "Rin.World",
+            defaultSeverity: DiagnosticSeverity.Warning,
+            isEnabledByDefault: true);
+    }
 }

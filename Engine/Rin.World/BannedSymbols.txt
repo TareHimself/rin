@@ -1,0 +1,1 @@
+N:Friflo.Engine.ECS;Use the Rin.World ECS API, only Ecs/ may reference Friflo

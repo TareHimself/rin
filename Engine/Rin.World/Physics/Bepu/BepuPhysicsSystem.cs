@@ -20,17 +20,22 @@ public class BepuPhysicsSystem : IPhysicsSystem
     private readonly List<uint> _versions = [];
     private readonly Stack<uint> _freeIndices = new();
     private readonly Dictionary<int, TimeDilation> _timeDilation = [];
-    private readonly HashSet<int> _dilatedBodiesSeenThisStep = [];
+    private int _stepIndex;
     private readonly Dictionary<int, BepuBody> _bodyHandleLookup = [];
     private readonly Dictionary<int, BepuBody> _staticHandleLookup = [];
     private Vector3 _gravity = new(0, -9.81f, 0);
     private readonly ContactTracker _contacts;
 
-    public BepuPhysicsSystem()
+    /// <summary>
+    ///     With <paramref name="deterministic" /> set, Bepu sorts its multithreaded constraint and contact work so the same
+    ///     inputs in the same order give bit-identical results across runs, which lockstep and rollback need.
+    /// </summary>
+    public BepuPhysicsSystem(bool deterministic = true)
     {
         _contacts = new ContactTracker(this, _threadDispatcher.ThreadCount);
         Simulation = Simulation.Create(_pool, new NarrowPhaseCallbacks(this), new PoseIntegratorCallbacks(this),
             new SolveDescription(VelocityIterationCount, SubstepCount));
+        Simulation.Deterministic = deterministic;
     }
 
     public ReadOnlySpan<PhysicsContactEvent> ContactEvents => _contacts.Events;
@@ -283,7 +288,7 @@ public class BepuPhysicsSystem : IPhysicsSystem
 
     public void Update(float deltaTime)
     {
-        _dilatedBodiesSeenThisStep.Clear();
+        _stepIndex++;
         _contacts.BeginStep();
         Simulation.Timestep(deltaTime, _threadDispatcher);
         _contacts.EndStep();
@@ -390,7 +395,7 @@ public class BepuPhysicsSystem : IPhysicsSystem
     }
 
     /// <summary>
-    ///     A zero-length, zero-velocity sweep — Bepu's sweep dispatcher reports an overlap at the starting
+    ///     A zero-length, zero-velocity sweep. Bepu's sweep dispatcher reports an overlap at the starting
     ///     pose via <see cref="ISweepHitHandler.OnHitAtZeroT" /> regardless of velocity, so this needs none
     ///     of the convenience <c>Sweep</c> overload's velocity-derived tuning (which divides by velocity
     ///     magnitude and would be a divide-by-zero here).
@@ -606,6 +611,7 @@ public class BepuPhysicsSystem : IPhysicsSystem
     private sealed class TimeDilation
     {
         public float Scale = 1f;
+        public int LastSeenStep;
         public Vector3 TrueLinearVelocity;
         public Vector3 TrueAngularVelocity;
     }
@@ -663,6 +669,7 @@ public class BepuPhysicsSystem : IPhysicsSystem
 
             (_previous, _current) = (_current, _previous);
             _current.Clear();
+            System.Runtime.InteropServices.CollectionsMarshal.AsSpan(_events).Sort(new EventOrder());
         }
 
         private static bool IsTouching<TManifold>(ref TManifold manifold) where TManifold : unmanaged, IContactManifold<TManifold>
@@ -678,6 +685,19 @@ public class BepuPhysicsSystem : IPhysicsSystem
             var lists = new List<TouchingPair>[count];
             for (var i = 0; i < count; i++) lists[i] = [];
             return lists;
+        }
+
+        /// <summary>
+        ///     Workers fill their lists in a different order every run, and the set iterates in insertion order.
+        /// </summary>
+        private readonly struct EventOrder : IComparer<PhysicsContactEvent>
+        {
+            public int Compare(PhysicsContactEvent x, PhysicsContactEvent y)
+            {
+                var order = x.A.Index.CompareTo(y.A.Index);
+                if (order == 0) order = x.B.Index.CompareTo(y.B.Index);
+                return order != 0 ? order : x.Kind.CompareTo(y.Kind);
+            }
         }
 
         private readonly record struct TouchingPair(PhysicsBodyHandle A, PhysicsBodyHandle B, bool IsTrigger)
@@ -778,7 +798,11 @@ public class BepuPhysicsSystem : IPhysicsSystem
 
                 var bodyHandle = activeSet.IndexToHandle[bodyIndex].Value;
                 if (!physicsSystem._timeDilation.TryGetValue(bodyHandle, out var dilation)) continue;
-                if (physicsSystem._dilatedBodiesSeenThisStep.Add(bodyHandle)) continue;
+                if (dilation.LastSeenStep != physicsSystem._stepIndex)
+                {
+                    dilation.LastSeenStep = physicsSystem._stepIndex;
+                    continue;
+                }
 
                 var laneDt = GatherScatter.Get(ref dt, lane);
                 dilation.TrueLinearVelocity += physicsSystem._gravity * laneDt;

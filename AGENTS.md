@@ -11,7 +11,7 @@ its folder (`Rin.World.Tests.Graphics`, not the flat `Rin.World.Tests`). A class
 root namespace (e.g. `World.cs`) gets its test at the test project's root, with no folder.
 
 Shared test infrastructure used across multiple subsystems (fakes/test doubles like
-`FakeRenderSystem`, `FakePhysicsSystem`, `TestMeshComponent`) stays in `TestDoubles.cs` at the test
+`FakeRenderSystem`, `FakePhysicsSystem`, `FakeMeshFactory`) stays in `TestDoubles.cs` at the test
 project's root rather than living under any one subsystem folder.
 
 When a single source type spans two subsystems' worth of behavior (e.g. a test file covering both

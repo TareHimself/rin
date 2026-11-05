@@ -12,7 +12,6 @@ using Rin.Core.Views.Graphics.CommandHandlers;
 using Rin.Core.Views.Graphics.Commands;
 using Rin.Core.Views.Graphics.PassConfigs;
 using Rin.Core.Views.Graphics.Quads;
-using Rin.World.Components;
 using Rin.Shade;
 using Rin.World.Graphics;
 using Rin.World.Graphics.Default.Shaders;
@@ -49,7 +48,7 @@ internal partial class ViewportCommandHandler : ICommandHandlerWithPreAdd
     public void PreAdd(IGraphBuilder builder)
     {
         // c.Context was snapshotted on the collect thread in Viewport.CollectContent; WriteSingle only
-        // wires that snapshot into the graph — no live world access here on the render thread.
+        // wires that snapshot into the graph, with no live world access here on the render thread.
         _renderContexts = new IWorldCollectedData[_commands.Length];
         for (var i = 0; i < _commands.Length; i++)
         {
@@ -160,7 +159,8 @@ public class Viewport : ContentView
     /// <summary>Frames the content size must hold steady before the render target follows it.</summary>
     public static int SettleFrames = 5;
 
-    private readonly CameraComponent _targetCamera;
+    private readonly RenderFeature _render;
+    private readonly Entity _cameraEntity;
     private bool _captureMouse;
     private ViewportChannel _channel = ViewportChannel.Scene;
     private bool _ignoreNextMove;
@@ -173,10 +173,14 @@ public class Viewport : ContentView
     private Vector2 _lastContentSize;
     private int _settleFrames;
 
-    public Viewport(CameraComponent camera)
+    /// <summary>
+    ///     Renders <paramref name="render" />'s world from <paramref name="camera" />, an entity with a
+    ///     <see cref="Camera" /> component.
+    /// </summary>
+    public Viewport(RenderFeature render, Entity camera)
     {
-        _targetCamera = camera;
-        GetModeText();
+        _render = render;
+        _cameraEntity = camera;
     }
 
     public override bool IsFocusable => true;
@@ -309,20 +313,18 @@ public class Viewport : ContentView
 
     public override void CollectContent(in Matrix4x4 transform, CommandList commands)
     {
-        // Runs on the collect (main) thread, inside the render barrier — safe to walk the World.
-        var renderSystem = _targetCamera.Owner!.World!.RenderSystem;
-        var context = renderSystem.Snapshot(_targetCamera, GetRenderSize().ToExtent());
+        // Runs on the collect (main) thread, inside the render barrier, so reading the world is safe.
+        var context = Snapshot(GetRenderSize().ToExtent());
         commands.Add(new DrawViewportCommand(context, GetContentSize(), transform, _channel));
         commands.AddText(transform, "Noto Sans", GetModeText());
     }
 
 
+    private IWorldCollectedData Snapshot(in Extent2D extent) =>
+        _render.RenderSystem.Snapshot(_render.World.GetCameraView(_cameraEntity), extent);
+
     protected virtual void OnMouseDelta(Vector2 delta)
     {
-        // //Console.WriteLine($"Mouse Moved X : {delta.X} , Y : {delta.Y} ");
-        // var viewTarget = _targetCamera?.RootComponent;
-        // if (viewTarget == null) return;//.ApplyYaw(delta.X).ApplyPitch(delta.Y)
-        // viewTarget.SetRelativeRotation(viewTarget.GetRelativeRotation().Delta(pitch: delta.Y, yaw: delta.X));
     }
 
     public override void Dispose()

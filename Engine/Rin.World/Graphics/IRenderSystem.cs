@@ -1,6 +1,5 @@
 using System.Numerics;
 using Rin.Core.Graphics;
-using Rin.World.Components;
 using Rin.World.Mesh.Skinning;
 
 namespace Rin.World.Graphics;
@@ -17,5 +16,5 @@ public interface IRenderSystem : IDisposable
     void UpdateLightProxy(RenderProxyHandle handle, in LightInfo desc);
     void DestroyProxy(RenderProxyHandle handle);
 
-    IWorldCollectedData Snapshot(CameraComponent view, in Extent2D extent);
+    IWorldCollectedData Snapshot(in CameraView view, in Extent2D extent);
 }

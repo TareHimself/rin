@@ -66,4 +66,42 @@ public class TimeDilationTests
         Assert.That(physics.GetLinearVelocity(body).Y, Is.LessThan(-9f * (1f / 60f) * 1.5f),
             "unfreezing should immediately reflect the velocity accumulated while frozen, not restart from rest");
     }
+
+    [Test]
+    public void ManyDilatedBodiesIntegratedAcrossWorkerThreadsAllTrackTheirScaleAndRepeatExactly()
+    {
+        var first = SimulateDilatedGrid();
+        var second = SimulateDilatedGrid();
+
+        Assert.That(second, Is.EqualTo(first), "the same dilated scene must step identically across runs");
+    }
+
+    private static float[] SimulateDilatedGrid()
+    {
+        const int count = 2048;
+        const float scale = 0.25f;
+        var physics = new BepuPhysicsSystem();
+        var bodies = new PhysicsBodyHandle[count];
+        for (var i = 0; i < count; i++)
+        {
+            var position = new Vector3(i % 64 * 3f, 50, i / 64 * 3f);
+            bodies[i] = physics.CreateSphere(0.5f, StartTransform with { Position = position }, PhysicsState.Simulated);
+            physics.SetTimeScale(bodies[i], scale);
+        }
+
+        var normal = physics.CreateSphere(0.5f, StartTransform with { Position = new Vector3(-10, 50, -10) }, PhysicsState.Simulated);
+        for (var step = 0; step < 40; step++) physics.Update(1f / 60f);
+
+        var normalSpeed = physics.GetLinearVelocity(normal).Length();
+        var heights = new float[count];
+        for (var i = 0; i < count; i++)
+        {
+            Assert.That(physics.GetLinearVelocity(bodies[i]).Length() / normalSpeed, Is.EqualTo(scale).Within(0.05f),
+                $"body {i} lost track of its time scale");
+            heights[i] = physics.GetPosition(bodies[i]).Y;
+        }
+
+        physics.Destroy();
+        return heights;
+    }
 }

@@ -10,6 +10,8 @@ namespace Rin.World.Mesh.Skinning;
 
 public class Skeleton
 {
+    private const int MaxStackResolvedFlags = 1024;
+
     [PublicAPI] public readonly Bone[] Bones;
 
     // -1 for a root bone.
@@ -43,9 +45,26 @@ public class Skeleton
     public Matrix4x4[] ResolvePose(in SkeletalPose pose)
     {
         var result = new Matrix4x4[Bones.Length];
-        var resolved = new bool[Bones.Length];
-        for (var i = 0; i < Bones.Length; i++) ResolveBone(i, pose, result, resolved.AsSpan());
+        ResolvePose(pose, result);
         return result;
+    }
+
+    /// <summary>
+    ///     Writes every bone's model-space matrix into <paramref name="into" /> without allocating.
+    /// </summary>
+    public void ResolvePose(in SkeletalPose pose, Span<Matrix4x4> into)
+    {
+        var rented = Bones.Length > MaxStackResolvedFlags ? ArrayPool<bool>.Shared.Rent(Bones.Length) : null;
+        var resolved = rented is null ? stackalloc bool[Bones.Length] : rented.AsSpan(0, Bones.Length);
+        resolved.Clear();
+        try
+        {
+            for (var i = 0; i < Bones.Length; i++) ResolveBone(i, pose, into, resolved);
+        }
+        finally
+        {
+            if (rented is not null) ArrayPool<bool>.Shared.Return(rented);
+        }
     }
     
     public PooledMemory<Matrix4x4> ResolvePosePooled(in SkeletalPose pose)

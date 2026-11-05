@@ -1,102 +1,73 @@
 ﻿using System.Numerics;
-using Rin.World.Actors;
-using Rin.World.Math;
-using Rin.World.Views;
-using Examples.SceneTest.entities;
 using Rin.Core.Graphics.Windows;
 using Rin.Core.Shared.Math;
 using Rin.Core.Views.Events;
+using Rin.World;
+using Rin.World.Graphics;
+using Rin.World.Transforms;
+using Rin.World.Views;
 
 namespace Examples.SceneTest;
 
-public class TestViewport(CameraActor camera) : Viewport(camera.GetCameraComponent())
+public class TestViewport : Viewport
 {
-    private readonly Actor _testActor = camera;
-    // private readonly Actor _testActor = camera.World?.AddActor(new Actor
-    // {
-    //     RootComponent = new StaticMeshComponent
-    //     {
-    //         MeshId = 0,
-    //         Scale = new Vector3(1, 1, 2),
-    //         Location = new Vector3(3, 15, 3),
-    //         Rotation = MathR.Forward.ToQuaternion()
-    //     }
-    // }) ?? throw new NullReferenceException();
+    private const float Speed = 50f;
+
+    private readonly World _world;
+    private readonly Entity _camera;
 
     private float _forwardAxis;
     private float _pitch;
     private float _rightAxis;
     private float _yaw;
 
+    public TestViewport(RenderFeature render, Entity camera) : base(render, camera)
+    {
+        _world = render.World;
+        _camera = camera;
+    }
+
     protected override void OnMouseDelta(Vector2 delta)
     {
         base.OnMouseDelta(delta);
-        var viewTarget = _testActor?.RootComponent;
-        if (viewTarget == null) return; //.ApplyYaw(delta.X).ApplyPitch(delta.Y)
-        _pitch += delta.Y;
+        _pitch = float.Clamp(_pitch + delta.Y, -90, 90);
         _yaw += delta.X;
-        _pitch = float.Clamp(_pitch, -90, 90);
-        viewTarget.SetRotation(MathR.Forward.ToQuaternion().AddYaw(_yaw).AddLocalPitch(_pitch));
+        _world.SetRotation(_camera, MathR.Forward.ToQuaternion().AddYaw(_yaw).AddLocalPitch(_pitch));
     }
 
     public override void Update(float deltaTime)
     {
         base.Update(deltaTime);
-        //_testActor.SetRotation(MathR.LookTowards(_testActor.GetLocation(),camera.GetLocation(),MathR.Up));
-        if (IsFocused)
-        {
-            var speed = 50.0f;
-            var transform = camera.GetTransform(Space.World);
-            transform.Position += transform.Orientation.GetForward() * _forwardAxis * deltaTime * speed;
-            transform.Position += transform.Orientation.GetRight() * _rightAxis * deltaTime * speed;
-            camera.SetTransform(transform, Space.World);
-        }
+        if (!IsFocused) return;
+
+        // The camera is a root entity, so its local transform is its world transform.
+        ref var transform = ref _world.Get<LocalTransform>(_camera);
+        var position = transform.Position;
+        position += transform.Rotation.GetForward() * _forwardAxis * deltaTime * Speed;
+        position += transform.Rotation.GetRight() * _rightAxis * deltaTime * Speed;
+        transform.Position = position;
     }
 
     public override void OnKeyboard(KeyboardSurfaceEvent e)
     {
         base.OnKeyboard(e);
-        if (e is { Key: InputKey.Space, State: InputState.Pressed })
+        if (e is not { State: InputState.Pressed or InputState.Released }) return;
+
+        var sign = e.State == InputState.Pressed ? 1f : -1f;
+        switch (e.Key)
         {
-            // var world = camera.GetTransform(Space.World);
-            // world.Rotation = MathR.LookTowards(world.Location, new Vector3(8, 15, 0), MathR.Up);
-            // camera.SetTransform(world, Space.World);
-        }
-
-        var moveSpeed = 1f;
-        if (e is
-            {
-                Key: InputKey.W or InputKey.A or InputKey.S or InputKey.D,
-                State: InputState.Pressed or InputState.Released
-            })
-        {
-            if (e is { Key: InputKey.W })
-                _forwardAxis += e.State switch
-                {
-                    InputState.Pressed => +moveSpeed,
-                    InputState.Released => -moveSpeed
-                };
-
-            if (e is { Key: InputKey.S })
-                _forwardAxis += e.State switch
-                {
-                    InputState.Pressed => -moveSpeed,
-                    InputState.Released => +moveSpeed
-                };
-
-            if (e is { Key: InputKey.D })
-                _rightAxis += e.State switch
-                {
-                    InputState.Pressed => +moveSpeed,
-                    InputState.Released => -moveSpeed
-                };
-
-            if (e is { Key: InputKey.A })
-                _rightAxis += e.State switch
-                {
-                    InputState.Pressed => -moveSpeed,
-                    InputState.Released => +moveSpeed
-                };
+            case InputKey.W:
+                _forwardAxis += sign;
+                break;
+            case InputKey.S:
+                _forwardAxis -= sign;
+                break;
+            case InputKey.D:
+                _rightAxis += sign;
+                break;
+            case InputKey.A:
+                _rightAxis -= sign;
+                break;
         }
     }
 }

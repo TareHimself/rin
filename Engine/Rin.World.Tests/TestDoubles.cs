@@ -2,11 +2,10 @@
 using System.Numerics;
 using Rin.Core.Graphics;
 using Rin.Core.Shared;
+using Rin.Core.Shared.Buffers;
 using Rin.Core.Shared.Math;
-using Rin.World.Components;
 using Rin.World.Graphics;
 using Rin.World.Graphics.Mesh;
-using Rin.World.Math;
 using Rin.World.Mesh.Skinning;
 using Rin.World.Physics;
 
@@ -15,7 +14,9 @@ namespace Rin.World.Tests;
 internal sealed class FakeMesh : IMesh
 {
     public ulong GetVertexFormatSize() => throw new NotSupportedException();
-    public MeshSurface[] GetSurfaces() => [];
+    public MeshSurface[] Surfaces { get; init; } = [];
+
+    public MeshSurface[] GetSurfaces() => Surfaces;
     public MeshSurface GetSurface(int surfaceIndex) => throw new NotSupportedException();
     public DeviceBufferView GetVertices() => default;
     public DeviceBufferView GetVertices(int surfaceIndex) => default;
@@ -25,52 +26,42 @@ internal sealed class FakeMesh : IMesh
     public Bounds3D GetBounds() => default;
 }
 
-/// <summary>
-///     Mirrors <c>StaticMeshComponent</c>'s proxy push idiom without the <c>IMeshFactory</c> singleton.
-/// </summary>
-internal sealed class TestMeshComponent : WorldComponent
+internal sealed class FakeMeshMaterial : IMeshMaterial
 {
-    private static readonly IMesh Mesh = new FakeMesh();
+    public bool Translucent => false;
+    public IMaterialPass ColorPass => throw new NotSupportedException();
+    public IMaterialPass DepthPass => throw new NotSupportedException();
+}
 
-    private RenderProxyHandle _proxy = RenderProxyHandle.Invalid;
-    private uint _lastPushedVersion;
+internal sealed class FakeMeshFactory : IMeshFactory
+{
+    private readonly Dictionary<int, IMesh> _meshes = [];
 
-    public RenderProxyHandle Proxy => _proxy;
-
-    public override void Start()
+    public int Register(IMesh mesh)
     {
-        base.Start();
-        _proxy = Owner!.World!.RenderSystem.CreateStaticMeshProxy(new StaticMeshProxyDesc
-        {
-            Mesh = Mesh,
-            Transform = GetTransform(Space.World).ToMatrix(),
-            SurfaceIndices = [],
-            Materials = []
-        });
-        _lastPushedVersion = TransformVersion;
+        var id = _meshes.Count + 1;
+        _meshes.Add(id, mesh);
+        return id;
     }
 
-    public override void Stop()
-    {
-        if (_proxy.IsValid)
-        {
-            Owner!.World!.RenderSystem.DestroyProxy(_proxy);
-            _proxy = RenderProxyHandle.Invalid;
-        }
+    public IMesh? GetMesh(int meshId) => _meshes.GetValueOrDefault(meshId);
 
-        base.Stop();
+    public bool IsMeshReady(int meshId) => _meshes.ContainsKey(meshId);
+
+    public Task? GetPendingMesh(int meshId) => null;
+
+    public Task CreateMesh<TVertexFormat>(out int meshId, Buffer<TVertexFormat> vertices, Buffer<uint> indices,
+        MeshSurface[] surfaces) where TVertexFormat : unmanaged, IVertex => throw new NotSupportedException();
+
+    public Task CreateMesh(out int meshId, Buffer<Vertex> vertices, Buffer<uint> indices, MeshSurface[] surfaces) =>
+        throw new NotSupportedException();
+
+    public void FreeMeshes(params ReadOnlySpan<int> meshIds)
+    {
     }
 
-    public override void LateUpdate(float deltaSeconds)
+    public void Dispose()
     {
-        base.LateUpdate(deltaSeconds);
-        if (!_proxy.IsValid) return;
-        var worldTransform = GetTransform(Space.World);
-        if (TransformVersion != _lastPushedVersion)
-        {
-            Owner!.World!.RenderSystem.UpdateProxyTransform(_proxy, worldTransform.ToMatrix());
-            _lastPushedVersion = TransformVersion;
-        }
     }
 }
 
@@ -78,62 +69,15 @@ internal sealed class FakePoseSource : IPoseSource
 {
     public required Skeleton Skeleton { get; init; }
     public SkeletalPose Pose;
+    public int TickCount { get; private set; }
+    public float TickedSeconds { get; private set; }
 
     public SkeletalPose GetPose() => Pose;
-}
 
-/// <summary>
-///     Mirrors <c>SkinnedMeshComponent</c>'s proxy push idiom without the <c>IMeshFactory</c> singleton.
-/// </summary>
-internal sealed class TestSkinnedMeshComponent : WorldComponent
-{
-    private static readonly IMesh Mesh = new FakeMesh();
-    private static readonly Skeleton Skeleton = new([new Bone { Name = "root" }]);
-
-    private RenderProxyHandle _proxy = RenderProxyHandle.Invalid;
-    private uint _lastPushedVersion;
-
-    public IPoseSource? PoseSource { get; set; }
-    public RenderProxyHandle Proxy => _proxy;
-
-    public override void Start()
+    public void Tick(float deltaSeconds)
     {
-        base.Start();
-        _proxy = Owner!.World!.RenderSystem.CreateSkinnedMeshProxy(new SkinnedMeshProxyDesc
-        {
-            Skeleton = Skeleton,
-            Pose = PoseSource?.GetPose() ?? Skeleton.BasePose,
-            Mesh = Mesh,
-            Transform = GetTransform(Space.World).ToMatrix(),
-            SurfaceIndices = [],
-            Materials = []
-        });
-        _lastPushedVersion = TransformVersion;
-    }
-
-    public override void Stop()
-    {
-        if (_proxy.IsValid)
-        {
-            Owner!.World!.RenderSystem.DestroyProxy(_proxy);
-            _proxy = RenderProxyHandle.Invalid;
-        }
-
-        base.Stop();
-    }
-
-    public override void LateUpdate(float deltaSeconds)
-    {
-        base.LateUpdate(deltaSeconds);
-        if (!_proxy.IsValid) return;
-        var worldTransform = GetTransform(Space.World);
-        if (TransformVersion != _lastPushedVersion)
-        {
-            Owner!.World!.RenderSystem.UpdateProxyTransform(_proxy, worldTransform.ToMatrix());
-            _lastPushedVersion = TransformVersion;
-        }
-
-        if (PoseSource is { } poseSource) Owner!.World!.RenderSystem.UpdateSkinnedProxyPose(_proxy, poseSource.GetPose());
+        TickCount++;
+        TickedSeconds += deltaSeconds;
     }
 }
 
@@ -145,12 +89,34 @@ internal sealed class FakeRenderSystem : IRenderSystem
     public List<(RenderProxyHandle Handle, Matrix4x4 Transform)> PushedTransforms { get; } = [];
     public List<(RenderProxyHandle Handle, SkeletalPose Pose)> PushedPoses { get; } = [];
     public List<(RenderProxyHandle Handle, LightInfo Light)> PushedLights { get; } = [];
-    public int DestroyCount { get; private set; }
+    public List<(RenderProxyHandle Handle, StaticMeshProxyDesc Desc)> CreatedStaticMeshes { get; } = [];
+    public List<(RenderProxyHandle Handle, SkinnedMeshProxyDesc Desc)> CreatedSkinnedMeshes { get; } = [];
+    public List<(RenderProxyHandle Handle, LightInfo Light)> CreatedLights { get; } = [];
+    public List<RenderProxyHandle> Destroyed { get; } = [];
+    public int DestroyCount => Destroyed.Count;
+    public int LiveCount => _live.Count;
     public float LastInterpolationAlpha { get; private set; } = 1f;
 
-    public RenderProxyHandle CreateStaticMeshProxy(in StaticMeshProxyDesc desc) => Create();
-    public RenderProxyHandle CreateSkinnedMeshProxy(in SkinnedMeshProxyDesc desc) => Create();
-    public RenderProxyHandle CreateLightProxy(in LightInfo desc) => Create();
+    public RenderProxyHandle CreateStaticMeshProxy(in StaticMeshProxyDesc desc)
+    {
+        var handle = Create();
+        CreatedStaticMeshes.Add((handle, desc));
+        return handle;
+    }
+
+    public RenderProxyHandle CreateSkinnedMeshProxy(in SkinnedMeshProxyDesc desc)
+    {
+        var handle = Create();
+        CreatedSkinnedMeshes.Add((handle, desc));
+        return handle;
+    }
+
+    public RenderProxyHandle CreateLightProxy(in LightInfo desc)
+    {
+        var handle = Create();
+        CreatedLights.Add((handle, desc));
+        return handle;
+    }
 
     private RenderProxyHandle Create()
     {
@@ -177,18 +143,19 @@ internal sealed class FakeRenderSystem : IRenderSystem
 
     public void UpdateLightProxy(RenderProxyHandle handle, in LightInfo desc)
     {
+        if (!_live.Contains(handle)) throw new InvalidOperationException("Stale or unknown proxy handle");
         PushedLights.Add((handle, desc));
     }
 
     public void DestroyProxy(RenderProxyHandle handle)
     {
-        _live.Remove(handle);
-        DestroyCount++;
+        if (!_live.Remove(handle)) throw new InvalidOperationException("Stale or unknown proxy handle");
+        Destroyed.Add(handle);
     }
 
     public void SetInterpolationAlpha(float alpha) => LastInterpolationAlpha = alpha;
 
-    public IWorldCollectedData Snapshot(CameraComponent view, in Extent2D extent) => throw new NotSupportedException();
+    public IWorldCollectedData Snapshot(in CameraView view, in Extent2D extent) => throw new NotSupportedException();
     public void Dispose()
     {
     }
@@ -220,9 +187,11 @@ internal sealed class FakePhysicsSystem : IPhysicsSystem
     private readonly Dictionary<PhysicsBodyHandle, Body> _bodies = [];
 
     /// <summary>
-    ///     The most recently created body's handle — enough for the single-body tests here.
+    ///     The most recently created body's handle, enough for the single-body tests here.
     /// </summary>
     public PhysicsBodyHandle LastCreated { get; private set; }
+
+    public int BodyCount => _bodies.Count;
 
     /// <summary>
     ///     Stands in for a real physics step; tests call <see cref="SetPosition" /> etc. from here.
@@ -407,4 +376,32 @@ internal sealed class FakePhysicsSystem : IPhysicsSystem
     public void OverlapCapsule<THandler>(float radius, float halfHeight, in Vector3 center, in Quaternion orientation, ref THandler handler, int channel = -1)
         where THandler : struct, IPhysicsOverlapHandler =>
         OverlapSphere(radius + halfHeight, center, ref handler, channel);
+}
+
+internal record struct Health(int Value) : IComponentData;
+
+internal record struct Speed(float Value) : IComponentData;
+
+internal record struct Armor(int Value) : IComponentData;
+
+internal record struct Ammo(int Value) : IComponentData;
+
+internal struct Stunned : ITagData;
+
+internal static class TestCameras
+{
+    public static CameraView Identity => new(Matrix4x4.Identity, 90f, 0.01f, 50f);
+}
+
+internal static class TestSkeletons
+{
+    public const string SocketBone = "hand";
+
+    public static Skeleton WithSocket(Vector3 socketOffset)
+    {
+        var root = new Bone { Name = "root", LocalTransform = new Transform() };
+        var socket = new Bone { Name = SocketBone, Parent = root, LocalTransform = new Transform { Position = socketOffset } };
+        root.Children = [socket];
+        return new Skeleton([root, socket]);
+    }
 }

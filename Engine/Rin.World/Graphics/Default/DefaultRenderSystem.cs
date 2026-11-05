@@ -1,7 +1,6 @@
 using System.Collections.Concurrent;
 using System.Numerics;
 using Rin.Core.Graphics;
-using Rin.World.Components;
 using Rin.World.Mesh.Skinning;
 
 namespace Rin.World.Graphics.Default;
@@ -120,7 +119,7 @@ public class DefaultRenderSystem : IRenderSystem
         _commands.Enqueue(() => Free(handle));
     }
 
-    public IWorldCollectedData Snapshot(CameraComponent view, in Extent2D extent)
+    public IWorldCollectedData Snapshot(in CameraView view, in Extent2D extent)
     {
         var changed = false;
         while (_commands.TryDequeue(out var command))

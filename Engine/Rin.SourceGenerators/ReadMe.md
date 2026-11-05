@@ -1,10 +1,11 @@
 # Rin.SourceGenerators
 
-Roslyn incremental source generators, consumed by Rin.Core, Rin.World, Examples and the experiments as an analyzer (`OutputItemType="Analyzer"`, `ReferenceOutputAssembly="false"`). Not packable.
+Roslyn incremental source generators, consumed by Rin.Core, Rin.World, Rin.World.Tests, Rin.World.AotSmoke, Examples and the experiments as an analyzer (`OutputItemType="Analyzer"`, `ReferenceOutputAssembly="false"`). Not packable.
 
 | Generator | Triggers on |
 | --- | --- |
 | `AudioEffectGenerator` | Types marked `Rin.Core.Audio.Effects.AudioEffectAttribute` |
+| `ComponentRegistrationGenerator` | Structs implementing `Rin.World.IComponentData` or `Rin.World.ITagData`, directly or through another interface. Emits one `[ModuleInitializer]` per assembly that registers them with `Rin.World.ComponentRegistry`, and nothing for an assembly without any. Generic, private, protected, file-local and ref structs get warning `RIN00024` instead. |
 | `GraphicsShaderGenerator` | Properties marked with an attribute deriving from `Rin.Core.Graphics.Shaders.ShaderAttribute` |
 | `ProviderResolvedGenerator` | Properties marked `Rin.Core.Shared.Providers.ResolvedAttribute` |
 

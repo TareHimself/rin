@@ -73,9 +73,10 @@ How the pieces fit together is in [`ARCHITECTURE.md`](ARCHITECTURE.md). Conventi
 - [Rin.Graphics.Vulkan.Tests](Engine/Rin.Graphics.Vulkan.Tests/ReadMe.md): NUnit tests for the Vulkan backend's native boundary, against a fake of `Rin.Graphics.Vulkan.Native`.
 - [Rin.Graphics.Vulkan](Engine/Rin.Graphics.Vulkan/ReadMe.md): Vulkan backend for the `IGraphicsModule` interface from Rin.Core.
 - [Rin.SourceGenerators.Tests](Engine/Rin.SourceGenerators.Tests/ReadMe.md): xUnit tests for the generators in Rin.SourceGenerators.
-- [Rin.SourceGenerators](Engine/Rin.SourceGenerators/ReadMe.md): Roslyn incremental source generators, referenced as an analyzer by Rin.Core and Rin.World.
+- [Rin.SourceGenerators](Engine/Rin.SourceGenerators/ReadMe.md): Roslyn incremental source generators, referenced as an analyzer by Rin.Core, Rin.World and the projects that declare ECS components.
+- [Rin.World.AotSmoke](Engine/Rin.World.AotSmoke/ReadMe.md): A console app published with NativeAOT that checks the ECS runs without reflection.
 - [Rin.World.Tests](Engine/Rin.World.Tests/ReadMe.md): NUnit tests for Rin.World.
-- [Rin.World](Engine/Rin.World/ReadMe.md): The scene layer: actors, components, physics and the default render pipeline.
+- [Rin.World](Engine/Rin.World/ReadMe.md): The scene layer: an ECS world with render, physics and script features, and the default render pipeline.
 
 **Shade** ([overview](Shade/ReadMe.md))
 

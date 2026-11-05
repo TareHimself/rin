@@ -1,18 +1,8 @@
-﻿using System.Numerics;
-using Rin.GLTF;
-using Rin.World;
-using Rin.World.Actors;
-using Rin.World.Components;
-using Rin.World.Components.Lights;
-using Rin.World.Graphics.Default;
-using Rin.World.Graphics.Mesh;
-using Rin.World.Mesh;
-using Rin.World.Mesh.Skinning.Animation;
-using Rin.World.Physics;
-using Rin.World.Physics.Bepu;
+using System.Numerics;
 using Examples.Common;
 using Examples.Common.Views;
-using Examples.SceneTest.entities;
+using experiments.Docking.Model;
+using experiments.Docking.Views;
 using Rin.Core;
 using Rin.Core.Extensions;
 using Rin.Core.Graphics;
@@ -23,17 +13,34 @@ using Rin.Core.Views.Composite;
 using Rin.Core.Views.Content;
 using Rin.Core.Views.Events;
 using Rin.Core.Views.Layouts;
-using experiments.Docking.Model;
-using experiments.Docking.Views;
+using Rin.GLTF;
+using Rin.World;
+using Rin.World.Graphics;
+using Rin.World.Physics;
+using Rin.World.Scripting;
+using Rin.World.Transforms;
+using Rin.World.Graphics.Default;
+using Rin.World.Graphics.Mesh;
+using Rin.World.Mesh;
+using Rin.World.Mesh.Skinning.Animation;
+using Rin.World.Physics.Bepu;
+using Camera = Rin.World.Graphics.Camera;
+using StaticMesh = Rin.World.Graphics.StaticMesh;
 
 namespace Examples.SceneTest;
 
 public sealed class SceneTestExample : Example
 {
+    private const int BenchBoxCount = 2000;
+    private const int BenchGridSide = 25;
+    private const float BenchGridSpacing = 5f;
+    private const float BoxRainIntervalSeconds = 3f;
+
     private readonly Random _rng = new();
-    private StaticMesh? _cubeMesh;
-    private DefaultMeshMaterial? _material;
-    private World? _scene;
+    private int? _cubeMeshId;
+    private MaterialSet _boxMaterials;
+    private RenderFeature? _render;
+    private PhysicsFeature? _physics;
     private IMeshFactory? _meshFactory;
     private TextureCache _textures = null!;
 
@@ -43,212 +50,165 @@ public sealed class SceneTestExample : Example
 
     public override void Start(ExampleContext context)
     {
-        _meshFactory = Global.Provider.AddSingle<IMeshFactory>(new MeshFactory());
+        var meshFactory = _meshFactory = Global.Provider.AddSingle<IMeshFactory>(new MeshFactory());
         _textures = context.Application.Textures;
         var surf = context.Surface;
 
-        var scene = _scene = new World(new DefaultRenderSystem(), new BepuPhysicsSystem());
-        scene.Start();
+        var world = new World();
+        var render = _render = new RenderFeature(world, new DefaultRenderSystem(), meshFactory);
+        _physics = new PhysicsFeature(world, new BepuPhysicsSystem());
+        var scripts = new ScriptFeature(world);
 
         // A perspective camera looking down +Z at the play area, and a top-down camera.
-        var perspectiveCam = scene.AddActor<CameraActor>();
-        perspectiveCam.GetCameraComponent().SetLocation(new Vector3(0f, 10f, -40f));
+        var perspectiveCam = SpawnCamera(world, new Vector3(0f, 10f, -40f), Quaternion.Identity);
+        var topCam = SpawnCamera(world, new Vector3(0f, 80f, 20f), MathR.LookTowards(new Vector3(0f, -1f, 0f)));
 
-        var topCam = scene.AddActor<CameraActor>();
-        topCam.GetCameraComponent().SetLocation(new Vector3(0f, 80f, 20f));
-        topCam.GetCameraComponent().SetRotation(MathR.LookTowards(new Vector3(0f, -1f, 0f)));
+        SpawnBox(world, new Vector3(0f, -6f, 20f), new Vector3(200f, 1f, 200f), PhysicsState.Static, null);
 
-        // Static ground.
-        scene.AddActor(new Actor
+        GltfMeshImporter.LoadStaticMesh(Path.Join(Global.Directory, "assets", "models", "cube.glb")).DispatchMain(mesh =>
         {
-            RootComponent = new BoxPhysicsComponent
-            {
-                Size = new Vector3(200f, 1f, 200f),
-                Location = new Vector3(0f, -6f, 20f),
-                Scale = new Vector3(200f, 1f, 200f),
-                PhysicsState = PhysicsState.Static
-            }
-        });
+            if (_render != render || mesh is null) return;
+            _cubeMeshId = mesh.MeshId;
 
-        GltfMeshImporter.LoadStaticMesh(Path.Join(Global.Directory, "assets", "models", "cube.glb")).After(mesh =>
-        {
-            if (!context.IsActive) return;
-            _cubeMesh = mesh;
+            SpawnPointLight(world, new Vector3(0f, 35f, 20f));
+            SpawnPointLight(world, new Vector3(0f, -20f, 0f));
 
-            scene.AddPointLight(new Vector3(0f, 35f, 20f));
-            scene.AddPointLight(new Vector3(0f, -20f, 0f));
-
-            var directionalLight = scene.AddActor(new Actor
-            {
-                RootComponent = new DirectionalLightComponent
-                {
-                    Radiance = 10.0f,
-                    Location = new Vector3(0.0f, 200.0f, 0.0f)
-                }
-            });
-            directionalLight.SetRotation(
-                MathR.LookTowards(Vector3.Normalize(Vector3.Zero - directionalLight.GetLocation())));
+            var sun = world.Spawn();
+            var sunPosition = new Vector3(0.0f, 200.0f, 0.0f);
+            world.SetPosition(sun, sunPosition);
+            world.SetRotation(sun, MathR.LookTowards(Vector3.Normalize(Vector3.Zero - sunPosition)));
+            world.Add(sun, new DirectionalLight { Radiance = 10.0f });
 
             // Static visible obstacle the dynamic boxes pile against.
-            scene.AddActor(new Actor
+            SpawnBox(world, new Vector3(0f, -2.5f, 22f), new Vector3(10f, 5f, 10f), PhysicsState.Static, mesh.MeshId);
+
+            LoadGoldMaterial().DispatchMain(material =>
             {
-                RootComponent = new BoxPhysicsComponent
-                {
-                    Size = new Vector3(10f, 5f, 10f),
-                    Location = new Vector3(0f, -2.5f, 22f),
-                    Scale = new Vector3(10f, 5f, 10f),
-                    PhysicsState = PhysicsState.Static
-                },
-                InitialComponents = [new StaticMeshComponent { Mesh = mesh }]
+                if (_render != render) return;
+                _boxMaterials = render.Materials.Add(material);
+                SpawnBoxes(30);
+                scripts.Attach(world.Spawn(), new BoxRain(BoxRainIntervalSeconds, () => SpawnBoxes(1)));
+                LoadFoxes(render, material);
             });
-
-            context.OnUpdate(scene.Update);
-
-            LoadGoldMaterial().After(material =>
-            {
-                _material = material;
-                DropBoxes(30);
-            });
-
-            var foxPath = Path.Join(Global.Directory, "assets", "models", "fox.glb");
-            GltfMeshImporter.LoadSkinnedMesh(foxPath)
-                .After(skinned =>
-                {
-                    if (skinned is null) return;
-                    // The Khronos Fox sample is authored ~79 units tall - scale it down to match
-                    // the rest of the scene (boxes are 5-10 units).
-                    var clips = GltfAnimationImporter.LoadAnimationClips(foxPath);
-                    LoadGoldMaterial().After(material =>
-                        IApplication.Get().MainDispatcher.Enqueue(() =>
-                        {
-                            if (!context.IsActive) return;
-                            foreach (var (x, clipName) in new[] { (-30f, "Survey"), (0f, "Walk"), (30f, "Run") })
-                            {
-                                var graph = new AnimationGraph(skinned.Skeleton);
-                                if (clips.TryGetValue(clipName, out var clip))
-                                    graph.Root = new ClipPlayerNode(clip.Bind(skinned.Skeleton)) { Loop = true };
-
-                                scene.AddActor(new Actor
-                                {
-                                    RootComponent = new SkinnedMeshComponent
-                                    {
-                                        Mesh = skinned,
-                                        Materials = [material],
-                                        PoseSource = graph,
-                                        Location = new Vector3(x, -5f, 55f),
-                                        Scale = new Vector3(0.05f)
-                                    }
-                                });
-                            }
-                        }));
-                });
         });
 
         context.OnKey(e =>
         {
-            if (e is { Key: InputKey.P, State: InputState.Pressed }) DropBoxGrid(BenchBoxCount);
+            if (e is { Key: InputKey.P, State: InputState.Pressed })
+                IApplication.Get().MainDispatcher.Enqueue(() => SpawnBoxGrid(BenchBoxCount));
         });
 
-        context.Add(BuildDockLayout(perspectiveCam, topCam, scene));
+        context.OnUpdate(world.Update);
+        context.Add(BuildDockLayout(render, perspectiveCam, topCam));
         context.Add(RenderGraphOverlay.GraphOverlay.Create(surf));
     }
 
     public override void Stop()
     {
-        _scene?.Stop();
-        _scene = null;
-        _cubeMesh = null;
-        _material = null;
+        _physics?.PhysicsSystem.Destroy();
+        _physics = null;
+        _render?.RenderSystem.Dispose();
+        _render = null;
+        _cubeMeshId = null;
+        _boxMaterials = default;
         _meshFactory?.Dispose();
         _meshFactory = null;
     }
 
-    /// <summary>Spawn <paramref name="count" /> dynamic cubes above the play area to fall and collide.</summary>
-    private void DropBoxes(int count)
+    private static Entity SpawnCamera(World world, Vector3 position, Quaternion rotation)
     {
-        // Actors must be added on the main thread — AddActor runs Start() (creates the physics body)
-        // and scene.Update walks the actors concurrently. This may be called from a task continuation.
-        IApplication.Get().MainDispatcher.Enqueue(() => SpawnBoxes(count));
+        var camera = world.Spawn();
+        world.SetPosition(camera, position);
+        world.SetRotation(camera, rotation);
+        world.Add(camera, new Camera());
+
+        var light = world.Spawn();
+        world.SetPosition(light, Vector3.Zero);
+        world.SetParent(light, camera);
+        world.Add(light, new PointLight { Radiance = 200.0f });
+        return camera;
     }
 
-    private const int BenchBoxCount = 2000;
-    private const int BenchGridSide = 25;
-    private const float BenchGridSpacing = 5f;
-
-    private void DropBoxGrid(int count)
+    private static void SpawnPointLight(World world, Vector3 position)
     {
-        IApplication.Get().MainDispatcher.Enqueue(() => SpawnBoxGrid(count));
+        var light = world.Spawn();
+        world.SetPosition(light, position);
+        world.Add(light, new PointLight { Radiance = 800.0f });
+    }
+
+    // The physics system multiplies the box size by the entity scale, as the old SceneTest did with the same values.
+    private void SpawnBox(World world, Vector3 position, Vector3 size, PhysicsState state, int? meshId)
+    {
+        var box = world.Spawn();
+        world.SetLocalTransform(box, new LocalTransform { Position = position, Scale = size });
+        world.Add(box, new RigidBody { Shape = ColliderShape.Box(size), State = state });
+        if (meshId is { } id) world.Add(box, new StaticMesh { MeshId = id, Materials = _boxMaterials });
+    }
+
+    private void SpawnBoxes(int count)
+    {
+        if (_render?.World is not { } world || _cubeMeshId is not { } meshId) return;
+
+        for (var i = 0; i < count; i++)
+        {
+            var position = new Vector3(
+                (float)(_rng.NextDouble() * 10.0 - 5.0),
+                26f + i * 3f,
+                22f + (float)(_rng.NextDouble() * 10.0 - 5.0));
+            SpawnBox(world, position, new Vector3(2f), PhysicsState.Simulated, meshId);
+        }
     }
 
     // Fixed layout so every bench run starts from the same scene.
     private void SpawnBoxGrid(int count)
     {
-        if (_scene is not { } scene || _cubeMesh is not { } mesh) return;
+        if (_render?.World is not { } world || _cubeMeshId is not { } meshId) return;
 
         const float halfExtent = (BenchGridSide - 1) * BenchGridSpacing * 0.5f;
         for (var i = 0; i < count; i++)
         {
             var layer = i / (BenchGridSide * BenchGridSide);
             var cell = i % (BenchGridSide * BenchGridSide);
-            var pos = new Vector3(
+            var position = new Vector3(
                 cell % BenchGridSide * BenchGridSpacing - halfExtent,
                 26f + layer * BenchGridSpacing,
                 22f + cell / BenchGridSide * BenchGridSpacing - halfExtent);
-
-            scene.AddActor(new Actor
-            {
-                RootComponent = new BoxPhysicsComponent
-                {
-                    Size = new Vector3(2f),
-                    Location = pos,
-                    Scale = new Vector3(2f),
-                    PhysicsState = PhysicsState.Simulated
-                },
-                InitialComponents =
-                [
-                    new StaticMeshComponent
-                    {
-                        Mesh = mesh,
-                        Materials = _material is { } m ? [m] : []
-                    }
-                ]
-            });
+            SpawnBox(world, position, new Vector3(2f), PhysicsState.Simulated, meshId);
         }
     }
 
-    private void SpawnBoxes(int count)
+    // The Khronos Fox sample is authored about 79 units tall, so it is scaled down to the size of the boxes.
+    private void LoadFoxes(RenderFeature render, DefaultMeshMaterial material)
     {
-        if (_scene is not { } scene || _cubeMesh is not { } mesh) return;
-
-        for (var i = 0; i < count; i++)
+        var foxPath = Path.Join(Global.Directory, "assets", "models", "fox.glb");
+        GltfMeshImporter.LoadSkinnedMesh(foxPath).DispatchMain(skinned =>
         {
-            var pos = new Vector3(
-                (float)(_rng.NextDouble() * 10.0 - 5.0),
-                26f + i * 3f,
-                22f + (float)(_rng.NextDouble() * 10.0 - 5.0));
+            if (_render != render || skinned is null) return;
+            if (!IMeshFactory.Get().IsMeshReady(skinned.MeshId)) return;
 
-            scene.AddActor(new Actor
+            var world = render.World;
+            var materials = render.Materials.Add(material);
+            var clips = GltfAnimationImporter.LoadAnimationClips(foxPath);
+            foreach (var (x, clipName) in new[] { (-30f, "Survey"), (0f, "Walk"), (30f, "Run") })
             {
-                RootComponent = new BoxPhysicsComponent
+                var graph = new AnimationGraph(skinned.Skeleton);
+                if (clips.TryGetValue(clipName, out var clip))
+                    graph.Root = new ClipPlayerNode(clip.Bind(skinned.Skeleton)) { Loop = true };
+
+                var fox = world.Spawn();
+                world.SetPosition(fox, new Vector3(x, -5f, 55f));
+                world.SetScale(fox, new Vector3(0.05f));
+                world.Add(fox, new SkinnedMesh
                 {
-                    Size = new Vector3(2f),
-                    Location = pos,
-                    Scale = new Vector3(2f),
-                    PhysicsState = PhysicsState.Simulated
-                },
-                InitialComponents =
-                [
-                    new StaticMeshComponent
-                    {
-                        Mesh = mesh,
-                        Materials = _material is { } m ? [m] : []
-                    }
-                ]
-            });
-        }
+                    MeshId = skinned.MeshId,
+                    Materials = materials,
+                    PoseSource = render.PoseSources.Add(graph)
+                });
+            }
+        });
     }
 
-    private static DockSpaceView BuildDockLayout(CameraActor perspectiveCam, CameraActor topCam, World scene)
+    private static DockSpaceView BuildDockLayout(RenderFeature render, Entity perspectiveCam, Entity topCam)
     {
         DockPanel Panel(string id, string title, IView content, Color? bg = null)
         {
@@ -261,8 +221,8 @@ public sealed class SceneTestExample : Example
         }
 
         var viewports = new DockSplitNode(DockOrientation.Vertical,
-            new DockTabGroupNode(new DockPanel("perspective", "Perspective", new TestViewport(perspectiveCam))),
-            new DockTabGroupNode(new DockPanel("top", "Top", new TestViewport(topCam))));
+            new DockTabGroupNode(new DockPanel("perspective", "Perspective", new TestViewport(render, perspectiveCam))),
+            new DockTabGroupNode(new DockPanel("top", "Top", new TestViewport(render, topCam))));
 
         var stats = new DockTabGroupNode(Panel("stats", "Stats", new FpsView(),
             Color.FromRgb(0.10f, 0.10f, 0.12f)));
@@ -275,12 +235,12 @@ public sealed class SceneTestExample : Example
                     {
                         Child = new TextBoxView
                         {
-                            Content = "RMB drag  — look\nWASD      — move\nLMB       — cycle view channel\nP         — drop 2000 boxes",
+                            Content = "RMB drag: look\nWASD: move\nLMB: cycle view channel\nP: drop 2000 boxes",
                             FontSize = 14f,
                             WrapContent = true
                         }
                     },
-                    new FlexBoxSlot { Child = BuildTimeScaleControl(scene), Flex = 1, Fit = CrossFit.Fill }
+                    new FlexBoxSlot { Child = BuildTimeScaleControl(render.World), Flex = 1, Fit = CrossFit.Fill }
                 ]
             }));
         var side = new DockSplitNode(DockOrientation.Vertical, stats, controls);

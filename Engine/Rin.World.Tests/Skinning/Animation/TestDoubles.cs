@@ -1,5 +1,4 @@
 using Rin.Core.Shared.Math;
-using Rin.World.Components;
 using Rin.World.Mesh.Skinning;
 using Rin.World.Mesh.Skinning.Animation;
 
@@ -34,15 +33,17 @@ internal sealed class RecordingNotify(string name) : IAnimationNotify
     public string Name => name;
     public int ResetCount { get; private set; }
     public int NotifyCount { get; private set; }
+    public Entity LastEntity { get; private set; }
 
     public void Reset()
     {
         ResetCount++;
     }
 
-    public void Notify(SkinnedMeshComponent meshComponent, AnimationGraph graph)
+    public void Notify(World world, Entity entity, AnimationGraph graph)
     {
         NotifyCount++;
+        LastEntity = entity;
     }
 }
 
@@ -75,12 +76,12 @@ internal sealed class RecordingNotifyState(string name) : IAnimationNotifyState
         ResetCount++;
     }
 
-    public void NotifyBegin(SkinnedMeshComponent meshComponent, AnimationGraph graph)
+    public void NotifyBegin(World world, Entity entity, AnimationGraph graph)
     {
         BeginCount++;
     }
 
-    public void NotifyEnd(SkinnedMeshComponent meshComponent, AnimationGraph graph)
+    public void NotifyEnd(World world, Entity entity, AnimationGraph graph)
     {
         EndCount++;
     }
