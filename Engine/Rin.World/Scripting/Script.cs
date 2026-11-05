@@ -39,7 +39,8 @@ public abstract class Script
     }
 
     /// <summary>
-    ///     Called once when detached or despawned, after the script's tasks were cancelled.
+    ///     Called once when detached or despawned, after the script's tasks were cancelled and, unless one was running,
+    ///     ran their <c>finally</c> blocks.
     /// </summary>
     protected internal virtual void Stop()
     {

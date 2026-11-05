@@ -84,7 +84,8 @@ public readonly struct GameTaskAwaiter : ICriticalNotifyCompletion
     }
 
     /// <summary>
-    ///     False for a cancelled task too, so the awaiting method suspends and is cancelled instead of resuming.
+    ///     False for a cancelled task too, so the awaiting method suspends and stays cancelled once resumed with the
+    ///     exception.
     /// </summary>
     public bool IsCompleted => _node is null || _node.IsCompleted(_version);
 
@@ -117,7 +118,8 @@ public readonly struct GameTaskAwaiter<T> : ICriticalNotifyCompletion
     }
 
     /// <summary>
-    ///     False for a cancelled task too, so the awaiting method suspends and is cancelled instead of resuming.
+    ///     False for a cancelled task too, so the awaiting method suspends and stays cancelled once resumed with the
+    ///     exception.
     /// </summary>
     public bool IsCompleted => _node is null || _node.IsCompleted(_version);
 

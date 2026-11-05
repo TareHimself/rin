@@ -94,9 +94,11 @@ public class ScriptFeatureTests
 
         Tick(1);
         _world.Despawn(entity);
+        Assert.That(_log, Is.EqualTo(new[] { "waited@0", "finally Despawned alive=True", "stop" }),
+            "a script's tasks unwind inside the despawn, before the entity is deleted");
         Tick(5);
 
-        Assert.That(_log, Is.EqualTo(new[] { "waited@0", "stop" }));
+        Assert.That(_log, Has.Count.EqualTo(3));
         Assert.That(_scripts.Tasks.RunningCount, Is.Zero);
     }
 
@@ -114,7 +116,7 @@ public class ScriptFeatureTests
         _scripts.Detach(entity);
         Tick(3);
 
-        Assert.That(_log, Is.EqualTo(new[] { "stop", "entity task" }));
+        Assert.That(_log, Is.EqualTo(new[] { "finally Detached alive=True", "stop", "entity task" }));
     }
 
     [Test]
@@ -167,10 +169,17 @@ public class ScriptFeatureTests
 
         private async GameTask Wait(TaskContext ctx)
         {
-            await ctx.NextTick();
-            log.Add($"waited@{World.TickIndex}");
-            await ctx.Ticks(2);
-            log.Add("never");
+            try
+            {
+                await ctx.NextTick();
+                log.Add($"waited@{World.TickIndex}");
+                await ctx.Ticks(2);
+                log.Add("never");
+            }
+            finally
+            {
+                log.Add($"finally {ctx.CancelReason} alive={World.IsAlive(ctx.Owner)}");
+            }
         }
     }
 

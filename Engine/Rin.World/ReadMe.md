@@ -62,8 +62,8 @@ For one-off behaviour that is not worth a system. `new ScriptFeature(world)` add
 | --- | --- |
 | `Script` | A managed class attached with `scripts.Attach(entity, script)`, which adds a `ScriptRef` component (a slot in the feature) and calls `Start` right away. `Tick(in TickContext)` runs every tick in attach order, from the first Gameplay phase after the attach. Removing `ScriptRef` (`Detach`) or despawning the entity cancels the script's tasks, then calls `Stop`. One script per entity. Exposes `Entity`, `World` and `Tasks`. |
 | `GameTask`, `GameTask<T>` | `async` return types with their own method builders. The method runs synchronously until its first suspension, which rents a pooled node for the state machine. Awaiting anything else (a `Task`, for one) faults the task, so nothing runs on the thread pool. A `GameTask` can be awaited once. |
-| `TaskContext` | `Ticks(n)` resumes in the n-th Tasks phase from now (awaited in Gameplay, `NextTick()` resumes in the same tick), `Seconds(s)` is `Ticks` rounded up from `TickInterval`, `Until(condition)` is checked once per Tasks phase, `Event<T>(entity)` takes the first `T` raised with `Raise(entity, value)` after the wait, `WhenAny(a, b)` returns the winner's index and cancels the loser, `WhenAll(a, b)` waits for both. `Run(body)` starts another task. |
-| `GameTaskScheduler` | Resumes due waits only in the Tasks phase, in the order they were queued. Every wait has an owner entity (the script's entity for `Script.Tasks`) and one whose owner is gone is cancelled instead of resumed. `Cancel(owner)` and `CancelAll()` cancel by hand. |
+| `TaskContext` | `Ticks(n)` resumes in the n-th Tasks phase from now (awaited in Gameplay, `NextTick()` resumes in the same tick), `Seconds(s)` is `Ticks` rounded up from `TickInterval`, `Until(condition)` is checked once per Tasks phase, `Event<T>(entity)` takes the first `T` raised with `Raise(entity, value)` after the wait, `WhenAny(a, b)` returns the winner's index and cancels the loser, `WhenAll(a, b)` waits for both. `Run(body)` starts another task. `IsCancelled` and `CancelReason` tell a cancelled task's `catch` and `finally` blocks why. |
+| `GameTaskScheduler` | Resumes due waits only in the Tasks phase, in the order they were queued. Every task has an owner entity (the script's entity for `Script.Tasks`) and one whose owner is gone is cancelled instead of resumed. `Cancel(owner)` and `CancelAll()` cancel by hand. |
 
 ```mermaid
 flowchart LR
@@ -79,11 +79,18 @@ flowchart LR
 
 | Situation | What happens |
 | --- | --- |
-| Cancel (owner despawned, script stopped, `WhenAny` loser, `CancelAll`) | The task stops silently: the awaiting method is never resumed, so its `catch` and `finally` blocks do not run. A task awaiting a cancelled task is cancelled too. |
+| Cancel | The pending `await` throws `GameTaskCanceledException` (an `OperationCanceledException`) with a `CancelReason`, so `catch`, `finally` and `using` run, and it passes up through every awaiting task. A cancelled task stays cancelled: each later `await` throws again without waiting, and a method that catches it and returns still ends cancelled. A cancel is never reported as a fault, but another exception thrown while unwinding is. Tasks unwind in the order they were started. |
 | A task throws | The exception is rethrown at the `await` in the awaiting task. One that escapes a task started with `Run` is reported at the end of the Tasks phase to `GameTaskScheduler.TaskFaulted` with the owner, or rethrown from `Update` when nothing subscribed. The other tasks of the phase still resume. |
-| `ScriptFeature.Restore()` | Cancels every task, then calls `Script.Restore` on each script in attach order. Script fields and task locals are never saved, so anything that must survive lives in components and `Restore` restarts the tasks from it. A snapshot restore calls it, see [Determinism and snapshots](#determinism-and-snapshots). |
+| `ScriptFeature.Restore()` | Cancels every task with `Restored`, then calls `Script.Restore` on each script in attach order. Script fields and task locals are never saved, so anything that must survive lives in components and `Restore` restarts the tasks from it. A snapshot restore calls it, see [Determinism and snapshots](#determinism-and-snapshots). |
 
-At steady state awaiting does not allocate: wait nodes, combinators and state machine nodes come from per-thread pools. The first suspension of a method type allocates its pooled node once, and in a Debug build the compiler allocates every async method's state machine as a class (about 80 bytes per call).
+| `CancelReason` | When the task unwinds |
+| --- | --- |
+| `Cancelled`: `Cancel(owner)`, `CancelAll()`, a `WhenAny` loser, the other half of a faulted `WhenAll` | Right away |
+| `Despawned`: the owner was despawned | A script's tasks right away inside the despawn, while the entity still exists. Other tasks in the next Tasks phase (or later in the current one), when `World.IsAlive(ctx.Owner)` is already false |
+| `Detached`: the script was detached | Right away, before `Stop` |
+| `Restored`: a snapshot restore | In `BeforeRestore`, so `finally` blocks still see the old state. Structural changes and `Run` throw there, and their `Commands` are dropped, so nothing leaks into the restored world |
+
+At steady state awaiting does not allocate: wait nodes, combinators and state machine nodes come from per-thread pools. The first suspension of a method type allocates its pooled node once, and in a Debug build the compiler allocates every async method's state machine as a class (about 80 bytes per call). A cancel allocates a new exception for each `await` it throws from.
 
 ## Rendering
 
@@ -201,7 +208,7 @@ flowchart TD
     E --> A["AfterRestore listeners, in registration order:<br/>recreate proxies and bodies, rebind scripts, ScriptFeature.Restore()"]
 ```
 
-Restore fires no `OnAdd` or `OnRemove` hooks. Because entities return to their archetypes in the saved order, queries see them in the same order as at save time.
+Restore fires no `OnAdd` or `OnRemove` hooks, and a structural change made from `BeforeRestore` throws. Because entities return to their archetypes in the saved order, queries see them in the same order as at save time.
 
 Scripts are managed objects and are not saved. After a restore:
 

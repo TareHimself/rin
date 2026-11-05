@@ -18,6 +18,7 @@ internal sealed partial class EcsStore
     private readonly ComponentHooks?[] _hooks = new ComponentHooks?[EntityStore.GetEntitySchema().Components.Length];
     private readonly List<Entity> _despawning = [];
     private readonly List<int> _walk = [];
+    private Entity _firingDespawnHooks;
 
     public int EntityCount => _store.Count;
 
@@ -29,6 +30,8 @@ internal sealed partial class EcsStore
     }
 
     public bool IsAlive(Entity entity) => _ids.IsAlive(entity);
+
+    public bool IsDespawning(Entity entity) => entity.IsValid && entity == _firingDespawnHooks;
 
     public void Despawn(Entity entity)
     {
@@ -43,7 +46,7 @@ internal sealed partial class EcsStore
         {
             var doomed = _despawning[i];
             if (!IsAlive(doomed)) continue;
-            FireRemovedHooks(_store.GetEntityById(doomed.Id), doomed);
+            FireDespawnHooks(doomed);
             if (!IsAlive(doomed)) continue;
             _store.GetEntityById(doomed.Id).DeleteEntity();
             _ids.Free(doomed.Id);
@@ -172,6 +175,20 @@ internal sealed partial class EcsStore
     }
 
     private Entity HandleOf(FrifloEntity entity) => entity.IsNull ? default : _ids.HandleOf(entity.Id);
+
+    private void FireDespawnHooks(Entity doomed)
+    {
+        var outer = _firingDespawnHooks;
+        _firingDespawnHooks = doomed;
+        try
+        {
+            FireRemovedHooks(_store.GetEntityById(doomed.Id), doomed);
+        }
+        finally
+        {
+            _firingDespawnHooks = outer;
+        }
+    }
 
     private static InvalidOperationException MissingComponent<T>(Entity entity) =>
         new($"{entity} has no {typeof(T).Name}.");

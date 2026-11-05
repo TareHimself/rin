@@ -17,6 +17,7 @@ public sealed class World
     private readonly List<IWorldRestoreListener> _restoreListeners = [];
     private float _accumulator;
     private bool _updating;
+    private bool _restoring;
 
     public World()
     {
@@ -54,6 +55,12 @@ public sealed class World
     public float InterpolationAlpha { get; private set; }
 
     public int EntityCount => _store.EntityCount;
+
+    /// <summary>
+    ///     True while the <see cref="IWorldRestoreListener.BeforeRestore" /> listeners run, when structural changes throw
+    ///     because the restore is about to replace every entity.
+    /// </summary>
+    internal bool IsRestoring => _restoring;
 
     /// <summary>
     ///     The simulation's random numbers, saved in every snapshot. Seed it before the first tick.
@@ -101,7 +108,8 @@ public sealed class World
     /// <summary>
     ///     Replaces the simulation state with <paramref name="snapshot" />, between updates. Pending
     ///     <see cref="Commands" /> are dropped, no hooks fire, and every <see cref="IWorldRestoreListener" /> rebuilds what
-    ///     lives outside the store.
+    ///     lives outside the store. Structural changes made from <see cref="IWorldRestoreListener.BeforeRestore" />, for
+    ///     one by the <c>finally</c> block of a cancelled task, throw.
     /// </summary>
     public void RestoreSnapshot(WorldSnapshot snapshot)
     {
@@ -110,7 +118,15 @@ public sealed class World
         if (snapshot.IsEmpty || reader.Read<int>() != SnapshotFormat)
             throw new ArgumentException("The snapshot is empty or was not saved by a World.", nameof(snapshot));
 
-        for (var i = 0; i < _restoreListeners.Count; i++) _restoreListeners[i].BeforeRestore();
+        _restoring = true;
+        try
+        {
+            for (var i = 0; i < _restoreListeners.Count; i++) _restoreListeners[i].BeforeRestore();
+        }
+        finally
+        {
+            _restoring = false;
+        }
 
         Commands.Clear();
         TickIndex = reader.Read<long>();
@@ -142,12 +158,20 @@ public sealed class World
         Commands.Playback();
     }
 
-    public Entity Spawn() => _store.Spawn();
+    public Entity Spawn()
+    {
+        EnsureNotRestoring();
+        return _store.Spawn();
+    }
 
     /// <summary>
     ///     Despawns the entity and all of its descendants. Does nothing for an entity that is not alive.
     /// </summary>
-    public void Despawn(Entity entity) => _store.Despawn(entity);
+    public void Despawn(Entity entity)
+    {
+        EnsureNotRestoring();
+        _store.Despawn(entity);
+    }
 
     public bool IsAlive(Entity entity) => _store.IsAlive(entity);
 
@@ -158,29 +182,47 @@ public sealed class World
     /// <summary>
     ///     Adds the component, or overwrites it when present. <see cref="OnAdd{T}" /> hooks fire only for a new component.
     /// </summary>
-    public void Add<T>(Entity entity, in T component) where T : struct, IComponentData => _store.Add(entity, component);
+    public void Add<T>(Entity entity, in T component) where T : struct, IComponentData
+    {
+        EnsureNotRestoring();
+        _store.Add(entity, component);
+    }
 
     /// <summary>
     ///     Overwrites a component the entity already has.
     /// </summary>
     public void Set<T>(Entity entity, in T component) where T : struct, IComponentData => _store.Set(entity, component);
 
-    public bool Remove<T>(Entity entity) where T : struct, IComponentData => _store.Remove<T>(entity);
+    public bool Remove<T>(Entity entity) where T : struct, IComponentData
+    {
+        EnsureNotRestoring();
+        return _store.Remove<T>(entity);
+    }
 
     public bool HasTag<T>(Entity entity) where T : struct, ITagData => _store.HasTag<T>(entity);
 
-    public void AddTag<T>(Entity entity) where T : struct, ITagData => _store.AddTag<T>(entity);
+    public void AddTag<T>(Entity entity) where T : struct, ITagData
+    {
+        EnsureNotRestoring();
+        _store.AddTag<T>(entity);
+    }
 
-    public void RemoveTag<T>(Entity entity) where T : struct, ITagData => _store.RemoveTag<T>(entity);
+    public void RemoveTag<T>(Entity entity) where T : struct, ITagData
+    {
+        EnsureNotRestoring();
+        _store.RemoveTag<T>(entity);
+    }
 
     public void SetParent(Entity child, Entity parent)
     {
+        EnsureNotRestoring();
         _store.SetParent(child, parent);
         MarkTransformDirty(child);
     }
 
     public void ClearParent(Entity child)
     {
+        EnsureNotRestoring();
         _store.ClearParent(child);
         MarkTransformDirty(child);
     }
@@ -226,6 +268,17 @@ public sealed class World
         _schedule.RunTick(new TickContext(this, TickIndex, TickInterval));
         Commands.Playback();
         TickIndex++;
+    }
+
+    /// <summary>
+    ///     Whether <paramref name="entity" /> is the one whose remove hooks are firing because it is being despawned.
+    /// </summary>
+    internal bool IsDespawning(Entity entity) => _store.IsDespawning(entity);
+
+    // Hooks of such a change would create subsystem handles for entities the restore then deletes.
+    private void EnsureNotRestoring()
+    {
+        if (_restoring) throw new InvalidOperationException("Entities cannot change structurally before a snapshot restore.");
     }
 
     private void MarkTransformDirty(Entity entity)

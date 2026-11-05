@@ -3,79 +3,121 @@ using System.Runtime.CompilerServices;
 namespace Rin.World.Tasks;
 
 /// <summary>
-///     The node of an <c>async GameTask</c> method, completed by its builder.
+///     The node of an <c>async GameTask</c> method, completed by its builder. Once cancelled it ends cancelled, even
+///     when the method catches the <see cref="GameTaskCanceledException" /> and returns.
 /// </summary>
 internal abstract class AsyncNode<TResult> : TaskNode<TResult>
 {
     public void SetResult(TResult result)
     {
+        if (CancelReason is { } reason)
+        {
+            CompleteCancelled(reason);
+            return;
+        }
+
         Result = result;
         Succeed();
     }
 
-    public void SetException(Exception exception) => Fail(exception);
+    public void SetException(Exception exception)
+    {
+        if (exception is GameTaskCanceledException cancelled) CompleteCancelled(CancelReason ?? cancelled.Reason);
+        else Fail(exception);
+    }
 }
 
 /// <summary>
 ///     Holds a suspended state machine, rented on its first suspension and resumed when the awaited node completes.
 /// </summary>
+/// <remarks>
+///     A cancelled method is resumed with the exception at its pending <c>await</c>, and every later <c>await</c>
+///     cancels what it awaits so it throws right away. Those resumes happen inside <see cref="Resume" />, which loops
+///     instead of recursing so a method that keeps catching does not grow the stack.
+/// </remarks>
 internal sealed class StateMachineNode<TStateMachine, TResult> : AsyncNode<TResult>
     where TStateMachine : IAsyncStateMachine
 {
     private TaskNode? _awaited;
+    private bool _running;
+    private bool _resumeAgain;
 
     public TStateMachine StateMachine = default!;
 
     public override void AwaitDependency(TaskNode dependency)
     {
-        if (dependency.Status == TaskNodeStatus.Cancelled)
+        dependency.EnsureNotAwaited();
+        _awaited = dependency;
+        if (dependency.Status != TaskNodeStatus.Pending)
         {
-            dependency.Release();
-            Cancel();
+            OnDependencyCompleted(dependency);
             return;
         }
 
-        dependency.EnsureNotAwaited();
-        _awaited = dependency;
         dependency.Parent = this;
+        if (CancelReason is { } reason) dependency.Cancel(reason);
     }
 
     public override void OnDependencyCompleted(TaskNode dependency)
     {
         _awaited = null;
-        if (dependency.Status == TaskNodeStatus.Cancelled)
-        {
-            dependency.Release();
-            Cancel();
-            return;
-        }
-
-        StateMachine.MoveNext();
+        if (dependency.Status == TaskNodeStatus.Cancelled) MarkCancelled(dependency.CancelReason!.Value);
+        Resume();
     }
 
-    protected override void CancelDependencies()
-    {
-        var awaited = _awaited;
-        _awaited = null;
-        Drop(awaited);
-    }
+    protected override void OnCancelRequested(CancelReason reason) => _awaited?.Cancel(reason);
 
     protected override void ResetState()
     {
         base.ResetState();
         StateMachine = default!;
         _awaited = null;
+        _running = false;
+        _resumeAgain = false;
     }
 
     protected override void ReturnToPool() => NodePool<StateMachineNode<TStateMachine, TResult>>.Return(this);
+
+    private void Resume()
+    {
+        if (_running)
+        {
+            _resumeAgain = true;
+            return;
+        }
+
+        // Completing releases the node back to the pool, which bumps the version; it must not be touched after that.
+        var version = Version;
+        _running = true;
+        do
+        {
+            _resumeAgain = false;
+            var outer = CancellationScope.Enter(CancelReason);
+            try
+            {
+                StateMachine.MoveNext();
+            }
+            finally
+            {
+                CancellationScope.Exit(outer);
+            }
+        } while (Version == version && _resumeAgain);
+
+        if (Version == version) _running = false;
+    }
 }
 
 /// <summary>
-///     Carries an exception thrown before an <c>async GameTask</c> method first suspended.
+///     Carries an exception thrown before an <c>async GameTask</c> method first suspended: cancelled for a
+///     <see cref="GameTaskCanceledException" />, faulted for any other.
 /// </summary>
-internal sealed class FaultedNode<TResult> : TaskNode<TResult>
+internal sealed class ThrownNode<TResult> : TaskNode<TResult>
 {
-    public FaultedNode(Exception exception) => Fail(exception);
+    public ThrownNode(Exception exception)
+    {
+        if (exception is GameTaskCanceledException cancelled) CompleteCancelled(cancelled.Reason);
+        else Fail(exception);
+    }
 
     protected override void ReturnToPool()
     {
@@ -118,7 +160,7 @@ internal static class GameTaskBuilderCore
 
     public static void SetException<TResult>(ref TaskNode? node, Exception exception)
     {
-        if (node is null) node = new FaultedNode<TResult>(exception);
+        if (node is null) node = new ThrownNode<TResult>(exception);
         else ((AsyncNode<TResult>)node).SetException(exception);
     }
 

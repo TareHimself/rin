@@ -215,6 +215,69 @@ public class TaskContextTests
         Assert.That(_log, Is.Empty);
     }
 
+    [Test]
+    public void WhenAnyUnwindsTheLoserWithCancelled()
+    {
+        var door = _world.Spawn();
+        _tasks.Run(default, async ctx => await ctx.WhenAny(Unwinding(ctx, "loser"), ctx.Event<Knock>(door)));
+
+        _tasks.Raise(door, new Knock(1));
+        Tick(1);
+
+        Assert.That(_log, Is.EqualTo(new[] { "loser Cancelled@0" }));
+    }
+
+    [Test]
+    public void WhenAllAndWhenAnyCancelTheirChildrenWithTheTasksReason()
+    {
+        var owner = _world.Spawn();
+        _tasks.Run(owner, async ctx =>
+        {
+            await ctx.WhenAll(Unwinding(ctx, "a"), ctx.WhenAny(Unwinding(ctx, "b"), Unwinding(ctx, "c")));
+        });
+
+        _world.Despawn(owner);
+        Tick(1);
+
+        Assert.That(_log, Is.EqualTo(new[] { "a Despawned@0", "b Despawned@0", "c Despawned@0" }));
+        Assert.That(_tasks.RunningCount, Is.Zero);
+    }
+
+    [Test]
+    public void IsCancelledIsFalseOutsideACancellation()
+    {
+        var states = new List<string>();
+        _tasks.Run(default, async ctx =>
+        {
+            try
+            {
+                states.Add($"{ctx.IsCancelled} {ctx.CancelReason}");
+                await ctx.NextTick();
+                states.Add($"{ctx.IsCancelled} {ctx.CancelReason}");
+            }
+            finally
+            {
+                states.Add($"{ctx.IsCancelled} {ctx.CancelReason}");
+            }
+        });
+
+        Tick(1);
+
+        Assert.That(states, Is.EqualTo(new[] { "False ", "False ", "False " }));
+    }
+
+    private async GameTask Unwinding(TaskContext ctx, string name)
+    {
+        try
+        {
+            await ctx.Ticks(5);
+        }
+        finally
+        {
+            Log($"{name} {ctx.CancelReason}");
+        }
+    }
+
     private async GameTask LoggedWait(TaskContext ctx, int ticks, string name)
     {
         await ctx.Ticks(ticks);

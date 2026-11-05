@@ -17,7 +17,8 @@ internal enum TaskNodeStatus : byte
 /// </summary>
 /// <remarks>
 ///     Completion flows up to <see cref="Parent" />, the node awaiting this one. Cancellation flows down to the nodes
-///     this one awaits and then up like a completion, but an awaiting state machine is never resumed by it.
+///     this one awaits and then up like a completion, resuming each awaiting state machine with a
+///     <see cref="GameTaskCanceledException" />.
 /// </remarks>
 internal abstract class TaskNode
 {
@@ -27,6 +28,11 @@ internal abstract class TaskNode
     public short Version { get; private set; }
 
     public TaskNodeStatus Status { get; private set; }
+
+    /// <summary>
+    ///     Set once a cancel reaches this node, before it completes. A state machine keeps running after it to unwind.
+    /// </summary>
+    public CancelReason? CancelReason { get; private set; }
 
     public TaskNode? Parent { get; set; }
 
@@ -83,6 +89,10 @@ internal abstract class TaskNode
                 Release();
                 error.Throw();
                 return;
+            case TaskNodeStatus.Cancelled:
+                var reason = CancelReason!.Value;
+                Release();
+                throw new GameTaskCanceledException(reason);
             default:
                 throw new InvalidOperationException("This GameTask has not completed.");
         }
@@ -95,18 +105,21 @@ internal abstract class TaskNode
         return error;
     }
 
-    public void Cancel()
+    /// <summary>
+    ///     Cancels a pending node. Every node but a running state machine completes before this returns.
+    /// </summary>
+    public void Cancel(CancelReason reason)
     {
-        if (Status != TaskNodeStatus.Pending) return;
-        Status = TaskNodeStatus.Cancelled;
-        CancelDependencies();
-        NotifyCompleted();
+        if (Status != TaskNodeStatus.Pending || CancelReason is not null) return;
+        CancelReason = reason;
+        OnCancelRequested(reason);
     }
 
     public void Release()
     {
         Version++;
         Status = TaskNodeStatus.Pending;
+        CancelReason = null;
         _error = null;
         _rootScheduler = null;
         Parent = null;
@@ -151,12 +164,22 @@ internal abstract class TaskNode
 
     protected void Fail(Exception exception) => Fail(ExceptionDispatchInfo.Capture(exception));
 
-    /// <summary>
-    ///     Detaches and cancels whatever this node awaits.
-    /// </summary>
-    protected virtual void CancelDependencies()
+    protected void CompleteCancelled(CancelReason reason)
     {
+        CancelReason = reason;
+        Status = TaskNodeStatus.Cancelled;
+        NotifyCompleted();
     }
+
+    /// <summary>
+    ///     Marks a pending node as cancelled without completing it, for a state machine whose dependency was cancelled.
+    /// </summary>
+    protected void MarkCancelled(CancelReason reason) => CancelReason ??= reason;
+
+    /// <summary>
+    ///     Completes the node as cancelled. Nodes that await others cancel them first.
+    /// </summary>
+    protected virtual void OnCancelRequested(CancelReason reason) => CompleteCancelled(reason);
 
     protected virtual void ResetState()
     {
@@ -167,12 +190,20 @@ internal abstract class TaskNode
     /// <summary>
     ///     Cancels and releases a dependency this node no longer waits for.
     /// </summary>
-    protected static void Drop(TaskNode? dependency)
+    /// <returns>
+    ///     The exception its <c>finally</c> blocks threw while it unwound, if any.
+    /// </returns>
+    protected static ExceptionDispatchInfo? Drop(TaskNode? dependency, CancelReason reason)
     {
-        if (dependency is null) return;
+        if (dependency is null) return null;
         dependency.Parent = null;
-        dependency.Cancel();
+        dependency.Cancel(reason);
+        // A state machine that is running right now finishes unwinding on its own, as an orphan.
+        if (dependency.Status == TaskNodeStatus.Pending) return null;
+
+        var error = dependency.Status == TaskNodeStatus.Faulted ? dependency.TakeError() : null;
         dependency.Release();
+        return error;
     }
 
     private void NotifyCompleted()

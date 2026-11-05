@@ -1,3 +1,5 @@
+using System.Runtime.ExceptionServices;
+
 namespace Rin.World.Tasks;
 
 internal sealed class TickWait : TaskNode
@@ -90,7 +92,8 @@ internal sealed class EventWait<T> : TaskNode<T> where T : unmanaged
 }
 
 /// <summary>
-///     Completes with the index of the first dependency to complete and cancels the other.
+///     Completes with the index of the first dependency to complete and cancels the other. A fault, from the winner or
+///     from the loser unwinding, wins over a result or a cancel.
 /// </summary>
 internal sealed class WhenAnyNode : TaskNode<int>
 {
@@ -114,13 +117,14 @@ internal sealed class WhenAnyNode : TaskNode<int>
         Settle(dependency, other, index);
     }
 
-    protected override void CancelDependencies()
+    protected override void OnCancelRequested(CancelReason reason)
     {
         var first = _first;
         var second = _second;
         _first = _second = null;
-        Drop(first);
-        Drop(second);
+        var firstError = Drop(first, reason);
+        var secondError = Drop(second, reason);
+        CompleteDropped(firstError ?? secondError, reason);
     }
 
     protected override void ResetState()
@@ -143,33 +147,43 @@ internal sealed class WhenAnyNode : TaskNode<int>
 
     private void Settle(TaskNode? winner, TaskNode? loser, int index)
     {
-        Drop(loser);
+        var winnerReason = winner?.CancelReason ?? Tasks.CancelReason.Cancelled;
+        var loserError = Drop(loser, winnerReason);
         switch (winner?.Status)
         {
-            case null:
-                Result = index;
-                Succeed();
-                break;
-            case TaskNodeStatus.Succeeded:
-                winner.Release();
-                Result = index;
-                Succeed();
-                break;
             case TaskNodeStatus.Faulted:
                 var error = winner.TakeError();
                 winner.Release();
                 Fail(error);
                 break;
-            default:
+            case TaskNodeStatus.Cancelled:
                 winner.Release();
-                Cancel();
+                CompleteDropped(loserError, winnerReason);
+                break;
+            default:
+                winner?.Release();
+                if (loserError is not null)
+                {
+                    Fail(loserError);
+                    break;
+                }
+
+                Result = index;
+                Succeed();
                 break;
         }
+    }
+
+    private void CompleteDropped(ExceptionDispatchInfo? error, CancelReason reason)
+    {
+        if (error is not null) Fail(error);
+        else CompleteCancelled(reason);
     }
 }
 
 /// <summary>
-///     Completes when both dependencies succeed. A fault or a cancellation of either cancels the other and passes on.
+///     Completes when both dependencies succeed. A fault or a cancellation of either cancels the other and passes on;
+///     a fault, from either side, wins over a cancel.
 /// </summary>
 internal sealed class WhenAllNode : TaskNode
 {
@@ -204,27 +218,28 @@ internal sealed class WhenAllNode : TaskNode
 
         var other = isFirst ? _second : _first;
         _first = _second = null;
-        Drop(other);
         if (dependency.Status == TaskNodeStatus.Faulted)
         {
             var error = dependency.TakeError();
             dependency.Release();
+            Drop(other, Tasks.CancelReason.Cancelled);
             Fail(error);
+            return;
         }
-        else
-        {
-            dependency.Release();
-            Cancel();
-        }
+
+        var reason = dependency.CancelReason!.Value;
+        dependency.Release();
+        CompleteDropped(Drop(other, reason), reason);
     }
 
-    protected override void CancelDependencies()
+    protected override void OnCancelRequested(CancelReason reason)
     {
         var first = _first;
         var second = _second;
         _first = _second = null;
-        Drop(first);
-        Drop(second);
+        var firstError = Drop(first, reason);
+        var secondError = Drop(second, reason);
+        CompleteDropped(firstError ?? secondError, reason);
     }
 
     protected override void ResetState()
@@ -247,5 +262,11 @@ internal sealed class WhenAllNode : TaskNode
         if (dependency is null || Status != TaskNodeStatus.Pending) return;
         if (dependency != _first && dependency != _second) return;
         if (dependency.Status != TaskNodeStatus.Pending) OnDependencyCompleted(dependency);
+    }
+
+    private void CompleteDropped(ExceptionDispatchInfo? error, CancelReason reason)
+    {
+        if (error is not null) Fail(error);
+        else CompleteCancelled(reason);
     }
 }

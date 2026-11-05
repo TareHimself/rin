@@ -37,7 +37,7 @@ public class ScriptFeatureRestoreTests
         Assert.That(_scripts.GetScript(entity), Is.SameAs(script));
         Assert.That(_scripts.Tasks.RunningCount, Is.EqualTo(1));
         Assert.That(_world.Get<Health>(entity).Value, Is.EqualTo(5));
-        Assert.That(_log, Is.EqualTo(new[] { "start", "restore" }));
+        Assert.That(_log, Is.EqualTo(new[] { "start", "finally Restored", "restore" }));
     }
 
     [Test]
@@ -55,7 +55,7 @@ public class ScriptFeatureRestoreTests
         Assert.That(script.IsAttached, Is.False);
         Assert.That(_scripts.Count, Is.Zero);
         Assert.That(_scripts.Tasks.RunningCount, Is.Zero);
-        Assert.That(_log, Is.EqualTo(new[] { "start", "stop" }));
+        Assert.That(_log, Is.EqualTo(new[] { "start", "finally Restored", "stop" }));
     }
 
     [Test]
@@ -71,7 +71,7 @@ public class ScriptFeatureRestoreTests
 
         Assert.That(script.IsAttached, Is.False);
         Assert.That(_world.Has<ScriptRef>(entity), Is.False);
-        Assert.That(_log, Is.EqualTo(new[] { "start", "stop" }));
+        Assert.That(_log, Is.EqualTo(new[] { "start", "finally Restored", "stop" }));
     }
 
     [Test]
@@ -133,10 +133,17 @@ public class ScriptFeatureRestoreTests
 
         private async GameTask Count(TaskContext ctx)
         {
-            while (true)
+            try
             {
-                await ctx.NextTick();
-                if (World.Has<Health>(Entity)) World.Get<Health>(Entity).Value++;
+                while (true)
+                {
+                    await ctx.NextTick();
+                    if (World.Has<Health>(Entity)) World.Get<Health>(Entity).Value++;
+                }
+            }
+            finally
+            {
+                log.Add($"finally {ctx.CancelReason}");
             }
         }
     }

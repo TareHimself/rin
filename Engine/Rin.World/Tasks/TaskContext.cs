@@ -17,9 +17,23 @@ public readonly struct TaskContext
 
     public GameTaskScheduler Scheduler => field ?? throw new InvalidOperationException("This TaskContext has no scheduler.");
 
+    /// <summary>
+    ///     In the <c>finally</c> of a task cancelled with <see cref="Tasks.CancelReason.Despawned" />, it may already be
+    ///     gone: <see cref="World.IsAlive" /> is false for it unless a script's task is unwinding inside the despawn.
+    /// </summary>
     public Entity Owner { get; }
 
     internal Script? Script { get; }
+
+    /// <summary>
+    ///     True in the <c>catch</c> and <c>finally</c> blocks of a cancelled task, and in the code it runs from them.
+    /// </summary>
+    public bool IsCancelled => CancellationScope.Current is not null;
+
+    /// <summary>
+    ///     Why the running task was cancelled, or <c>null</c> when it was not. See <see cref="IsCancelled" />.
+    /// </summary>
+    public CancelReason? CancelReason => CancellationScope.Current;
 
     /// <summary>
     ///     Starts another task with the same owner. See <see cref="GameTaskScheduler.Run" />.
@@ -54,8 +68,8 @@ public readonly struct TaskContext
     public GameTask<T> Event<T>(Entity target) where T : unmanaged => Scheduler.Enqueue(EventWait<T>.Rent(target), this);
 
     /// <summary>
-    ///     Completes with 0 or 1, the index of the first task to complete, and cancels the other one. If that task
-    ///     faulted or was cancelled, so is this one.
+    ///     Completes with 0 or 1, the index of the first task to complete, and cancels the other one with
+    ///     <see cref="Tasks.CancelReason.Cancelled" />. If that task faulted or was cancelled, so is this one.
     /// </summary>
     public GameTask<int> WhenAny(GameTask first, GameTask second) =>
         new(WhenAnyNode.Start(first.TakeNode(), second.TakeNode()));

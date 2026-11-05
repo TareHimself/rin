@@ -46,12 +46,16 @@ public sealed class ScriptFeature : IWorldRestoreListener
         if (script.IsAttached) throw new InvalidOperationException($"{script.GetType().Name} is already attached.");
         if (World.Has<ScriptRef>(entity)) throw new InvalidOperationException($"{entity} already has a script.");
 
-        var slot = _freeSlots.Count > 0 ? _freeSlots.Pop() : AddSlot();
+        // Added first, so a throwing Add leaves the feature untouched.
+        var slot = _freeSlots.TryPeek(out var free) ? free : _slots.Count;
+        World.Add(entity, new ScriptRef(slot));
+        if (slot == _slots.Count) _slots.Add(null);
+        else _freeSlots.Pop();
+
         _slots[slot] = script;
         _attachOrder.Add(script);
         Count++;
         script.Bind(this, entity);
-        World.Add(entity, new ScriptRef(slot));
         script.Start();
     }
 
@@ -64,12 +68,12 @@ public sealed class ScriptFeature : IWorldRestoreListener
         World.Has<ScriptRef>(entity) && World.Get<ScriptRef>(entity) is { IsBound: true } scriptRef ? _slots[scriptRef.Slot] : null;
 
     /// <summary>
-    ///     The entry point for a snapshot restore: cancels every task, then calls <see cref="Script.Restore" /> on each
-    ///     script in attach order.
+    ///     The entry point for a snapshot restore: cancels every task with <see cref="CancelReason.Restored" />, then
+    ///     calls <see cref="Script.Restore" /> on each script in attach order.
     /// </summary>
     public void Restore()
     {
-        Tasks.CancelAll();
+        Tasks.CancelAll(CancelReason.Restored);
         var count = _attachOrder.Count;
         for (var i = 0; i < count; i++) _attachOrder[i]?.Restore();
     }
@@ -93,7 +97,7 @@ public sealed class ScriptFeature : IWorldRestoreListener
             if (_slots[slot] is not { } script) continue;
             var entity = script.Entity;
             if (World.IsAlive(entity) && World.Has<ScriptRef>(entity)) World.Get<ScriptRef>(entity) = new ScriptRef(slot);
-            else Release(script, slot);
+            else Release(script, slot, CancelReason.Restored);
         }
 
         foreach (var (scriptRefs, entities) in _scriptRefs)
@@ -111,25 +115,21 @@ public sealed class ScriptFeature : IWorldRestoreListener
         if (_attachOrder.Count != Count) _attachOrder.RemoveAll(static script => script is null);
     }
 
-    private int AddSlot()
-    {
-        _slots.Add(null);
-        return _slots.Count - 1;
-    }
-
     private void OnScriptRefRemoved(Entity entity, ref ScriptRef scriptRef)
     {
-        if (scriptRef.IsBound) Release(_slots[scriptRef.Slot]!, scriptRef.Slot);
+        if (!scriptRef.IsBound) return;
+        var reason = World.IsDespawning(entity) ? CancelReason.Despawned : CancelReason.Detached;
+        Release(_slots[scriptRef.Slot]!, scriptRef.Slot, reason);
     }
 
-    private void Release(Script script, int slot)
+    private void Release(Script script, int slot, CancelReason reason)
     {
         _slots[slot] = null;
         _freeSlots.Push(slot);
         _attachOrder[_attachOrder.IndexOf(script)] = null;
         Count--;
 
-        Tasks.Cancel(script);
+        Tasks.Cancel(script, reason);
         script.Stop();
         script.Unbind();
     }
