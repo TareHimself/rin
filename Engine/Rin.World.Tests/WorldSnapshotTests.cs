@@ -194,7 +194,7 @@ public class WorldSnapshotTests
         return children;
     }
 
-    private struct Named : IComponentData
+    internal struct Named : IComponentData
     {
         public string Name;
     }

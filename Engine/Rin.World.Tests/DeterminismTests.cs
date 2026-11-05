@@ -117,9 +117,9 @@ public class DeterminismTests
         public void Dispose() => _bepu?.Destroy();
     }
 
-    private struct Wanderer : ITagData;
+    internal struct Wanderer : ITagData;
 
-    private struct DirectorState : IComponentData
+    internal struct DirectorState : IComponentData
     {
         public long NextTick;
         public int Fired;

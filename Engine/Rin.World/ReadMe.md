@@ -23,6 +23,17 @@ flowchart LR
 
 The ECS runs on [Friflo.Engine.ECS](https://github.com/friflo/Friflo.Engine.ECS), but only `Ecs/` may reference Friflo: `BannedSymbols.txt` bans the namespace and `.editorconfig` turns the ban into a build error everywhere else in this project. Gameplay code sees only Rin types, all in `Rin.World` and its subsystem namespaces (`Transforms`, `Scheduling`, `Graphics`, `Physics`, `Animation`, `Scripting`, `Tasks`).
 
+### Component registration and NativeAOT
+
+Friflo builds its component schema by scanning every loaded assembly with reflection, which NativeAOT cannot do. Instead, the `ComponentRegistrationGenerator` in [Rin.SourceGenerators](../Rin.SourceGenerators/ReadMe.md) emits a module initializer in every assembly that declares components, and it registers each component and tag struct with `ComponentRegistry`. When dynamic code is not supported (a NativeAOT build, or a JIT run of a `PublishAot` project, whose runtimeconfig turns it off), the first `World` builds Friflo's schema from that list. Otherwise Friflo keeps its reflection scan.
+
+| Situation | What happens |
+| --- | --- |
+| A project declares components | It references Rin.SourceGenerators as an analyzer (`OutputItemType="Analyzer"`, `ReferenceOutputAssembly="false"`), like Rin.World and Rin.World.Tests. |
+| A generic, private, protected or file-local component | Warning `RIN00024` and no registration. Make it internal, or call `ComponentRegistry.RegisterComponent<T>()` for each closed type before the first `World`. |
+| A new type registered after the first `World`, without dynamic code | Throws, because the schema is fixed. NativeAOT runs every module initializer at startup, but a JIT run of a `PublishAot` project runs one only when its assembly loads. With dynamic code a late registration is only recorded. |
+| A missing registration | `ComponentRegistryTests` fails under JIT: it checks every component and tag in Friflo's scanned schema. [Rin.World.AotSmoke](../Rin.World.AotSmoke/ReadMe.md) runs a world in a real NativeAOT build. |
+
 ## Entities
 
 | Piece | What it is |
@@ -262,4 +273,4 @@ Meshes are batched by index buffer plus material, so each batch is one `DrawInde
 
 `Sponza`, `AssetViewer` and `SceneTest` build a `World` with a `RenderFeature` (`SceneTest` adds a `PhysicsFeature` on `BepuPhysicsSystem`) and give a camera entity a `Viewport`. The `headless` example runs a `World` with only a `PhysicsFeature`.
 
-References: Rin.Core, Rin.Shade (plus its source generator), Rin.SourceGenerators. Packages: BepuPhysics, Friflo.Engine.ECS, Microsoft.CodeAnalysis.BannedApiAnalyzers (build only). Referenced by Rin.GLTF, Examples and Rin.World.Tests.
+References: Rin.Core, Rin.Shade (plus its source generator), Rin.SourceGenerators. Packages: BepuPhysics, Friflo.Engine.ECS, Microsoft.CodeAnalysis.BannedApiAnalyzers (build only). Referenced by Rin.GLTF, Examples, Rin.World.Tests and Rin.World.AotSmoke.

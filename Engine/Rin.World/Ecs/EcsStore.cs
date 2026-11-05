@@ -20,6 +20,8 @@ internal sealed partial class EcsStore
     private readonly List<int> _walk = [];
     private Entity _firingDespawnHooks;
 
+    static EcsStore() => ComponentRegistry.EnsureSchema();
+
     public int EntityCount => _store.Count;
 
     public Entity Spawn()
