@@ -6,29 +6,55 @@ on:
   pull_request:
 
 jobs:
+  # Which test jobs a pull request touches, from .github/test-paths.yml. Jobs still start and report (the ruleset
+  # requires their checks), but skip their steps when none of their paths changed. Pushes to main run everything.
+  changes:
+    name: Detect changes
+    runs-on: ubuntu-latest
+    outputs:
+      filters: ${{ steps.filter.outputs.changes }}
+    steps:
+      - uses: actions/checkout@v7
+      - id: filter
+        uses: dorny/paths-filter@v3
+        with:
+          filters: .github/test-paths.yml
+
   # Builds the real Rin.Slang.Native (a prebuilt Slang release plus a small C++ wrapper, nothing from
   # Slang's own source) and publishes a NuGet feed with it, for the jobs that need real Slang.
   build-native-slang:
     name: Build native Slang
+    needs: changes
     runs-on: windows-latest
+    env:
+      RUN: ${{ github.event_name == 'push' || contains(fromJSON(needs.changes.outputs.filters), 'real-slang') }}
     steps:
+      - name: Skip, no Slang-related paths changed
+        if: env.RUN != 'true'
+        run: echo "Skipped"
       - uses: actions/checkout@v7
+        if: env.RUN == 'true'
       - uses: ./.github/actions/setup
+        if: env.RUN == 'true'
 
       - name: Pack native stub packages
+        if: env.RUN == 'true'
         run: uv run python scripts/pack_native_stubs.py .feed
 
       # No cache for silo's store yet: without a lock file nothing pins what it resolves, so a cached store
       # could hide a changed dependency. Every run builds Slang from scratch for now.
       - name: Detect the compiler
+        if: env.RUN == 'true'
         run: uv run silo profile detect --force
 
       # The real package gets a higher version than the stub (1.0.0) so the floating 1.* reference resolves to
       # it. The same version would be treated as already installed by the shared NuGet package cache.
       - name: Build and pack the real Rin.Slang.Native into the feed
+        if: env.RUN == 'true'
         run: uv run python scripts/pack_native.py Rin.Slang.Native --version 1.0.1
 
       - uses: actions/upload-artifact@v4
+        if: env.RUN == 'true'
         with:
           name: native-feed
           path: .feed
@@ -39,45 +65,58 @@ jobs:
   # native code). Real shader compilation is skipped: it needs the real Slang, see test-real-slang.
   test:
     name: Test ${{ matrix.name }}
+    needs: changes
     runs-on: windows-latest
+    env:
+      RUN: ${{ github.event_name == 'push' || contains(fromJSON(needs.changes.outputs.filters), matrix.filter) }}
     strategy:
       fail-fast: false
       matrix:
         include:
-          - { name: Rin.Core.Tests, project: Engine/Rin.Core.Tests/Rin.Core.Tests.csproj, fakes: false, args: '-p:RinShadeSkipCompile=true' }
-          - { name: Rin.World.Tests, project: Engine/Rin.World.Tests/Rin.World.Tests.csproj, fakes: false, args: '-p:RinShadeSkipCompile=true' }
-          - { name: Rin.SourceGenerators.Tests, project: Engine/Rin.SourceGenerators.Tests/Rin.SourceGenerators.Tests.csproj, fakes: false, args: '-p:RinShadeSkipCompile=true' }
-          - { name: Rin.Slang.Tests, project: Slang/Rin.Slang.Tests/Rin.Slang.Tests.csproj, fakes: false, args: '-p:RinShadeSkipCompile=true' }
-          - { name: Rin.GLTF.Tests, project: Engine/Rin.GLTF.Tests/Rin.GLTF.Tests.csproj, fakes: false, args: '-p:RinShadeSkipCompile=true' }
-          - { name: Rin.Audio.Miniaudio.Tests, project: Engine/Rin.Audio.Miniaudio.Tests/Rin.Audio.Miniaudio.Tests.csproj, fakes: false, args: '-p:RinShadeSkipCompile=true' }
-          - { name: Rin.Slang.Compiler.Tests, project: Slang/Rin.Slang.Compiler.Tests/Rin.Slang.Compiler.Tests.csproj, fakes: true, args: '-p:RinShadeSkipCompile=true' }
-          - { name: Rin.Graphics.Vulkan.Tests, project: Engine/Rin.Graphics.Vulkan.Tests/Rin.Graphics.Vulkan.Tests.csproj, fakes: true, args: '-p:RinShadeSkipCompile=true' }
-          - { name: Rin.Shade.Tests, project: Shade/Rin.Shade.Tests/Rin.Shade.Tests.csproj, fakes: false, args: '' }
+          - { name: Rin.Core.Tests, filter: core-tests, project: Engine/Rin.Core.Tests/Rin.Core.Tests.csproj, fakes: false, args: '-p:RinShadeSkipCompile=true' }
+          - { name: Rin.World.Tests, filter: world-tests, project: Engine/Rin.World.Tests/Rin.World.Tests.csproj, fakes: false, args: '-p:RinShadeSkipCompile=true' }
+          - { name: Rin.SourceGenerators.Tests, filter: source-generators-tests, project: Engine/Rin.SourceGenerators.Tests/Rin.SourceGenerators.Tests.csproj, fakes: false, args: '-p:RinShadeSkipCompile=true' }
+          - { name: Rin.Slang.Tests, filter: slang-tests, project: Slang/Rin.Slang.Tests/Rin.Slang.Tests.csproj, fakes: false, args: '-p:RinShadeSkipCompile=true' }
+          - { name: Rin.GLTF.Tests, filter: gltf-tests, project: Engine/Rin.GLTF.Tests/Rin.GLTF.Tests.csproj, fakes: false, args: '-p:RinShadeSkipCompile=true' }
+          - { name: Rin.Audio.Miniaudio.Tests, filter: audio-tests, project: Engine/Rin.Audio.Miniaudio.Tests/Rin.Audio.Miniaudio.Tests.csproj, fakes: false, args: '-p:RinShadeSkipCompile=true' }
+          - { name: Rin.Slang.Compiler.Tests, filter: slang-compiler-tests, project: Slang/Rin.Slang.Compiler.Tests/Rin.Slang.Compiler.Tests.csproj, fakes: true, args: '-p:RinShadeSkipCompile=true' }
+          - { name: Rin.Graphics.Vulkan.Tests, filter: vulkan-tests, project: Engine/Rin.Graphics.Vulkan.Tests/Rin.Graphics.Vulkan.Tests.csproj, fakes: true, args: '-p:RinShadeSkipCompile=true' }
+          - { name: Rin.Shade.Tests, filter: shade-tests, project: Shade/Rin.Shade.Tests/Rin.Shade.Tests.csproj, fakes: false, args: '' }
     steps:
+      - name: Skip, none of this project's paths changed
+        if: env.RUN != 'true'
+        run: echo "Skipped"
       - uses: actions/checkout@v7
+        if: env.RUN == 'true'
       - uses: ./.github/actions/setup
+        if: env.RUN == 'true'
 
       - name: Pack native stub packages
+        if: env.RUN == 'true'
         run: uv run python scripts/pack_native_stubs.py .feed
 
       # RinShade.targets builds Rin.Shade.MSBuild on demand if it isn't already built, but never restores
       # it first, which fails with NETSDK1004 on a clean checkout. Restoring the whole solution once up
       # front avoids that.
       - name: Restore
+        if: env.RUN == 'true'
         run: dotnet restore rin.sln -p:RinShadeSkipCompile=true
 
       - name: Publish native fakes
-        if: matrix.fakes
+        if: env.RUN == 'true' && matrix.fakes
         run: uv run python scripts/publish_native_fakes.py win-x64
 
       - name: Test
+        if: env.RUN == 'true'
         run: dotnet test ${{ matrix.project }} ${{ matrix.args }} --no-restore --nologo --logger "console;verbosity=normal"
 
   # What the stub-based jobs cannot do: needs the real Slang from the build-native-slang job.
   test-real-slang:
     name: ${{ matrix.name }} (real Slang)
-    needs: build-native-slang
+    needs: [changes, build-native-slang]
     runs-on: windows-latest
+    env:
+      RUN: ${{ github.event_name == 'push' || contains(fromJSON(needs.changes.outputs.filters), 'real-slang') }}
     strategy:
       fail-fast: false
       matrix:
@@ -87,16 +126,24 @@ jobs:
           - name: Compile all shaders
             command: dotnet build Engine/Rin.World/Rin.World.csproj -c Release --no-restore --nologo
     steps:
+      - name: Skip, no Slang-related paths changed
+        if: env.RUN != 'true'
+        run: echo "Skipped"
       - uses: actions/checkout@v7
+        if: env.RUN == 'true'
       - uses: ./.github/actions/setup
+        if: env.RUN == 'true'
 
       - uses: actions/download-artifact@v4
+        if: env.RUN == 'true'
         with:
           name: native-feed
           path: .feed
 
       - name: Restore
+        if: env.RUN == 'true'
         run: dotnet restore rin.sln -p:RinShadeSkipCompile=true
 
       - name: Run
+        if: env.RUN == 'true'
         run: ${{ matrix.command }}
