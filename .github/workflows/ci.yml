@@ -6,19 +6,25 @@ on:
   pull_request:
 
 jobs:
-  # Which test jobs a pull request touches, from .github/test-paths.yml. Jobs still start and report (the ruleset
-  # requires their checks), but skip their steps when none of their paths changed. Pushes to main run everything.
+  # Which projects a pull request can affect, derived from the .csproj references (scripts/ci_affected_projects.py).
+  # Jobs still start and report (the ruleset requires their checks), but skip their steps when their project is not
+  # affected. A job-level if would report a skipped matrix job under an unexpanded name. Pushes to main run everything.
   changes:
     name: Detect changes
     runs-on: ubuntu-latest
     outputs:
-      filters: ${{ steps.filter.outputs.changes }}
+      projects: ${{ steps.affected.outputs.projects }}
     steps:
       - uses: actions/checkout@v7
-      - id: filter
-        uses: dorny/paths-filter@v3
         with:
-          filters: .github/test-paths.yml
+          fetch-depth: 0
+      - id: affected
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            echo "projects=$(python3 scripts/ci_affected_projects.py origin/${{ github.base_ref }})" >> "$GITHUB_OUTPUT"
+          else
+            echo "projects=[]" >> "$GITHUB_OUTPUT"
+          fi
 
   # Builds the real Rin.Slang.Native (a prebuilt Slang release plus a small C++ wrapper, nothing from
   # Slang's own source) and publishes a NuGet feed with it, for the jobs that need real Slang.
@@ -27,9 +33,9 @@ jobs:
     needs: changes
     runs-on: windows-latest
     env:
-      RUN: ${{ github.event_name == 'push' || contains(fromJSON(needs.changes.outputs.filters), 'real-slang') }}
+      RUN: ${{ github.event_name == 'push' || contains(fromJSON(needs.changes.outputs.projects), 'Shade/Rin.Shade.CpuTests/Rin.Shade.CpuTests.csproj') || contains(fromJSON(needs.changes.outputs.projects), 'Engine/Rin.World/Rin.World.csproj') }}
     steps:
-      - name: Skip, no Slang-related paths changed
+      - name: Skip, no real-Slang project affected
         if: env.RUN != 'true'
         run: echo "Skipped"
       - uses: actions/checkout@v7
@@ -68,22 +74,22 @@ jobs:
     needs: changes
     runs-on: windows-latest
     env:
-      RUN: ${{ github.event_name == 'push' || contains(fromJSON(needs.changes.outputs.filters), matrix.filter) }}
+      RUN: ${{ github.event_name == 'push' || contains(fromJSON(needs.changes.outputs.projects), matrix.project) }}
     strategy:
       fail-fast: false
       matrix:
         include:
-          - { name: Rin.Core.Tests, filter: core-tests, project: Engine/Rin.Core.Tests/Rin.Core.Tests.csproj, fakes: false, args: '-p:RinShadeSkipCompile=true' }
-          - { name: Rin.World.Tests, filter: world-tests, project: Engine/Rin.World.Tests/Rin.World.Tests.csproj, fakes: false, args: '-p:RinShadeSkipCompile=true' }
-          - { name: Rin.SourceGenerators.Tests, filter: source-generators-tests, project: Engine/Rin.SourceGenerators.Tests/Rin.SourceGenerators.Tests.csproj, fakes: false, args: '-p:RinShadeSkipCompile=true' }
-          - { name: Rin.Slang.Tests, filter: slang-tests, project: Slang/Rin.Slang.Tests/Rin.Slang.Tests.csproj, fakes: false, args: '-p:RinShadeSkipCompile=true' }
-          - { name: Rin.GLTF.Tests, filter: gltf-tests, project: Engine/Rin.GLTF.Tests/Rin.GLTF.Tests.csproj, fakes: false, args: '-p:RinShadeSkipCompile=true' }
-          - { name: Rin.Audio.Miniaudio.Tests, filter: audio-tests, project: Engine/Rin.Audio.Miniaudio.Tests/Rin.Audio.Miniaudio.Tests.csproj, fakes: false, args: '-p:RinShadeSkipCompile=true' }
-          - { name: Rin.Slang.Compiler.Tests, filter: slang-compiler-tests, project: Slang/Rin.Slang.Compiler.Tests/Rin.Slang.Compiler.Tests.csproj, fakes: true, args: '-p:RinShadeSkipCompile=true' }
-          - { name: Rin.Graphics.Vulkan.Tests, filter: vulkan-tests, project: Engine/Rin.Graphics.Vulkan.Tests/Rin.Graphics.Vulkan.Tests.csproj, fakes: true, args: '-p:RinShadeSkipCompile=true' }
-          - { name: Rin.Shade.Tests, filter: shade-tests, project: Shade/Rin.Shade.Tests/Rin.Shade.Tests.csproj, fakes: false, args: '' }
+          - { name: Rin.Core.Tests, project: Engine/Rin.Core.Tests/Rin.Core.Tests.csproj, fakes: false, args: '-p:RinShadeSkipCompile=true' }
+          - { name: Rin.World.Tests, project: Engine/Rin.World.Tests/Rin.World.Tests.csproj, fakes: false, args: '-p:RinShadeSkipCompile=true' }
+          - { name: Rin.SourceGenerators.Tests, project: Engine/Rin.SourceGenerators.Tests/Rin.SourceGenerators.Tests.csproj, fakes: false, args: '-p:RinShadeSkipCompile=true' }
+          - { name: Rin.Slang.Tests, project: Slang/Rin.Slang.Tests/Rin.Slang.Tests.csproj, fakes: false, args: '-p:RinShadeSkipCompile=true' }
+          - { name: Rin.GLTF.Tests, project: Engine/Rin.GLTF.Tests/Rin.GLTF.Tests.csproj, fakes: false, args: '-p:RinShadeSkipCompile=true' }
+          - { name: Rin.Audio.Miniaudio.Tests, project: Engine/Rin.Audio.Miniaudio.Tests/Rin.Audio.Miniaudio.Tests.csproj, fakes: false, args: '-p:RinShadeSkipCompile=true' }
+          - { name: Rin.Slang.Compiler.Tests, project: Slang/Rin.Slang.Compiler.Tests/Rin.Slang.Compiler.Tests.csproj, fakes: true, args: '-p:RinShadeSkipCompile=true' }
+          - { name: Rin.Graphics.Vulkan.Tests, project: Engine/Rin.Graphics.Vulkan.Tests/Rin.Graphics.Vulkan.Tests.csproj, fakes: true, args: '-p:RinShadeSkipCompile=true' }
+          - { name: Rin.Shade.Tests, project: Shade/Rin.Shade.Tests/Rin.Shade.Tests.csproj, fakes: false, args: '' }
     steps:
-      - name: Skip, none of this project's paths changed
+      - name: Skip, this project is not affected
         if: env.RUN != 'true'
         run: echo "Skipped"
       - uses: actions/checkout@v7
@@ -116,17 +122,19 @@ jobs:
     needs: [changes, build-native-slang]
     runs-on: windows-latest
     env:
-      RUN: ${{ github.event_name == 'push' || contains(fromJSON(needs.changes.outputs.filters), 'real-slang') }}
+      RUN: ${{ github.event_name == 'push' || contains(fromJSON(needs.changes.outputs.projects), matrix.project) }}
     strategy:
       fail-fast: false
       matrix:
         include:
           - name: Test Rin.Shade.CpuTests
+            project: Shade/Rin.Shade.CpuTests/Rin.Shade.CpuTests.csproj
             command: dotnet test Shade/Rin.Shade.CpuTests/Rin.Shade.CpuTests.csproj --no-restore --nologo --logger "console;verbosity=normal"
           - name: Compile all shaders
+            project: Engine/Rin.World/Rin.World.csproj
             command: dotnet build Engine/Rin.World/Rin.World.csproj -c Release --no-restore --nologo
     steps:
-      - name: Skip, no Slang-related paths changed
+      - name: Skip, no real-Slang project affected
         if: env.RUN != 'true'
         run: echo "Skipped"
       - uses: actions/checkout@v7
