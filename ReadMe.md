@@ -1,62 +1,47 @@
 # Rin
 
+A C# game engine on Vulkan, with shaders written in C# (Rin.Shade).
+
 ## Prerequisites
-- [.NET SDK 10](https://dotnet.microsoft.com/en-us/download) - pinned in `global.json` (`rollForward: latestMajor`); every project targets `net10.0` (set in `Directory.Build.props`)
+
+- [.NET SDK 10](https://dotnet.microsoft.com/en-us/download)
 - [Vulkan SDK](https://www.lunarg.com/vulkan-sdk/)
-- [uv](https://docs.astral.sh/uv/) - installs Python and [silo](https://github.com/TareHimself/silo), the C++ package manager that builds the native modules, from `pyproject.toml`.
-- A C++ toolchain and git, only if you build the native modules: Visual Studio Build Tools with "Desktop development with C++" on Windows, gcc or clang on Linux, or the Xcode command line tools on macOS
+- [uv](https://docs.astral.sh/uv/), which installs Python and [silo](https://github.com/TareHimself/silo) for the native modules
+- A C++ toolchain, to build the native modules
 
 ## First-time setup
-The managed projects pull the native libraries (Vulkan graphics backend, Miniaudio, the Slang shader compiler, etc.) as NuGet packages from a local feed (`.feed/`, wired up in `NuGet.Config`). Build and pack them once before opening the solution:
+
+The native libraries come from a local NuGet feed (`.feed/`). Build them once:
 
 ```
 uv run silo profile detect
 uv run python scripts/pack_native.py
 ```
 
-The first command records this machine's compiler for silo and is only needed once. The second builds each native module and its C++ dependencies from source with silo, and `dotnet pack`s it into `.feed/`. The first run takes a while, and later runs reuse silo's store. Re-run it with a module name (`uv run python scripts/pack_native.py Rin.Native`) whenever you change that module's C++ source.
+The first run takes a while. After changing a module's C++, rebuild just that one: `uv run python scripts/pack_native.py Rin.Native`.
 
-## Building
+## Build, run, test
+
 ```
 dotnet build rin.sln
-```
-
-## Running an example
-All examples live in one project. Run it with no argument for a launcher, or pass an example name (`scene-test`, `sponza`, `video-player`, `ui-gallery`, and the rest listed in its ReadMe):
-
-```
-dotnet run --project Examples/Examples/Examples.csproj
 dotnet run --project Examples/Examples/Examples.csproj -- scene-test
-```
-
-Or open `rin.sln` in Visual Studio/Rider and run the Examples project directly.
-
-## Testing
-Each test project runs on its own, for example:
-
-```
 dotnet test Engine/Rin.Core.Tests/Rin.Core.Tests.csproj -p:RinShadeSkipCompile=true
-dotnet test Shade/Rin.Shade.Tests/Rin.Shade.Tests.csproj
 ```
 
-`-p:RinShadeSkipCompile=true` skips compiling the shaders through the native Slang compiler, which tests that never load shader content do not need. `Shade/Rin.Shade.CpuTests` runs transpiled shaders on the CPU and needs the real native Slang package. CI (`.github/workflows/ci.yml`) runs one job per test project, plus a job that builds the real native Slang and runs the tests and the full shader compile that need it. See `native/ReadMe.md` for how real, stub and fake native libraries differ.
+Run the examples project without a name for a launcher. `-p:RinShadeSkipCompile=true` skips shader compilation for tests that don't load shaders. See [native/ReadMe.md](native/ReadMe.md) for real, stub and fake native libraries.
 
-## Shaders
-Shaders are written in C# with Rin.Shade, which transpiles them to Slang at build time (`Shade/ReadMe.md`). There are no hand-written `.slang` sources in the repo.
+## Layout
 
-## Repository layout
-Each project has its own `ReadMe.md`, and `Shade/` and `native/` have one for the subsystem as a whole.
+| Folder | What's in it |
+| --- | --- |
+| `Engine/` | Rin.Core, Rin.World, graphics and audio backends, glTF, source generators |
+| [`Shade/`](Shade/ReadMe.md) | The C# to Slang shader transpiler |
+| `Slang/` | Managed Slang compiler wrapper and CLI |
+| [`native/`](native/ReadMe.md) | C++ modules, their packaging, and test fakes |
+| `Examples/`, `Experiments/` | Demo apps and prototypes |
+| `msbuild/`, `scripts/` | Shared shader build targets and CI helpers |
 
-- `Engine/`: core engine (`Rin.Core`, `Rin.World`, graphics and audio backends, glTF loading, source generators) and its tests
-- [`Shade/`](Shade/ReadMe.md): Rin.Shade, the C# to Slang shader transpiler, with its source generator, MSBuild task and tests
-- `Slang/`: managed Slang compiler wrapper and command line tool
-- [`native/`](native/ReadMe.md): native C++ modules, their packaging, and the fakes used in CI
-- `Examples/`: sample and demo apps
-- `Experiments/`: prototype projects
-- `msbuild/`: MSBuild targets shared by the shader projects (`RinShade.targets`)
-- `scripts/`: CI helpers (native stub packages, native fakes)
-
-How the pieces fit together is in [`ARCHITECTURE.md`](ARCHITECTURE.md). Conventions for contributors and coding agents are in [`AGENTS.md`](AGENTS.md), with extra rules for [`Shade/`](Shade/AGENTS.md) and [`native/`](native/AGENTS.md).
+[ARCHITECTURE.md](ARCHITECTURE.md) shows how the pieces fit. [AGENTS.md](AGENTS.md) has contributor conventions.
 
 ## All READMEs
 

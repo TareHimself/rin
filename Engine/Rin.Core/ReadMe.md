@@ -1,110 +1,45 @@
 # Rin.Core
 
-The base library of the engine: the application and module model, the graphics and audio interfaces that backends implement, the views (UI) system and shared utilities. Package id `TareHimself.Rin.Core`.
+The base library: the application loop, the graphics and audio interfaces backends implement, the views (UI) system and shared utilities.
 
 ```
 dotnet build Engine/Rin.Core/Rin.Core.csproj
 dotnet test Engine/Rin.Core.Tests/Rin.Core.Tests.csproj -p:RinShadeSkipCompile=true
 ```
 
-`-p:RinShadeSkipCompile=true` skips the Rin.Shade compile step, which the tests do not need. The tests are described in [Rin.Core.Tests](../Rin.Core.Tests/ReadMe.md).
-
 | Folder | What it is |
 | --- | --- |
-| root | `Application` (main and render thread loop, module startup), `IModule`, `Global` (service provider and sources) and the P/Invoke surface of the native library. |
-| `Graphics/` | What a graphics backend implements: the module, renderers, the frame graph interfaces, resource handles and bindless data, shader interfaces, windows and input, and a `FrameLimiter` that paces the render thread to a max framerate. |
-| `Views/` | The UI system: the view tree, layouts, surface events, fonts and MTSDF text, the command list that becomes render graph passes, and the Rin.Shade shaders that draw it. |
-| `Audio/` | What an audio backend implements: the module, samples, groups, channels, push streams and the `[AudioEffect]` effect model. |
-| `Animation/` | Transition, delay and sequence animations and the runner views tick them with. |
-| `Shared/` | Math, curves, buffers, logging, pooling, providers, threading, time, profiling and webm video playback from a file, a URL or a pushed stream. `WebmVideoPlayer` owns the clock, buffering and seeks and talks to the native decoder only through `IWebmDemuxer`, which `WebmDemuxer` implements. |
-| `Sources/` | File system and embedded resource sources. `Global.Sources` combines the file system with the embedded `Core` content. |
-| `Content/` | Embedded resources: the default font (Noto Sans) and the default texture. |
-| `Extensions/`, `Json/` | Extension methods and JSON converters for the `System.Numerics` vectors. |
+| root | `Application` (main and render thread loop), `IModule`, `Global` |
+| `Graphics/` | Graphics backend interfaces: renderers, the frame graph, resource handles, shaders, windows and input |
+| `Views/` | The UI: view tree, layouts, events, MTSDF text, and the shaders that draw it |
+| `Audio/` | Audio backend interfaces: samples, groups, channels, push streams, effects |
+| `Animation/` | Transitions and sequences for views |
+| `Shared/` | Math, buffers, logging, pooling, threading, time, webm video playback |
+| `Sources/`, `Content/` | File and embedded resource sources, the default font and texture |
 
 ## One frame
 
 ```mermaid
-sequenceDiagram
-    participant A as Application
-    participant G as IGraphicsModule
-    participant R as IWindowRenderer
-    participant S as WindowSurface
-    participant B as IGraphBuilder
-    Note over A: main thread
-    A->>A: OnUpdate (Surface.Update lays out the view tree)
-    A->>G: OnCollect, Collect()
-    G->>R: Collect()
-    R->>S: OnCollect(collector)
-    S-->>R: collector.Add(ICollectedData)
-    Note over A: render thread
-    A->>G: OnRender, Execute()
-    G->>R: BeginFrame(renderData, builder)
-    R->>B: register the swapchain image, ICollectedData.Write(builder) adds IPass objects
-    B->>B: one graph for every renderer: Configure, prune from the roots, order, Execute each
-    G->>R: EndFrame(ctx) moves the swapchain image to Present
-    G->>G: one submit, one present
+flowchart LR
+    U["main thread: update, lay out views"] --> C["collect: each surface hands its draw data to its renderer"]
+    C --> R["render thread: one graph for every renderer, then one submit and present"]
 ```
 
-The main thread waits up to 3 ms for the previous render to finish; if it has, it collects and wakes the render thread, otherwise it skips the collect for that tick. The frame graph builder, compiler and executor live in the backend ([Rin.Graphics.Vulkan](../Rin.Graphics.Vulkan/ReadMe.md)); Rin.Core only holds the interfaces.
+The backend ([Rin.Graphics.Vulkan](../Rin.Graphics.Vulkan/ReadMe.md)) owns the graph. Rin.Core holds the interfaces: a pass declares the resources it creates, reads and writes in `Configure`, and records GPU work in `Execute`.
 
-| Interface | Role |
-| --- | --- |
-| `IGraphicsModule` | Backend entry point: windows and renderers, shader and resource creation, uploads and GPU copies, `Collect` and `Execute`, max framerate and frames in flight. |
-| `IRenderer`, `IWindowRenderer` | `Collect` on the main thread returns the render data `BeginFrame` writes into the shared graph builder on the render thread, and `EndFrame` records what comes after the graph, in the same command buffer. A window renderer raises `OnCollect` for surfaces and exposes the acquired swapchain image as `DestinationImageId`. |
-| `IGraphCollector`, `ICollectedData` | Subsystems hand collected data to the renderer; `Write` turns it into passes later. |
-| `IGraphBuilder`, `IGraphConfig` | Adding passes and external resources; declaring the textures and buffers a pass creates, reads and writes, by `uint` id. `GraphResourceFlags.Terminal` marks a resource whose writes are observed outside the graph. |
-| `IPass`, `ITerminalPass`, `IPassWithPreAdd`, `IPassWithPostAdd` | `Configure` declares resources, `Execute` records GPU work. Pruning keeps terminal passes, writers of `Terminal` resources and whatever they depend on. |
-| `ICompiledGraph`, `IExecutionContext` | Resolve ids to resources and record commands during `Execute`. |
-| `IGraphicsShader`, `IComputeShader` | Created from a Rin.Shade descriptor; `Bind` returns a context for push constants, buffers and draws, including indirect draws. |
-| `IAudioModule`, `IAudioSample`, `IAudioGroup`, `IChannel`, `IPushStream` | Samples and streams play on groups (busses) as channels; a push stream takes PCM pushed from outside. |
-| `ISupportsAudioEffects`, `IEffectController<T>` | A group runs `[AudioEffect]` effects in insertion order; the controller's `Parameters` setter hands a new struct to the audio thread through a lock free triple buffer. |
+- A graph with no `ITerminalPass` and no write to a `Terminal` resource draws nothing, because those are the pruning roots.
+- Register every external image or buffer a pass uses, since order and barriers come from what was declared.
 
 ## Views
 
-A `View` is one node of a tree on a `Surface`. Each frame the surface lays the tree out, routes input to it and collects draw commands from it. `ViewsModule` creates one `WindowSurface` per window renderer and loads the default font.
+A `View` is a node in a tree on a `Surface`. Each frame the surface lays the tree out, routes input and collects draw commands. Containers delegate to a layout (list, wrap list, flex, panel, overlay, switcher). Leaf views draw with the `QuadExtensions` helpers (rects, circles, lines, curves, gradients, textures, text) and `AddBlur`.
 
-```mermaid
-flowchart TD
-    INV["View.InvalidateLayout()"] --> PEND["Surface: pending set, parent invalidated too"]
-    UPD["Surface.Update(deltaTime)"] --> FL["Surface.ForceLayout()"]
-    PEND --> FL
-    FL --> SORT["pending views by depth, parents first, skip ones a parent pass covered"]
-    SORT --> LAY["View.Layout(available, fill)"]
-    LAY --> LC["LayoutContent(available minus padding)"]
-    LC --> AC["CompositeView.ArrangeContent: layout object sets child Offset, calls child.Layout"]
-    AC --> LAY
-    LAY --> SZ["size = fill ? available : content plus padding"]
-    FL --> COL["Surface.CollectCommands(): View.Collect appends to a CommandList"]
-```
+- Layout is measure then arrange: `GetDesiredSize` (cached) and `View.Layout(available, fill)`. A view fills its slot only when `fill` is true.
+- After changing anything that affects size, call `InvalidateDesiredSize()` and `InvalidateLayout()`.
+- Layout is in device pixels. There is no DPI scaling.
+- Clipping uses the stencil buffer: each distinct clip stack costs a stencil write, and the eighth in a run forces a clear.
+- Text is shaped with HarfBuzz and drawn from MTSDF atlases.
 
-Containers delegate to a layout object under `Views/Layouts/` (list, wrap list, flex, panel, overlay, switcher, root). Leaf views draw with the `QuadExtensions` helpers (rects, circles, lines, curves, gradients, textures, MTSDF text) and `AddBlur`. Text is shaped with HarfBuzz and rendered as MTSDF glyph atlases built on first use each run.
+The UI shaders are C# under `Views/Graphics/Shaders/`, compiled by [Shade](../../Shade/ReadMe.md).
 
-```mermaid
-flowchart TD
-    CL["CommandList: commands and their clip stacks"] --> W["DefaultCollectedSurfaceData.Write"]
-    W --> P0["CreateImagesPass: main, copy and stencil images"]
-    W --> LOOP{"each command"}
-    LOOP -- "no clip" --> M1["stencil mask 0x01"]
-    LOOP -- "new clip stack" --> SW["StencilWritePass with the next mask bit"]
-    LOOP -- "eighth clip stack" --> SC["flush, StencilClearPass"]
-    M1 --> GRP["group runs by pass config and handler type"]
-    SW --> GRP
-    GRP --> DP["ViewsDrawPass with command handlers"]
-    DP --> BH["BatchCommandHandler: consecutive commands with the same batcher and mask become one batch"]
-    BH --> DRAW["IBatcher.Draw: quads from one host buffer, instanced"]
-    W --> CP["WindowSurfaceCollectedData adds CopyToDestination"]
-```
-
-The shaders are C# classes written with Rin.Shade under `Views/Graphics/Shaders/`, marked `[Shader]` and embedded as `<full class name>.crsh` by `msbuild/RinShade.targets`; there are no hand written `.slang` files. Types that shaders in other assemblies need (`ViewShader<T>`, `DeviceHandle`, `BindlessData`, `BorderRadius`, `Int4`, `DrawIndirectCommand`) carry `[ShadeExport]`. The pipeline is described in [Shade](../../Shade/ReadMe.md).
-
-## Rules
-
-| Rule | Why |
-| --- | --- |
-| A graph with no `ITerminalPass` and no write to a `Terminal` resource draws nothing. | Those are the pruning roots. |
-| Register every external image or buffer a pass uses in `Execute`. | The backend derives order and barriers from what was declared. |
-| `View.Layout` returns the content size plus padding unless `fill` is true. | A view fills its slot only when the parent asks. |
-| The desired size is cached only while the view is on a surface. | Call `InvalidateDesiredSize()` and `InvalidateLayout()` after changing what affects it. |
-| Each distinct clip stack costs a stencil write, and the eighth in a run forces a stencil clear. | Seven mask bits are available per run, one is reserved for "no clip". |
-
-References: Rin.SourceGenerators (analyzer), Rin.Shade and its source generator. Packages: NetVips, StbRectPackSharp, HarfBuzzSharp native assets, TareHimself.Rin.Native. Referenced by Rin.World, Rin.Graphics.Vulkan, Rin.Graphics.Null, Rin.Audio.Miniaudio, Rin.Audio.Null, the examples and the experiments.
+References: Rin.SourceGenerators, Rin.Shade. Packages: NetVips, StbRectPackSharp, HarfBuzzSharp, TareHimself.Rin.Native.

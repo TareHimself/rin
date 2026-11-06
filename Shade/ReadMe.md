@@ -1,6 +1,6 @@
 # Shade
 
-Shaders for Rin are C# classes. At build time a Roslyn transpiler turns each `[Shader]` class into Slang, the Slang toolchain (`Slang/`) compiles that to a `.crsh` package, and the package is embedded in the assembly under the class's full name. A source generator adds a typed `Descriptor` to the same class, so the engine reads the pipeline state (attachment formats, blend, depth, stencil, thread-group size) from the C# attributes instead of recovering it from the compiled shader.
+Shaders for Rin are C# classes. At build time each `[Shader]` class is transpiled to Slang, compiled to SPIR-V, and embedded in the assembly. A generated `Descriptor` carries the pipeline state (formats, blend, depth, stencil) from the C# attributes.
 
 ```mermaid
 flowchart LR
@@ -31,24 +31,9 @@ flowchart LR
 | [Rin.Shade.CpuTests](Rin.Shade.CpuTests/ReadMe.md) | Runs transpiled shaders on the CPU through the real Slang. |
 | [Samples](Samples/ReadMe.md) | Three chained assemblies for the cross-assembly tests. |
 
-```mermaid
-flowchart BT
-    SHADE["Rin.Shade"] -.->|"analyzer"| GEN["Rin.Shade.SourceGenerator"]
-    TRANS["Rin.Shade.Transpiler"] --> SHADE
-    CLI["Rin.Shade.Cli"] --> TRANS
-    MSB["Rin.Shade.MSBuild"] --> TRANS & COMP["Slang/Rin.Slang.Compiler"]
-    TESTS["Rin.Shade.Tests"] --> TRANS & GEN
-    TESTS -.->|"builds"| SAMPLES["Samples"]
-    CPU["Rin.Shade.CpuTests"] --> TRANS & COMP
-    SAMPLES --> SHADE
-    SAMPLES -.->|"analyzer"| GEN
-```
-
-Solid arrows are project references. Dotted arrows are an analyzer reference (the project runs the generator on its own compile) or a build-order-only reference. An engine project with shaders (`Rin.Core`, `Rin.World`, `Examples`) imports `msbuild/RinShade.targets` and references the generator as an analyzer.
-
 ## Writing a shader
 
-A shader derives from `Shader`, marks its entry points, and takes and returns structs whose fields carry the semantics. This is `Rin.Shade.Tests/Fixtures/GraphicsTriangleFixtureShader.cs`, and below it the Slang that `dotnet run --project Shade/Rin.Shade.Cli -- compile Shade/Rin.Shade.Tests/Fixtures/GraphicsTriangleFixtureShader.cs -o out/triangle.slang` wrote for its fragment stage. Names become lowerCamelCase and C# namespaces become Slang namespaces.
+A shader derives from `Shader` and marks its entry points. From `Rin.Shade.Tests/Fixtures/GraphicsTriangleFixtureShader.cs`, with the Slang `rin-shade compile` wrote for its fragment stage:
 
 ```csharp
 [Shader]
@@ -71,29 +56,24 @@ float4 fragment(FsIn input)
 }
 ```
 
-The C# the transpiler accepts:
+## What the transpiler accepts
 
-| Area | Supported | Rejected |
-| --- | --- | --- |
-| Types | `float`, `int`, `uint`, `Vector2` to `Vector4`, `Matrix4x4`, `BufferRef<T>` (a pointer), `Texture2D`, `Texture2DArray`, `TextureCube`, `SamplerState`, structs, nested types, enums, `[InlineArray]` structs as fixed arrays, explicit-layout structs as unions | `double` (SHADE0021), enums with a non-`int` base, writes through a union variant |
-| Control flow | `if`, ternary, `for`, `while`, `foreach` over an inline array, `switch` with constant cases, switch expressions with constant, relational, `and`, `or`, `not` and discard patterns, local functions | pattern `case` clauses, recursion |
-| Structs | fields, auto properties, properties with bodies, `record struct`, `with`, instance and static methods, generic structs (one Slang struct per instantiation) | open generic types |
-| Functions | helpers in any static class, `out` and named arguments, generic methods (one function per instantiation), extension members (C# 14 blocks and `this` methods), virtual and abstract overrides flattened through the base chain, generic base classes, interface members (`static abstract`, `static virtual` defaults and instance methods) called through a type parameter, resolved to the concrete type's implementation | calls through an interface-typed value (SHADE0023), since there is no runtime dispatch |
-| Constants | `const` (inlined), `static readonly` with a constant initializer (a Slang `static const`) | |
-| Builtins | the static math on `Shader` (`Lerp`, `Max`, ...), swizzles (`v.XY`), `[SlangExpression]` and `[SlangStatement]` bindings, `Interlocked*` atomics and the `*MemoryBarrier*` intrinsics, `[GroupShared]` static fields | |
-
-Anything else is a build error, and a Slang error is reported against the C# line it was lowered from. Rules that hold everywhere:
-
-| Rule | Where it comes from |
+| Area | Supported |
 | --- | --- |
-| Every block is scalar layout, matching C# sequential layout. | `ScalarDataLayout` on push constants and `forceGLSLScalarBufferLayout` in `native/Rin.Slang.Native/src/slang.cpp`. |
-| Matrices are row-major with row-vector math (`v * M`), the same as `System.Numerics`. | `SLANG_MATRIX_LAYOUT_ROW_MAJOR` in the native session, pinned by `Rin.Shade.CpuTests`. |
-| Resources are bindless. | `[BindlessBlock(name)]` on a `[BindingGroup]` type resolves to an engine-owned descriptor set (`BindlessData` in Rin.Core). |
-| A shader is embedded as `<full class name>.crsh` and its `Descriptor` opens it from its own assembly. | `CompileRinShadeShaders` sets the resource name, `IShaderDescriptor.Open` reads it. |
-| A `[Shader]` class is `partial` and top-level. | SHADEGEN0001 and SHADEGEN0002 from the generator. |
+| Types | `float`, `int`, `uint`, vectors, `Matrix4x4`, `BufferRef<T>`, textures and samplers, structs, enums, inline arrays, explicit-layout unions |
+| Code | `if`, loops, `switch` with constant cases and simple patterns, local functions, `with`, properties, `const` |
+| Generics | Generic structs, methods and base classes (one Slang copy per instantiation), interface calls through a constrained type parameter |
+| Builtins | Math on `Shader` (`Lerp`, `Max`, ...), swizzles, atomics, barriers, `[GroupShared]` |
 
-| Build flag (a `-p:` property) | Effect |
+Not supported: `double`, recursion, open generics, calls through an interface-typed value. Anything unsupported is a build error on the C# line.
+
+- Buffers use scalar layout, matching C# sequential structs.
+- Matrices are row-major with `v * M`, like `System.Numerics`.
+- Resources are bindless (`BindlessData` in Rin.Core).
+- A `[Shader]` class must be `partial` and top-level.
+- To use a base shader or helper from another assembly, mark it `[ShadeExport]`.
+
+| Build flag | Effect |
 | --- | --- |
-| `RinShadeSkipCompile=true` | Skips shader compilation. CI passes it to every test job but `Rin.Shade.Tests`. |
-| `RinShadeDumpGenerated=true` | Also writes the emitted Slang to `GeneratedShaders/` under the output directory (`RinShadeGeneratedDirectory` overrides the folder). |
-| `RinShadeMaxParallelism=N` | Compiles up to N shaders at once. Unset, one worker thread per 64 stale shaders, capped at the processor count. |
+| `-p:RinShadeSkipCompile=true` | Skip shader compilation |
+| `-p:RinShadeDumpGenerated=true` | Also write the emitted Slang to `GeneratedShaders/` |
