@@ -153,7 +153,9 @@ public sealed class SceneTestExample : Example
         {
             Color = new Vector3(0.2f, 0.6f, 1f),
             Amplitude = 1.5f,
-            Speed = 2f
+            Speed = 2f,
+            BaseY = -6f,
+            Height = 16f
         }));
         var pillar = render.World.Spawn();
         render.World.SetLocalTransform(pillar,

@@ -8,8 +8,8 @@ using static Rin.Shade.Shader;
 namespace Examples.SceneTest;
 
 /// <summary>
-///     Sways vertices along X over time, to show <see cref="ISurfaceMaterial{TSelf}.ProcessVertex" /> and a material
-///     with its own depth shader.
+///     Leans an upright mesh along X over time, anchored at <see cref="BaseY" />, to show
+///     <see cref="ISurfaceMaterial{TSelf}.ProcessVertex" /> and a material with its own depth shader.
 /// </summary>
 [NoReorder]
 public struct WavyMaterial : ISurfaceMaterial<WavyMaterial>
@@ -23,6 +23,13 @@ public struct WavyMaterial : ISurfaceMaterial<WavyMaterial>
 
     public float Speed;
 
+    /// <summary>
+    ///     World height of the mesh's base, which stays put, and how far above it the full lean is reached.
+    /// </summary>
+    public float BaseY;
+
+    public float Height;
+
     public static IGraphicsDescriptor Shader => WavyShader.Descriptor;
     public static IGraphicsDescriptor? DepthShader => WavyDepthShader.Descriptor;
     public static float MaxVertexOffset => 2f;
@@ -30,7 +37,8 @@ public struct WavyMaterial : ISurfaceMaterial<WavyMaterial>
     public static WorldVertex ProcessVertex(in WavyMaterial material, in WorldVertex vertex, float time)
     {
         var moved = vertex;
-        moved.Position.X += Sin(time * material.Speed + vertex.Position.Y * 0.5f) * material.Amplitude;
+        var lean = Saturate((vertex.Position.Y - material.BaseY) / material.Height);
+        moved.Position.X += Sin(time * material.Speed) * material.Amplitude * lean;
         return moved;
     }
 
