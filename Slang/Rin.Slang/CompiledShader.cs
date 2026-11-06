@@ -17,4 +17,9 @@ public sealed class CompiledShader
     ///     and its freshness is already captured in <see cref="ShaderManifest.SourceHash" /> instead.
     /// </summary>
     public (string PortableId, string AbsolutePath)[] Dependencies { get; init; } = [];
+
+    /// <summary>
+    ///     See <see cref="ShaderManifest.CompilerVersion" />.
+    /// </summary>
+    public string? CompilerVersion { get; init; }
 }
