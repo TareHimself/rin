@@ -21,10 +21,12 @@ public class TestViewport : Viewport
     private float _rightAxis;
     private float _yaw;
 
-    public TestViewport(RenderFeature render, Entity camera) : base(render, camera)
+    // Pass the camera's starting pitch in degrees so the first mouse drag continues from it.
+    public TestViewport(RenderFeature render, Entity camera, float pitch = 0f) : base(render, camera)
     {
         _world = render.World;
         _camera = camera;
+        _pitch = pitch;
     }
 
     protected override void OnMouseDelta(Vector2 delta)

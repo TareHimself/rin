@@ -68,6 +68,8 @@ public sealed class BoxRain(float intervalSeconds, Action dropBox) : Script
 - Awaiting a regular `Task` faults the task.
 - Only components survive a snapshot restore. `Restore` restarts tasks from them.
 
+The `scripting` example has one small script per pattern (patrol, sequenced door, fuse and defuse, cancellation).
+
 ## Rendering
 
 `new RenderFeature(world, renderSystem, meshFactory)`. Components hold only ids and handles.

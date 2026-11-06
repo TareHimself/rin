@@ -7,6 +7,7 @@ using Examples.ImageStrip;
 using Examples.Paint;
 using Examples.RenderGraphViewer;
 using Examples.SceneTest;
+using Examples.Scripting;
 using Examples.Sponza;
 using Examples.StencilClip;
 using Examples.TextInput;
@@ -29,6 +30,7 @@ public static class ExampleRegistry
         new TextInputExample(),
         new AudioPlayerExample(),
         new SceneTestExample(),
+        new ScriptingExample(),
         new SponzaExample(),
         new AssetViewerExample(),
         new RenderGraphViewerExample()
