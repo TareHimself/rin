@@ -62,6 +62,10 @@ internal static class Naming
             _ => ToSlangIdentifier(method.Name)
         };
 
+        // An interface default body is a free function, so prefix it to avoid clashing with other free functions.
+        if (method.ContainingType is { TypeKind: TypeKind.Interface } owner)
+            name = TypeName(owner) + "_" + name;
+
         // One Slang function per instantiation, told apart by their type arguments: Pick<float> and
         // Pick<float3> become pick_float and pick_float3.
         return method.IsGenericMethod

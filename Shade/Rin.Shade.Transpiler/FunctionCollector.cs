@@ -56,6 +56,8 @@ internal sealed class FunctionCollector(
                 if (target is null) continue;
 
                 if (substitution is not null) target = substitution.Apply(target);
+                if (callSite is IInvocationOperation dispatched)
+                    target = InterfaceDispatch.Resolve(dispatched, target, substitution);
                 var callee = overrides is null ? target : OverrideResolution.Resolve(target, overrides);
                 VisitCallee(callee);
                 if (!IntrinsicBindings.HasBinding(callee) && MethodSource.HasBody(callee))

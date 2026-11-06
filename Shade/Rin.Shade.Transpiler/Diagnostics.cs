@@ -171,5 +171,13 @@ internal static class Diagnostics
             category: "Rin.Shade",
             defaultSeverity: DiagnosticSeverity.Error,
             isEnabledByDefault: true);
+
+        public static readonly DiagnosticDescriptor InterfaceCallWithoutConcreteType = new(
+            id: "SHADE0023",
+            title: "Interface call without a concrete type",
+            messageFormat: "'{0}' is called through interface '{1}' with no concrete type; shaders have no runtime dispatch, so call it through a type parameter constrained to the interface",
+            category: "Rin.Shade",
+            defaultSeverity: DiagnosticSeverity.Error,
+            isEnabledByDefault: true);
     }
 }
