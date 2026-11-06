@@ -170,8 +170,8 @@ public class DefaultSceneFrame : IDisposable
         var depthGroups = new Dictionary<BatchKey, List<ProcessedMesh>>();
         foreach (var mesh in meshes)
         {
-            var colorKey = new BatchKey(mesh.IndexBuffer, mesh.Material.GetColorIdentity());
-            var depthKey = new BatchKey(mesh.IndexBuffer, mesh.Material.GetDepthIdentity());
+            var colorKey = new BatchKey(mesh.IndexBuffer, MaterialIdentity.Of(mesh.Material.ColorPass));
+            var depthKey = new BatchKey(mesh.IndexBuffer, MaterialIdentity.Of(mesh.Material.DepthPass));
             if (!colorGroups.TryGetValue(colorKey, out var colorGroup)) colorGroups[colorKey] = colorGroup = [];
             if (!depthGroups.TryGetValue(depthKey, out var depthGroup)) depthGroups[depthKey] = depthGroup = [];
             colorGroup.Add(mesh);

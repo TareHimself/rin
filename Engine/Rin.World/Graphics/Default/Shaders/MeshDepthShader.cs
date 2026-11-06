@@ -1,16 +1,7 @@
 using System.Numerics;
-using JetBrains.Annotations;
 using Rin.Shade;
-using Rin.World.Graphics.Mesh;
 
 namespace Rin.World.Graphics.Default.Shaders;
-
-[NoReorder]
-public struct DepthMaterialData
-{
-    public Matrix4x4 Transform;
-    public BufferRef<Vertex> Vertices;
-}
 
 [Shader]
 public partial class MeshDepthShader : Shader
@@ -18,7 +9,7 @@ public partial class MeshDepthShader : Shader
     public struct PushConstants
     {
         public BufferRef<DepthSceneInfo> Scene;
-        public BufferRef<DepthMaterialData> Data;
+        public BufferRef<MeshInstance> Instances;
     }
 
     public struct VertexIn
@@ -37,7 +28,7 @@ public partial class MeshDepthShader : Shader
     [Vertex, Depth]
     public VertexOut Vertex(VertexIn input)
     {
-        var instance = Push.Data[input.InstanceId];
+        var instance = Push.Instances[input.InstanceId];
         var scene = Push.Scene[0];
         var vertex = instance.Vertices[input.VertexId];
         var sceneLocation = Vector4.Transform(new Vector4(vertex.Location, 1f), instance.Transform);

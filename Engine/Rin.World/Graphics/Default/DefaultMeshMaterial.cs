@@ -41,7 +41,7 @@ public class DefaultMeshMaterial : IMeshMaterial
 
     public bool Translucent => false;
     public IMaterialPass ColorPass { get; }
-    public IMaterialPass DepthPass { get; } = new DefaultDepthPass();
+    public IMaterialPass DepthPass => MeshDepthPass.Shared;
 
     private class DefaultColorPass(DefaultMeshMaterial meshMaterial) : SimpleMaterialPass
     {
@@ -64,11 +64,6 @@ public class DefaultMeshMaterial : IMeshMaterial
                     });
 
             return null;
-        }
-
-        protected override IMaterialPass GetPass(ProcessedMesh mesh)
-        {
-            return mesh.Material.ColorPass;
         }
 
         public override void DeclareResources(IGraphConfig config, ProcessedMesh mesh)
@@ -96,45 +91,6 @@ public class DefaultMeshMaterial : IMeshMaterial
                 EmissiveTexture = meshMaterial.EmissiveImageId
             };
             MemoryMarshal.Write(destination, in data);
-        }
-    }
-
-
-    private class DefaultDepthPass : SimpleMaterialPass
-    {
-        public override IGraphicsShader Shader { get; } = IGraphicsModule.Get().MakeGraphics(MeshDepthShader.Descriptor);
-
-        public override ulong GetRequiredMemory()
-        {
-            return Utils.ByteSizeOf<DepthMaterialData>();
-        }
-
-        public override IGraphicsBindContext? BindGroup(WorldFrame frame, in DeviceBufferView groupMaterialBuffer)
-        {
-            var ctx = frame.ExecutionContext;
-            if (Shader.Bind(ctx) is { } bindContext)
-                return bindContext
-                    .Push(new MeshDepthShader.PushConstants
-                    {
-                        Scene = new BufferRef<DepthSceneInfo>(frame.SceneInfo.GetAddress()),
-                        Data = new BufferRef<DepthMaterialData>(groupMaterialBuffer!.GetAddress())
-                    });
-
-            return null;
-        }
-
-        protected override IMaterialPass GetPass(ProcessedMesh mesh)
-        {
-            return mesh.Material.DepthPass;
-        }
-
-        public override void Write(Span<byte> destination, ProcessedMesh mesh)
-        {
-            MemoryMarshal.Write(destination, new DepthMaterialData
-            {
-                Transform = mesh.Transform,
-                Vertices = new BufferRef<Vertex>(mesh.VertexBuffer.GetAddress())
-            });
         }
     }
 }

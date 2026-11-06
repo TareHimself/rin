@@ -21,18 +21,13 @@ public interface IMeshMaterial
     ///     The pass used for the depth pre-pass
     /// </summary>
     public IMaterialPass DepthPass { get; }
-
-    public MaterialIdentity GetColorIdentity()
-    {
-        return new MaterialIdentity(GetType(), ColorPass.Shader);
-    }
-
-    public MaterialIdentity GetDepthIdentity()
-    {
-        return new MaterialIdentity(GetType(), DepthPass.Shader);
-    }
 }
 
-// A record struct so two identities compare by actual type/shader equality - a plain combined
-// hash code can collide between unrelated materials and silently merge them into one draw batch.
-public readonly record struct MaterialIdentity(Type MaterialType, IGraphicsShader Shader);
+/// <summary>
+///     What makes draws batchable: the pass implementation writes and binds the data, the shader consumes it. Keyed
+///     on the pass rather than the material type so materials sharing a pass (e.g. <c>MeshDepthPass.Shared</c>) batch.
+/// </summary>
+public readonly record struct MaterialIdentity(Type PassType, IGraphicsShader Shader)
+{
+    public static MaterialIdentity Of(IMaterialPass pass) => new(pass.GetType(), pass.Shader);
+}

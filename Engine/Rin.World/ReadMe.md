@@ -265,7 +265,7 @@ The snapshot blends each proxy's previous and current transform by the interpola
 | `FillGBufferIndirectPass` or `FillGBufferDirectPass` | view | depth image, color material data, textures, skinned vertices | GBuffer0..3 |
 | `LightingPass` | view | GBuffer0..3, the light array | the output image (`RGBA16`) |
 
-Meshes are batched by index buffer plus material, so each batch is one `DrawIndexedIndirectCount`. `ShadowPass` exists but is not implemented and nothing adds it.
+Meshes are batched by index buffer plus material pass (its type and shader), so each batch is one `DrawIndexedIndirectCount`. Materials that do not move vertices share `MeshDepthPass.Shared`, so their depth draws batch together whatever the material type. `ShadowPass` exists but is not implemented and nothing adds it.
 
 ## Showing a world
 
