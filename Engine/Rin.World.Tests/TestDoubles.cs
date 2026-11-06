@@ -96,6 +96,7 @@ internal sealed class FakeRenderSystem : IRenderSystem
     public int DestroyCount => Destroyed.Count;
     public int LiveCount => _live.Count;
     public float LastInterpolationAlpha { get; private set; } = 1f;
+    public float LastTime { get; private set; }
 
     public RenderProxyHandle CreateStaticMeshProxy(in StaticMeshProxyDesc desc)
     {
@@ -154,6 +155,7 @@ internal sealed class FakeRenderSystem : IRenderSystem
     }
 
     public void SetInterpolationAlpha(float alpha) => LastInterpolationAlpha = alpha;
+    public void SetTime(float seconds) => LastTime = seconds;
 
     public IWorldCollectedData Snapshot(in CameraView view, in Extent2D extent) => throw new NotSupportedException();
     public void Dispose()

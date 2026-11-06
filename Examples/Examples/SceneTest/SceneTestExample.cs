@@ -21,6 +21,7 @@ using Rin.World.Scripting;
 using Rin.World.Transforms;
 using Rin.World.Graphics.Default;
 using Rin.World.Graphics.Mesh;
+using Rin.World.Graphics.Surfaces;
 using Rin.World.Mesh;
 using Rin.World.Mesh.Skinning.Animation;
 using Rin.World.Physics.Bepu;
@@ -81,6 +82,7 @@ public sealed class SceneTestExample : Example
 
             // Static visible obstacle the dynamic boxes pile against.
             SpawnBox(world, new Vector3(0f, -2.5f, 22f), new Vector3(10f, 5f, 10f), PhysicsState.Static, mesh.MeshId);
+            SpawnWavyPillar(render, mesh.MeshId);
 
             LoadGoldMaterial().DispatchMain(material =>
             {
@@ -145,6 +147,22 @@ public sealed class SceneTestExample : Example
         if (meshId is { } id) world.Add(box, new StaticMesh { MeshId = id, Materials = _boxMaterials });
     }
 
+    private static void SpawnWavyPillar(RenderFeature render, int meshId)
+    {
+        var materials = render.Materials.Add(new SurfaceMaterial<WavyMaterial>(new WavyMaterial
+        {
+            Color = new Vector3(0.2f, 0.6f, 1f),
+            Amplitude = 1.5f,
+            Speed = 2f,
+            BaseY = -6f,
+            Height = 16f
+        }));
+        var pillar = render.World.Spawn();
+        render.World.SetLocalTransform(pillar,
+            new LocalTransform { Position = new Vector3(-15f, 2f, 22f), Scale = new Vector3(2f, 16f, 2f) });
+        render.World.Add(pillar, new StaticMesh { MeshId = meshId, Materials = materials });
+    }
+
     private void SpawnBoxes(int count)
     {
         if (_render?.World is not { } world || _cubeMeshId is not { } meshId) return;
@@ -178,7 +196,7 @@ public sealed class SceneTestExample : Example
     }
 
     // The Khronos Fox sample is authored about 79 units tall, so it is scaled down to the size of the boxes.
-    private void LoadFoxes(RenderFeature render, DefaultMeshMaterial material)
+    private void LoadFoxes(RenderFeature render, SurfaceMaterial<PbrMaterial> material)
     {
         var foxPath = Path.Join(Global.Directory, "assets", "models", "fox.glb");
         GltfMeshImporter.LoadSkinnedMesh(foxPath).DispatchMain(skinned =>
@@ -328,7 +346,7 @@ public sealed class SceneTestExample : Example
         }
     }
 
-    private async Task<DefaultMeshMaterial> LoadGoldMaterial()
+    private async Task<SurfaceMaterial<PbrMaterial>> LoadGoldMaterial()
     {
         var albedo = _textures.Load(Path.Join(Global.Directory, "assets", "textures", "au_albedo.png"));
         var roughness = _textures.Load(Path.Join(Global.Directory, "assets", "textures", "au_roughness.png"));
@@ -336,11 +354,11 @@ public sealed class SceneTestExample : Example
         var normal = _textures.Load(Path.Join(Global.Directory, "assets", "textures", "au_normal.png"));
 
         await Task.WhenAll(albedo, roughness, metallic, normal);
-        return new DefaultMeshMaterial
+        return new SurfaceMaterial<PbrMaterial>(new PbrMaterial
         {
-            ColorImageId = albedo.Result,
-            RoughnessImageId = roughness.Result,
-            MetallicImageId = metallic.Result
-        };
+            BaseColorTexture = albedo.Result,
+            RoughnessTexture = roughness.Result,
+            MetallicTexture = metallic.Result
+        });
     }
 }

@@ -12,6 +12,11 @@ public interface IRenderSystem : IDisposable
     void UpdateProxyTransform(RenderProxyHandle handle, in Matrix4x4 worldTransform);
     void UpdateSkinnedProxyPose(RenderProxyHandle handle, in SkeletalPose pose);
     void SetInterpolationAlpha(float alpha);
+
+    /// <summary>
+    ///     Seconds of scaled world time, which surface materials read to animate vertices.
+    /// </summary>
+    void SetTime(float seconds);
     void UpdateStaticMeshProxy(RenderProxyHandle handle, in StaticMeshProxyDesc desc);
     void UpdateLightProxy(RenderProxyHandle handle, in LightInfo desc);
     void DestroyProxy(RenderProxyHandle handle);

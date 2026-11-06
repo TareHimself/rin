@@ -100,12 +100,13 @@ public sealed class ShaderStructAttribute : Attribute;
 
 /// <summary>
 /// Marks a type meant to be derived from or called into by a downstream assembly's shaders: a shader
-/// base class, or a helper class or struct. Rin.Shade.SourceGenerator generates a const string holding
-/// the containing file's exact source text for every marked declaration, so a downstream transpile can
-/// walk its bodies without this project's .cs files. See ScratchCompilationBuilder in Rin.Shade.Transpiler
-/// for the consumer side.
+/// base class, a helper class or struct, or an interface shaders call through a constrained type parameter (so
+/// its signatures name the same embedded types as its implementations). Rin.Shade.SourceGenerator generates a
+/// const string holding the containing file's exact source text for every marked declaration, so a downstream
+/// transpile can walk its bodies without this project's .cs files. See ScratchCompilationBuilder in
+/// Rin.Shade.Transpiler for the consumer side.
 /// </summary>
-[AttributeUsage(AttributeTargets.Class | AttributeTargets.Struct)]
+[AttributeUsage(AttributeTargets.Class | AttributeTargets.Struct | AttributeTargets.Interface)]
 public sealed class ShadeExportAttribute : Attribute;
 
 /// <summary>

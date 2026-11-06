@@ -20,6 +20,7 @@
 
     <ItemGroup>
         <PackageReference Include="TareHimself.Rin.Slang.Native"/>
+        <InternalsVisibleTo Include="Rin.Slang.Compiler.Tests" />
     </ItemGroup>
 
     <PropertyGroup>

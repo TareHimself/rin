@@ -24,7 +24,8 @@ public static class ShaderPackageWriter
             Kind = shader.Kind,
             ThreadGroupSize = shader.ThreadGroupSize,
             Stages = stages,
-            SourceHash = ShaderSourceHash.Compute(shader.Dependencies)
+            SourceHash = ShaderSourceHash.Compute(shader.Dependencies),
+            CompilerVersion = shader.CompilerVersion
         };
 
         using var tar = new TarWriter(output, leaveOpen: true);

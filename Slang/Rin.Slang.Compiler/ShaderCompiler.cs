@@ -107,6 +107,12 @@ public sealed class ShaderCompiler : IDisposable
     ///     skipped. False (never throws for a missing/corrupt package) if it can't tell, so callers can
     ///     treat that the same as "stale, recompile".
     /// </summary>
+    /// <summary>
+    ///     This compiler build's identity. Deterministic builds give the assembly the same module version id until its
+    ///     code changes, so packages are recompiled exactly when the compiler changed.
+    /// </summary>
+    public static string Version { get; } = typeof(ShaderCompiler).Assembly.ManifestModule.ModuleVersionId.ToString();
+
     public bool IsUpToDate(string packagePath, string sourcePath) =>
         IsUpToDate(packagePath, sourcePath, _searchPaths, _pathAliases, _portableRoot);
 
@@ -132,7 +138,7 @@ public sealed class ShaderCompiler : IDisposable
             return false;
         }
 
-        if (manifest is null) return false;
+        if (manifest is null || manifest.CompilerVersion != Version) return false;
 
         var dependencies = ResolveDependencies(sourcePath, searchPaths, pathAliases, portableRoot);
         return dependencies.All(d => File.Exists(d.AbsolutePath)) &&
@@ -170,7 +176,8 @@ public sealed class ShaderCompiler : IDisposable
             Kind = ShaderKind.Compute,
             Stages = [stage],
             ThreadGroupSize = entryPointReflection.ThreadGroupSize,
-            Dependencies = dependencies
+            Dependencies = dependencies,
+            CompilerVersion = Version
         };
     }
 
@@ -185,7 +192,8 @@ public sealed class ShaderCompiler : IDisposable
         {
             Kind = ShaderKind.Graphics,
             Stages = stages.ToArray(),
-            Dependencies = dependencies
+            Dependencies = dependencies,
+            CompilerVersion = Version
         };
     }
 
@@ -210,10 +218,11 @@ public sealed class ShaderCompiler : IDisposable
                                   SlangReflectionDataJsonContext.Default.SlangReflectionData) ??
                               throw new SlangCompileException("Failed to parse reflection data.");
 
+        var spirv = codeBlob.AsReadOnlySpan().ToArray();
         return new CompiledStage
         {
             Stage = stageName,
-            Spirv = codeBlob.AsReadOnlySpan().ToArray(),
+            Spirv = stageName == "vertex" ? SpirvInvariantPosition.Apply(spirv) : spirv,
             Reflection = reflectionData
         };
     }

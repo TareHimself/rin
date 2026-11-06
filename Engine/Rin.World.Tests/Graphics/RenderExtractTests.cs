@@ -174,6 +174,16 @@ public class RenderExtractTests
     }
 
     [Test]
+    public void TimeAccumulatesScaledFrameDeltas()
+    {
+        _world.TimeScale = 2f;
+        _world.Update(0.1f);
+        _world.Update(0.05f);
+
+        Assert.That(_render.LastTime, Is.EqualTo(0.3f).Within(1e-5f));
+    }
+
+    [Test]
     public void ExtractingUnchangedEntitiesDoesNotAllocate()
     {
         for (var i = 0; i < 100; i++)

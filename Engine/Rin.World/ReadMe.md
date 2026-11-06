@@ -132,6 +132,32 @@ flowchart LR
 
 The proxy starts at the world pose computed from the local transforms, not the stored `WorldTransform`, which is stale until propagation runs. An entity without transforms gets an identity proxy. `RenderExtract` does not allocate.
 
+### Materials
+
+A surface material is a plain struct: its fields are the parameters (scalars, vectors, matrices, fixed-size arrays of those, and `DeviceHandle` textures), and its static `Evaluate` returns the `Surface` at one pixel. The engine owns everything around it: the vertex transform, the depth prepass and the G-buffer write.
+
+| Piece | Who writes it |
+| --- | --- |
+| A struct implementing `ISurfaceMaterial<TSelf>`: `Evaluate`, `Shader`, and `GetTextures` when it samples textures | you |
+| `[Shader] public partial class XShader : SurfaceShader<X>;`, one line, because Shade only compiles `[Shader]` classes | you |
+| `SurfaceMaterial<X>`, the `IMeshMaterial` that draws it: `new SurfaceMaterial<X>(data)`, then set `Data` to change it | the engine |
+| The color pass, shared depth pass, push constants and texture declarations | the engine |
+
+`PbrMaterial` (with `PbrShader`) is the default, and `Examples/Examples/Sponza/SponzaMaterial.cs` is a second one. From SceneTest:
+
+```csharp
+return new SurfaceMaterial<PbrMaterial>(new PbrMaterial
+{
+    BaseColorTexture = albedo.Result,
+    RoughnessTexture = roughness.Result,
+    MetallicTexture = metallic.Result
+});
+```
+
+To move vertices, override `ProcessVertex` (world-space vertex in and out, plus the scaled world time that `RenderExtract` pushes through `IRenderSystem.SetTime`), set `MaxVertexOffset` so culling bounds grow, and return a `SurfaceDepthShader<X>` from `DepthShader` so the depth prepass moves them the same way. Every mesh pipeline loads and projects vertices through `SurfaceVertices`, so color and depth agree on depth. `Examples/Examples/SceneTest/WavyMaterial.cs` sways a pillar this way.
+
+`SurfaceSampling.ColorOr` and `ValueOr` sample a texture or fall back to a constant when its handle is unset. A material that needs its own passes, push data or raster state implements `IMeshMaterial` directly instead.
+
 ### Skinning and sockets
 
 Animation is presentation, so it runs per frame on the time-scaled frame delta (`TimeScale` 0 freezes it), not on the fixed tick. Managed pose sources (`IPoseSource`, usually an `AnimationGraph`) live in `RenderFeature.PoseSources`, and `SkinnedMesh` refers to one by handle.
@@ -265,7 +291,7 @@ The snapshot blends each proxy's previous and current transform by the interpola
 | `FillGBufferIndirectPass` or `FillGBufferDirectPass` | view | depth image, color material data, textures, skinned vertices | GBuffer0..3 |
 | `LightingPass` | view | GBuffer0..3, the light array | the output image (`RGBA16`) |
 
-Meshes are batched by index buffer plus material, so each batch is one `DrawIndexedIndirectCount`. `ShadowPass` exists but is not implemented and nothing adds it.
+Meshes are batched by index buffer plus material pass (its type and shader), so each batch is one `DrawIndexedIndirectCount`. Materials that do not move vertices share `MeshDepthPass.Shared`, so their depth draws batch together whatever the material type, and a material with its own `DepthShader` gets one `SurfaceDepthPass<X>`. Culling bounds grow by the material's `MaxVertexOffset` (static meshes only: `BoundsUpdatePass` recomputes skinned bounds without it). `ShadowPass` exists but is not implemented and nothing adds it.
 
 ## Showing a world
 

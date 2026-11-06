@@ -217,7 +217,7 @@ public sealed class RenderFeature : IWorldRestoreListener
         for (var i = 0; i < surfaceCount; i++)
         {
             surfaceIndices[i] = i;
-            previous = resolved[i] = materials.TryGet(i) ?? previous ?? DefaultMeshMaterial.DefaultMesh;
+            previous = resolved[i] = materials.TryGet(i) ?? previous ?? DefaultMaterials.Pbr;
         }
 
         return (surfaceIndices, resolved);

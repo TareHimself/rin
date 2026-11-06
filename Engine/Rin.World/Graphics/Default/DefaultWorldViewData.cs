@@ -34,6 +34,8 @@ public class DefaultWorldViewData : IWorldCollectedData
     /// </summary>
     public MeshDrawMode DrawMode { get; init; } = MeshDrawMode.Auto;
 
+    public float Time { get; init; }
+
     /// <summary>The scene's shared half inside the graph currently being written; set by <see cref="Write" />.</summary>
     public DefaultSceneFrame SceneFrame { get; private set; } = null!;
 

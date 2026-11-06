@@ -177,6 +177,17 @@ public sealed class NullGraphicsModule : IGraphicsModule
         return _textures.ContainsKey(handle) || _buffers.Contains(handle);
     }
 
+    public ResourceHandle ResolveResourceHandle(DeviceHandle device)
+    {
+        foreach (var handle in _textures.Keys)
+            if (handle.Device == device)
+                return handle;
+        foreach (var handle in _buffers)
+            if (handle.Device == device)
+                return handle;
+        return new ResourceHandle(device.Type, 0);
+    }
+
     public Extent2D GetExtent(in ResourceHandle handle)
     {
         return _textures.TryGetValue(handle, out var info) ? info.Extent : Extent2D.Zero;

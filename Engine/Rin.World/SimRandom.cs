@@ -5,6 +5,10 @@ namespace Rin.World;
 ///     <see cref="WorldSnapshot" />, so a restored world draws the same sequence it drew after the save.
 /// </summary>
 /// <remarks>
+///     A port of the public-domain reference implementations,
+///     <see href="https://prng.di.unimi.it/xoshiro256starstar.c">xoshiro256starstar.c</see> and
+///     <see href="https://prng.di.unimi.it/splitmix64.c">splitmix64.c</see>; <c>SimRandomTests</c> checks it against their
+///     outputs. A library is not used because the state must be saved in snapshots, which the common ones hide.
 ///     Draw from it only inside the tick, in a fixed order, and never from presentation code: a draw anywhere else
 ///     changes every later draw of the simulation.
 /// </remarks>

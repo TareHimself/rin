@@ -122,6 +122,25 @@ public class ShaderCompilerTests
     }
 
     [Test]
+    public void PackageFromAnotherCompilerBuildIsStale()
+    {
+        WriteSource("common.slang", "static const int Value = 1;");
+        var source = WriteSource("main.slang", ComputeShader);
+        Assert.That(_compiler.TryCompile(source, out var shader), Is.True);
+        var package = Path.ChangeExtension(source, ".crsh");
+        ShaderPackageWriter.WriteToFile(new CompiledShader
+        {
+            Kind = shader!.Kind,
+            Stages = shader.Stages,
+            ThreadGroupSize = shader.ThreadGroupSize,
+            Dependencies = shader.Dependencies,
+            CompilerVersion = "an older build"
+        }, package);
+
+        Assert.That(_compiler.IsUpToDate(package, source), Is.False);
+    }
+
+    [Test]
     public void MissingPackageIsStale()
     {
         WriteSource("common.slang", "static const int Value = 1;");

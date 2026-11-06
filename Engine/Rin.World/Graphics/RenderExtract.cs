@@ -19,6 +19,7 @@ internal sealed class RenderExtract : FrameSystem
     private readonly Query<SkinnedMesh, RenderProxy> _skinnedMeshPoses;
     private readonly Query<PointLight, RenderProxy> _pointLights;
     private readonly Query<DirectionalLight, RenderProxy> _directionalLights;
+    private float _time;
 
     public RenderExtract(World world, IRenderSystem renderSystem, PoseSources poseSources)
     {
@@ -40,6 +41,8 @@ internal sealed class RenderExtract : FrameSystem
         PushPointLights();
         PushDirectionalLights();
         _renderSystem.SetInterpolationAlpha(context.InterpolationAlpha);
+        _time += context.DeltaSeconds;
+        _renderSystem.SetTime(_time);
     }
 
     private void PushMeshTransforms<TMesh>(Query<TMesh, WorldTransform, RenderProxy> meshes)

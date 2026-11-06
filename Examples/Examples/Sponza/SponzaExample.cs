@@ -15,6 +15,7 @@ using Rin.World.Graphics;
 using Rin.World.Transforms;
 using Rin.World.Graphics.Default;
 using Rin.World.Graphics.Mesh;
+using Rin.World.Graphics.Surfaces;
 using SharpGLTF.Schema2;
 using Camera = Rin.World.Graphics.Camera;
 using Texture = SharpGLTF.Schema2.Texture;
@@ -139,7 +140,7 @@ public sealed class SponzaExample : Example
     {
         var model = ModelRoot.Load(filename);
         var mesh = model?.LogicalMeshes?.FirstOrDefault() ?? throw new NullReferenceException();
-        IMeshMaterial?[] materials = new SponzaMeshMaterial?[mesh.Primitives.Count];
+        IMeshMaterial?[] materials = new IMeshMaterial?[mesh.Primitives.Count];
         List<MeshSurface> surfaces = [];
         List<uint> indices = [];
         List<Vertex> vertices = [];
@@ -157,12 +158,12 @@ public sealed class SponzaExample : Example
             var baseColorImage = LoadImage(baseColor.Texture, textures);
             var normalImage = LoadImage(normalColor.Texture, textures);
             var pbrImage = LoadImage(pbrColor.Texture, textures);
-            materials[idx] = new SponzaMeshMaterial
+            materials[idx] = new SurfaceMaterial<SponzaMaterial>(new SponzaMaterial
             {
-                ColorImageId = baseColorImage,
-                NormalImageId = normalImage,
-                MetallicRoughnessImageId = pbrImage
-            };
+                ColorTexture = baseColorImage,
+                NormalTexture = normalImage,
+                MetallicRoughnessTexture = pbrImage
+            });
         });
         Log.Info("Loading geometry");
         foreach (var primitive in mesh.Primitives)

@@ -24,8 +24,6 @@ public abstract class SimpleMaterialPass : IMaterialPass
     /// <returns></returns>
     public abstract IGraphicsBindContext? BindGroup(WorldFrame frame, in DeviceBufferView groupMaterialBuffer);
 
-    protected abstract IMaterialPass GetPass(ProcessedMesh mesh);
-
     public virtual void DeclareResources(IGraphConfig config, ProcessedMesh mesh)
     {
     }

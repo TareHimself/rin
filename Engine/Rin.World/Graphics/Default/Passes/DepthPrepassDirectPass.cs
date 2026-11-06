@@ -48,7 +48,8 @@ public class DepthPrepassDirectPass(DefaultWorldViewData view) : IPass
         {
             View = worldFrame.View,
             Projection = worldFrame.Projection,
-            ViewProjection = worldFrame.ViewProjection
+            ViewProjection = worldFrame.ViewProjection,
+            Time = view.Time
         });
 
         var i = 0;

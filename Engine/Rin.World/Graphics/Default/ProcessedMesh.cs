@@ -2,6 +2,8 @@ using System.Diagnostics;
 using System.Numerics;
 using Rin.Core.Graphics;
 using Rin.Core.Shared;
+using Rin.Shade;
+using Rin.World.Graphics.Default.Shaders;
 using Rin.World.Graphics.Mesh;
 
 namespace Rin.World.Graphics.Default;
@@ -29,6 +31,12 @@ public class ProcessedMesh
     /// </summary>
     public required DeviceBufferView VertexBuffer { get; set; }
     public required IMeshMaterial Material { get; set; }
+
+    public MeshInstance ToInstance() => new()
+    {
+        Transform = Transform,
+        Vertices = new BufferRef<Vertex>(VertexBuffer.GetAddress())
+    };
     //
     // public class CompareByIndexAndMaterial : IEqualityComparer<ProcessedMesh>
     // {
