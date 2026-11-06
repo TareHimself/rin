@@ -35,7 +35,12 @@ public sealed class SurfaceMaterial<TMaterial> : IMeshMaterial where TMaterial :
 
     public bool Translucent => false;
     public IMaterialPass ColorPass => SurfaceColorPass<TMaterial>.Shared;
-    public IMaterialPass DepthPass => MeshDepthPass.Shared;
+    public IMaterialPass DepthPass =>
+        TMaterial.DepthShader is null ? MeshDepthPass.Shared : SurfaceDepthPass<TMaterial>.Shared;
+
+    public float MaxVertexOffset => TMaterial.MaxVertexOffset;
+
+    internal SurfaceDraw<TMaterial> ToDraw(ProcessedMesh mesh) => new() { Instance = mesh.ToInstance(), Material = _data };
 
     private static ResourceHandle[] ResolveTextures(in TMaterial data)
     {

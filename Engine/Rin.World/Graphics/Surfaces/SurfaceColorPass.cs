@@ -5,7 +5,6 @@ using Rin.Core.Graphics.Graph;
 using Rin.Core.Graphics.Shaders;
 using Rin.Shade;
 using Rin.World.Graphics.Default;
-using Rin.World.Graphics.Default.Shaders;
 
 namespace Rin.World.Graphics.Surfaces;
 
@@ -46,11 +45,7 @@ public sealed class SurfaceColorPass<TMaterial> : SimpleMaterialPass
 
     public override void Write(Span<byte> destination, ProcessedMesh mesh)
     {
-        MemoryMarshal.Write(destination, new SurfaceDraw<TMaterial>
-        {
-            Instance = mesh.ToInstance(),
-            Material = Material(mesh).Data
-        });
+        MemoryMarshal.Write(destination, Material(mesh).ToDraw(mesh));
     }
 
     private static SurfaceMaterial<TMaterial> Material(ProcessedMesh mesh) => (SurfaceMaterial<TMaterial>)mesh.Material;

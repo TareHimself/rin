@@ -50,18 +50,16 @@ public abstract class SurfaceShader<TMaterial> : Shader where TMaterial : unmana
     [Vertex]
     public SurfaceVertexOut Vertex(SurfaceVertexIn input)
     {
-        var instance = Push.Draws[input.InstanceId].Instance;
+        var draw = Push.Draws[input.InstanceId];
         var scene = Push.Scene[0];
-        var vertex = instance.Vertices[input.VertexId];
-        var worldPosition = Vector4.Transform(new Vector4(vertex.Location, 1f), instance.Transform);
+        var world = TMaterial.ProcessVertex(draw.Material, SurfaceVertices.Load(draw.Instance, input.VertexId),
+            scene.Time);
 
         SurfaceVertexOut output;
-        output.Uv = vertex.UV;
-        output.WorldPosition = worldPosition.XYZ;
-        output.WorldNormal = ShaderMath.TransformNormal(vertex.Normal, instance.Transform);
-        // View then projection, the same ops as MeshDepthShader, so the prepass depth matches exactly.
-        var viewPosition = Vector4.Transform(worldPosition, scene.View);
-        output.Position = Vector4.Transform(viewPosition, scene.Projection);
+        output.Uv = world.Uv;
+        output.WorldPosition = world.Position;
+        output.WorldNormal = world.Normal;
+        output.Position = SurfaceVertices.Project(world.Position, scene.View, scene.Projection);
         output.InstanceId = input.InstanceId;
         return output;
     }

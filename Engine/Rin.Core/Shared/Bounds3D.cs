@@ -26,6 +26,16 @@ public record struct Bounds3D : IAdditionOperators<Bounds3D, Bounds3D, Bounds3D>
         };
     }
 
+    [Pure]
+    public Bounds3D Expand(float amount)
+    {
+        return new Bounds3D
+        {
+            Min = Min - new Vector3(amount),
+            Max = Max + new Vector3(amount)
+        };
+    }
+
     public static Bounds3D FromVector(in Vector3 location)
     {
         return new Bounds3D

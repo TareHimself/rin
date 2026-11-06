@@ -18,6 +18,15 @@ public class Bounds3DTests
     }
 
     [Test]
+    public void ExpandGrowsEveryFaceByTheAmount()
+    {
+        var bounds = new Bounds3D { Min = new Vector3(0, 1, 2), Max = new Vector3(3, 4, 5) }.Expand(0.5f);
+
+        Assert.That(bounds.Min, Is.EqualTo(new Vector3(-0.5f, 0.5f, 1.5f)));
+        Assert.That(bounds.Max, Is.EqualTo(new Vector3(3.5f, 4.5f, 5.5f)));
+    }
+
+    [Test]
     public void FromVectorProducesAZeroSizedBoundsAtThatPoint()
     {
         var bounds = Bounds3D.FromVector(new Vector3(2, 3, 4));

@@ -36,6 +36,7 @@ public class DefaultRenderSystem : IRenderSystem
     private readonly Stack<uint> _freeIndices = new();
     private readonly ConcurrentQueue<Action> _commands = new();
     private float _interpolationAlpha = 1f;
+    private float _time;
     private DefaultWorldSnapshot? _scene;
     private float _sceneAlpha;
 
@@ -94,6 +95,11 @@ public class DefaultRenderSystem : IRenderSystem
         _interpolationAlpha = float.Clamp(alpha, 0f, 1f);
     }
 
+    public void SetTime(float seconds)
+    {
+        _time = seconds;
+    }
+
     public void UpdateStaticMeshProxy(RenderProxyHandle handle, in StaticMeshProxyDesc desc)
     {
         var captured = desc;
@@ -134,7 +140,7 @@ public class DefaultRenderSystem : IRenderSystem
             _sceneAlpha = _interpolationAlpha;
         }
 
-        return new DefaultWorldViewData(view, extent, _scene) { DrawMode = DrawMode };
+        return new DefaultWorldViewData(view, extent, _scene) { DrawMode = DrawMode, Time = _time };
     }
 
     private DefaultWorldSnapshot BuildScene()

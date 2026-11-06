@@ -154,6 +154,8 @@ return new SurfaceMaterial<PbrMaterial>(new PbrMaterial
 });
 ```
 
+To move vertices, override `ProcessVertex` (world-space vertex in and out, plus the scaled world time that `RenderExtract` pushes through `IRenderSystem.SetTime`), set `MaxVertexOffset` so culling bounds grow, and return a `SurfaceDepthShader<X>` from `DepthShader` so the depth prepass moves them the same way. Every mesh pipeline loads and projects vertices through `SurfaceVertices`, so color and depth agree on depth. `Examples/Examples/SceneTest/WavyMaterial.cs` sways a pillar this way.
+
 `SurfaceSampling.ColorOr` and `ValueOr` sample a texture or fall back to a constant when its handle is unset. A material that needs its own passes, push data or raster state implements `IMeshMaterial` directly instead.
 
 ### Skinning and sockets
@@ -289,7 +291,7 @@ The snapshot blends each proxy's previous and current transform by the interpola
 | `FillGBufferIndirectPass` or `FillGBufferDirectPass` | view | depth image, color material data, textures, skinned vertices | GBuffer0..3 |
 | `LightingPass` | view | GBuffer0..3, the light array | the output image (`RGBA16`) |
 
-Meshes are batched by index buffer plus material pass (its type and shader), so each batch is one `DrawIndexedIndirectCount`. Materials that do not move vertices share `MeshDepthPass.Shared`, so their depth draws batch together whatever the material type. `ShadowPass` exists but is not implemented and nothing adds it.
+Meshes are batched by index buffer plus material pass (its type and shader), so each batch is one `DrawIndexedIndirectCount`. Materials that do not move vertices share `MeshDepthPass.Shared`, so their depth draws batch together whatever the material type, and a material with its own `DepthShader` gets one `SurfaceDepthPass<X>`. Culling bounds grow by the material's `MaxVertexOffset` (static meshes only: `BoundsUpdatePass` recomputes skinned bounds without it). `ShadowPass` exists but is not implemented and nothing adds it.
 
 ## Showing a world
 

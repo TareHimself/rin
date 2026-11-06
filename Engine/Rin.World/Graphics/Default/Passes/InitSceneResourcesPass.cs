@@ -18,7 +18,7 @@ public class InitSceneResourcesPass(DefaultSceneFrame sceneFrame) : IPass
     {
         var meshes = sceneFrame.ProcessedMeshes;
         using var bounds = new PooledMemory<Bounds3D>(meshes.Count);
-        for (var i = 0; i < meshes.Count; i++) bounds[i] = meshes[i].Surface.Bounds;
+        for (var i = 0; i < meshes.Count; i++) bounds[i] = meshes[i].Surface.Bounds.Expand(meshes[i].Material.MaxVertexOffset);
         graph.GetBufferOrException(sceneFrame.BoundsBufferId).Write(bounds);
     }
 }

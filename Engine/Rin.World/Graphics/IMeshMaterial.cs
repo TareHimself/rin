@@ -21,6 +21,11 @@ public interface IMeshMaterial
     ///     The pass used for the depth pre-pass
     /// </summary>
     public IMaterialPass DepthPass { get; }
+
+    /// <summary>
+    ///     The furthest the material's vertex stage moves a vertex, so culling bounds grow to cover it.
+    /// </summary>
+    public float MaxVertexOffset => 0f;
 }
 
 /// <summary>

@@ -19,6 +19,22 @@ public interface ISurfaceMaterial<TSelf> where TSelf : unmanaged, ISurfaceMateri
     static abstract IGraphicsDescriptor Shader { get; }
 
     /// <summary>
+    ///     Moves a vertex in world space before it is projected. A material that overrides this must also return its
+    ///     own <see cref="DepthShader" />, or the shared depth prepass would not match the color pass.
+    /// </summary>
+    static virtual WorldVertex ProcessVertex(in TSelf material, in WorldVertex vertex, float time) => vertex;
+
+    /// <summary>
+    ///     The furthest <see cref="ProcessVertex" /> moves a vertex, so culling bounds grow to cover it.
+    /// </summary>
+    static virtual float MaxVertexOffset => 0f;
+
+    /// <summary>
+    ///     A <see cref="SurfaceDepthShader{TMaterial}" /> for materials that move vertices, or null for the shared one.
+    /// </summary>
+    static virtual IGraphicsDescriptor? DepthShader => null;
+
+    /// <summary>
     ///     Every texture the material samples, so the frame keeps them alive and orders the reads after their writers.
     /// </summary>
     static virtual void GetTextures(in TSelf material, ref TextureList textures)
