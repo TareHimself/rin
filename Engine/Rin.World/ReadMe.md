@@ -80,7 +80,7 @@ The `scripting` example has one small script per pattern (patrol, sequenced door
 | `PointLight`, `DirectionalLight` | Color, radiance, radius |
 | `Camera` | `world.GetCameraView(entity)` for a `Viewport` |
 
-One mesh or light per entity, so use child entities for more. Animation runs per frame. `renderFeature.AttachToBone(child, parent, "bone")` sockets an entity to a bone.
+One mesh or light per entity, so use child entities for more. Animation runs per frame. `renderFeature.AttachToBone(child, parent, "bone")` makes a child follow a bone, with its `LocalTransform` as the offset from the bone. Call it again to move it to another bone, and `DetachFromBone` to stop.
 
 ### Materials
 

@@ -106,6 +106,32 @@ public class BoneSocketSyncTests
         Assert.That(WorldPosition(child), Is.EqualTo(new Vector3(10, 0, 0)));
     }
 
+    [Test]
+    public void ReattachingToAnotherBoneOfTheSameParentMovesTheChildWithAStaticPose()
+    {
+        var child = SpawnSocketedChild(Vector3.Zero);
+        _world.Update(0f);
+
+        _feature.AttachToBone(child, _parent, "root");
+        _world.Update(0f);
+
+        Assert.That(WorldPosition(child), Is.EqualTo(new Vector3(10, 0, 0)));
+    }
+
+    [Test]
+    public void DetachingFromTheBoneKeepsTheParentAndDropsTheSocket()
+    {
+        var child = SpawnSocketedChild(Vector3.Zero);
+        _world.Update(0f);
+
+        _feature.DetachFromBone(child);
+        _world.Update(0f);
+
+        Assert.That(_world.Has<AttachSocket>(child), Is.False);
+        Assert.That(_world.GetParent(child), Is.EqualTo(_parent));
+        Assert.That(WorldPosition(child), Is.EqualTo(new Vector3(10, 0, 0)));
+    }
+
     private Entity SpawnSocketedChild(Vector3 localPosition)
     {
         var child = _world.Spawn();
