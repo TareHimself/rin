@@ -6,29 +6,61 @@ on:
   pull_request:
 
 jobs:
+  # Which projects a pull request can affect, derived from the .csproj references (scripts/ci_affected_projects.py).
+  # Jobs still start and report (the ruleset requires their checks), but skip their steps when their project is not
+  # affected. A job-level if would report a skipped matrix job under an unexpanded name. Pushes to main run everything.
+  changes:
+    name: Detect changes
+    runs-on: ubuntu-latest
+    outputs:
+      projects: ${{ steps.affected.outputs.projects }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - id: affected
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            echo "projects=$(python3 scripts/ci_affected_projects.py origin/${{ github.base_ref }})" >> "$GITHUB_OUTPUT"
+          else
+            echo "projects=[]" >> "$GITHUB_OUTPUT"
+          fi
+
   # Builds the real Rin.Slang.Native (a prebuilt Slang release plus a small C++ wrapper, nothing from
   # Slang's own source) and publishes a NuGet feed with it, for the jobs that need real Slang.
   build-native-slang:
     name: Build native Slang
+    needs: changes
     runs-on: windows-latest
+    env:
+      RUN: ${{ github.event_name == 'push' || contains(fromJSON(needs.changes.outputs.projects), 'Shade/Rin.Shade.CpuTests/Rin.Shade.CpuTests.csproj') || contains(fromJSON(needs.changes.outputs.projects), 'Engine/Rin.World/Rin.World.csproj') }}
     steps:
+      - name: Skip, no real-Slang project affected
+        if: env.RUN != 'true'
+        run: echo "Skipped"
       - uses: actions/checkout@v7
+        if: env.RUN == 'true'
       - uses: ./.github/actions/setup
+        if: env.RUN == 'true'
 
       - name: Pack native stub packages
+        if: env.RUN == 'true'
         run: uv run python scripts/pack_native_stubs.py .feed
 
       # No cache for silo's store yet: without a lock file nothing pins what it resolves, so a cached store
       # could hide a changed dependency. Every run builds Slang from scratch for now.
       - name: Detect the compiler
+        if: env.RUN == 'true'
         run: uv run silo profile detect --force
 
       # The real package gets a higher version than the stub (1.0.0) so the floating 1.* reference resolves to
       # it. The same version would be treated as already installed by the shared NuGet package cache.
       - name: Build and pack the real Rin.Slang.Native into the feed
+        if: env.RUN == 'true'
         run: uv run python scripts/pack_native.py Rin.Slang.Native --version 1.0.1
 
       - uses: actions/upload-artifact@v4
+        if: env.RUN == 'true'
         with:
           name: native-feed
           path: .feed
@@ -39,7 +71,10 @@ jobs:
   # native code). Real shader compilation is skipped: it needs the real Slang, see test-real-slang.
   test:
     name: Test ${{ matrix.name }}
+    needs: changes
     runs-on: windows-latest
+    env:
+      RUN: ${{ github.event_name == 'push' || contains(fromJSON(needs.changes.outputs.projects), matrix.project) }}
     strategy:
       fail-fast: false
       matrix:
@@ -54,49 +89,69 @@ jobs:
           - { name: Rin.Graphics.Vulkan.Tests, project: Engine/Rin.Graphics.Vulkan.Tests/Rin.Graphics.Vulkan.Tests.csproj, fakes: true, args: '-p:RinShadeSkipCompile=true' }
           - { name: Rin.Shade.Tests, project: Shade/Rin.Shade.Tests/Rin.Shade.Tests.csproj, fakes: false, args: '' }
     steps:
+      - name: Skip, this project is not affected
+        if: env.RUN != 'true'
+        run: echo "Skipped"
       - uses: actions/checkout@v7
+        if: env.RUN == 'true'
       - uses: ./.github/actions/setup
+        if: env.RUN == 'true'
 
       - name: Pack native stub packages
+        if: env.RUN == 'true'
         run: uv run python scripts/pack_native_stubs.py .feed
 
       # RinShade.targets builds Rin.Shade.MSBuild on demand if it isn't already built, but never restores
       # it first, which fails with NETSDK1004 on a clean checkout. Restoring the whole solution once up
       # front avoids that.
       - name: Restore
+        if: env.RUN == 'true'
         run: dotnet restore rin.sln -p:RinShadeSkipCompile=true
 
       - name: Publish native fakes
-        if: matrix.fakes
+        if: env.RUN == 'true' && matrix.fakes
         run: uv run python scripts/publish_native_fakes.py win-x64
 
       - name: Test
+        if: env.RUN == 'true'
         run: dotnet test ${{ matrix.project }} ${{ matrix.args }} --no-restore --nologo --logger "console;verbosity=normal"
 
   # What the stub-based jobs cannot do: needs the real Slang from the build-native-slang job.
   test-real-slang:
     name: ${{ matrix.name }} (real Slang)
-    needs: build-native-slang
+    needs: [changes, build-native-slang]
     runs-on: windows-latest
+    env:
+      RUN: ${{ github.event_name == 'push' || contains(fromJSON(needs.changes.outputs.projects), matrix.project) }}
     strategy:
       fail-fast: false
       matrix:
         include:
           - name: Test Rin.Shade.CpuTests
+            project: Shade/Rin.Shade.CpuTests/Rin.Shade.CpuTests.csproj
             command: dotnet test Shade/Rin.Shade.CpuTests/Rin.Shade.CpuTests.csproj --no-restore --nologo --logger "console;verbosity=normal"
           - name: Compile all shaders
+            project: Engine/Rin.World/Rin.World.csproj
             command: dotnet build Engine/Rin.World/Rin.World.csproj -c Release --no-restore --nologo
     steps:
+      - name: Skip, no real-Slang project affected
+        if: env.RUN != 'true'
+        run: echo "Skipped"
       - uses: actions/checkout@v7
+        if: env.RUN == 'true'
       - uses: ./.github/actions/setup
+        if: env.RUN == 'true'
 
       - uses: actions/download-artifact@v4
+        if: env.RUN == 'true'
         with:
           name: native-feed
           path: .feed
 
       - name: Restore
+        if: env.RUN == 'true'
         run: dotnet restore rin.sln -p:RinShadeSkipCompile=true
 
       - name: Run
+        if: env.RUN == 'true'
         run: ${{ matrix.command }}
