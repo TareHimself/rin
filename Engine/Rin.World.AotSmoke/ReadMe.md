@@ -1,6 +1,6 @@
 # Rin.World.AotSmoke
 
-A console app with `PublishAot` that checks a `World` runs under NativeAOT, where the ECS schema comes from the generated component registrations instead of reflection (see [Rin.World](../Rin.World/ReadMe.md#component-registration-and-nativeaot)). It spawns entities with components and tags, runs a query, plays back the command buffer, propagates a hierarchy, and saves and restores a snapshot. It exits 0 on success and 1 with the failed check on stderr.
+A console app with `PublishAot` that checks a `World` runs under NativeAOT, where the ECS schema comes from the generated component registrations instead of reflection (see [Rin.World](../Rin.World/ReadMe.md)). It spawns entities with components and tags, runs a query, plays back the command buffer, propagates a hierarchy, and saves and restores a snapshot. It exits 0 on success and 1 with the failed check on stderr.
 
 Publish and run it from PowerShell. The NativeAOT linker finds the C++ toolchain through `vswhere`, which is not on the PATH of Git Bash:
 

@@ -72,6 +72,11 @@ public sealed class RenderFeature : IWorldRestoreListener
         World.Add(child, new AttachSocket(boneIndex) { SocketMatrix = poseSource.BoneMatrices[boneIndex] });
     }
 
+    /// <summary>
+    ///     Stops <paramref name="child" /> following a bone. It stays parented and is placed relative to its parent again.
+    /// </summary>
+    public void DetachFromBone(Entity child) => World.Remove<AttachSocket>(child);
+
     void IWorldRestoreListener.BeforeRestore()
     {
         foreach (var (proxies, _) in _proxies)

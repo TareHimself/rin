@@ -100,15 +100,15 @@ public partial class SpectrumShader : ViewShader<SpectrumShader.FragmentIn>
         var data = Push.Data[0];
         var corners = new[]
         {
-            new Vector2(0f, 0f), new Vector2(data.Size.X, 0f), new Vector2(data.Size.X, data.Size.Y),
-            new Vector2(0f, 0f), new Vector2(data.Size.X, data.Size.Y), new Vector2(0f, data.Size.Y)
+            new Vector2(0f, 0f), data.Size with { Y = 0f }, new Vector2(data.Size.X, data.Size.Y),
+            new Vector2(0f, 0f), new Vector2(data.Size.X, data.Size.Y), data.Size with { X = 0f }
         };
 
         var corner = corners[input.VertexId];
         var projected = Vector4.Transform(Vector4.Transform(new Vector4(corner, 0f, 1f), data.Transform), data.Projection);
 
         VertexOut output;
-        output.Position = new Vector4(projected.X, projected.Y, 0f, 1f);
+        output.Position = projected with { Z = 0f, W = 1f };
         output.Uv = corner / data.Size;
         return output;
     }
