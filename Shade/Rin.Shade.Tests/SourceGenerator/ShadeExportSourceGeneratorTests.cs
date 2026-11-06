@@ -57,6 +57,24 @@ public class ShadeExportSourceGeneratorTests
     }
 
     [Test]
+    public void ExportedInterfaceIsEmbedded()
+    {
+        const string source = """
+                               using Rin.Shade;
+
+                               namespace ExportCheck;
+
+                               [ShadeExport]
+                               public interface IScale<TSelf> where TSelf : IScale<TSelf>
+                               {
+                                   static abstract float Scale(in TSelf value);
+                               }
+                               """;
+
+        Assert.That(RunAndGetContainerSource(source), Does.Contain("static abstract float Scale(in TSelf value);"));
+    }
+
+    [Test]
     public void ExportedRecordStructIsEmbedded()
     {
         const string source = """

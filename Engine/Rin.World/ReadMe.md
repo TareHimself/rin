@@ -132,6 +132,30 @@ flowchart LR
 
 The proxy starts at the world pose computed from the local transforms, not the stored `WorldTransform`, which is stale until propagation runs. An entity without transforms gets an identity proxy. `RenderExtract` does not allocate.
 
+### Materials
+
+A surface material is a plain struct: its fields are the parameters (scalars, vectors, matrices, fixed-size arrays of those, and `DeviceHandle` textures), and its static `Evaluate` returns the `Surface` at one pixel. The engine owns everything around it: the vertex transform, the depth prepass and the G-buffer write.
+
+| Piece | Who writes it |
+| --- | --- |
+| A struct implementing `ISurfaceMaterial<TSelf>`: `Evaluate`, `Shader`, and `GetTextures` when it samples textures | you |
+| `[Shader] public partial class XShader : SurfaceShader<X>;`, one line, because Shade only compiles `[Shader]` classes | you |
+| `SurfaceMaterial<X>`, the `IMeshMaterial` that draws it: `new SurfaceMaterial<X>(data)`, then set `Data` to change it | the engine |
+| The color pass, shared depth pass, push constants and texture declarations | the engine |
+
+`PbrMaterial` (with `PbrShader`) is the default, and `Examples/Examples/Sponza/SponzaMaterial.cs` is a second one. From SceneTest:
+
+```csharp
+return new SurfaceMaterial<PbrMaterial>(new PbrMaterial
+{
+    BaseColorTexture = albedo.Result,
+    RoughnessTexture = roughness.Result,
+    MetallicTexture = metallic.Result
+});
+```
+
+`SurfaceSampling.ColorOr` and `ValueOr` sample a texture or fall back to a constant when its handle is unset. A material that needs its own passes, push data or raster state implements `IMeshMaterial` directly instead.
+
 ### Skinning and sockets
 
 Animation is presentation, so it runs per frame on the time-scaled frame delta (`TimeScale` 0 freezes it), not on the fixed tick. Managed pose sources (`IPoseSource`, usually an `AnimationGraph`) live in `RenderFeature.PoseSources`, and `SkinnedMesh` refers to one by handle.

@@ -21,7 +21,7 @@ With no argument a launcher window lists the examples and Back returns to it. Wi
 | `text-input` | `TextInput/` | A single line and a multi line field with a readout of the caret, the composition and the code units. | Click a field and type, Escape drops focus. |
 | `audio-player` | `AudioPlayer/` | A music player: queue, albums, cover art, a blurred backdrop, a six band equalizer and a spectrum visualizer around the cover with several looks. | Plus button, drop files or pass paths. Space plays and pauses, Left and Right skip, `V` cycles the visualizer. |
 | `scene-test` | `SceneTest/` | A 3D world with physics in a dockable layout with a perspective and a top camera. A `BoxRain` script drops a box every 3 seconds from a `GameTask`. | W, A, S, D move, P drops a grid of boxes, a button opens the render graph overlay. |
-| `sponza` | `Sponza/` | `assets/models/sponza.glb` with a custom Shade mesh material and an FPS counter. | W, A, S, D and the mouse move the camera while the viewport is focused. |
+| `sponza` | `Sponza/` | `assets/models/sponza.glb` with a custom surface material (`SponzaMaterial`) and an FPS counter. | W, A, S, D and the mouse move the camera while the viewport is focused. |
 | `asset-viewer` | `AssetViewer/` | The skinned fox model looping its run animation. | None. |
 | `render-graph` | `RenderGraphViewer/` | A small scene with the render graph overlay open. | Capture snapshots a frame. |
 | `headless` | `HeadlessTest/` | The engine with no window and no GPU: drops a sphere entity in a `World` with a `PhysicsFeature`, prints its height and exits after 3 seconds. | None. |

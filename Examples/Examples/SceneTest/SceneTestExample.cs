@@ -21,6 +21,7 @@ using Rin.World.Scripting;
 using Rin.World.Transforms;
 using Rin.World.Graphics.Default;
 using Rin.World.Graphics.Mesh;
+using Rin.World.Graphics.Surfaces;
 using Rin.World.Mesh;
 using Rin.World.Mesh.Skinning.Animation;
 using Rin.World.Physics.Bepu;
@@ -178,7 +179,7 @@ public sealed class SceneTestExample : Example
     }
 
     // The Khronos Fox sample is authored about 79 units tall, so it is scaled down to the size of the boxes.
-    private void LoadFoxes(RenderFeature render, DefaultMeshMaterial material)
+    private void LoadFoxes(RenderFeature render, SurfaceMaterial<PbrMaterial> material)
     {
         var foxPath = Path.Join(Global.Directory, "assets", "models", "fox.glb");
         GltfMeshImporter.LoadSkinnedMesh(foxPath).DispatchMain(skinned =>
@@ -328,7 +329,7 @@ public sealed class SceneTestExample : Example
         }
     }
 
-    private async Task<DefaultMeshMaterial> LoadGoldMaterial()
+    private async Task<SurfaceMaterial<PbrMaterial>> LoadGoldMaterial()
     {
         var albedo = _textures.Load(Path.Join(Global.Directory, "assets", "textures", "au_albedo.png"));
         var roughness = _textures.Load(Path.Join(Global.Directory, "assets", "textures", "au_roughness.png"));
@@ -336,11 +337,11 @@ public sealed class SceneTestExample : Example
         var normal = _textures.Load(Path.Join(Global.Directory, "assets", "textures", "au_normal.png"));
 
         await Task.WhenAll(albedo, roughness, metallic, normal);
-        return new DefaultMeshMaterial
+        return new SurfaceMaterial<PbrMaterial>(new PbrMaterial
         {
-            ColorImageId = albedo.Result,
-            RoughnessImageId = roughness.Result,
-            MetallicImageId = metallic.Result
-        };
+            BaseColorTexture = albedo.Result,
+            RoughnessTexture = roughness.Result,
+            MetallicTexture = metallic.Result
+        });
     }
 }

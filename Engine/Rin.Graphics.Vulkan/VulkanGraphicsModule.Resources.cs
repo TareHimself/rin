@@ -609,6 +609,21 @@ public partial class VulkanGraphicsModule
         };
     }
 
+    public ResourceHandle ResolveResourceHandle(DeviceHandle device)
+    {
+        BindlessResource? resource = device.Id == 0
+            ? null
+            : device.Type switch
+            {
+                ResourceType.Texture => _textures.Get(device.Id),
+                ResourceType.Cubemap => _cubemaps.Get(device.Id),
+                ResourceType.TextureArray => _textureArrays.Get(device.Id),
+                ResourceType.Buffer => _buffers.Get(device.Id),
+                _ => null
+            };
+        return resource is { Retired: false, Handle.Id: > 0 } ? resource.Handle : new ResourceHandle(device.Type, 0);
+    }
+
     public void FreeResourceHandles(params ReadOnlySpan<ResourceHandle> handles)
     {
         lock (_resourceSync)

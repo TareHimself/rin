@@ -99,6 +99,12 @@ public interface  IGraphicsModule : IModule, IUpdatable, IProviderResolvable<IGr
         Offset2D offset = default);
 
     public bool IsValidResourceHandle(in ResourceHandle handle);
+
+    /// <summary>
+    ///     The live handle for the resource currently in <paramref name="device" />'s slot, or an invalid handle when the
+    ///     slot is empty or its resource was freed. Recovers the generation a GPU-side <see cref="DeviceHandle" /> drops.
+    /// </summary>
+    public ResourceHandle ResolveResourceHandle(DeviceHandle device);
     public Extent2D GetExtent(in ResourceHandle handle);
     public ImageFormat GetFormat(in ResourceHandle handle);
     public void FreeResourceHandles(params ReadOnlySpan<ResourceHandle> handles);

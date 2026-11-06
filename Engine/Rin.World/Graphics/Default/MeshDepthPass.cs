@@ -4,7 +4,6 @@ using Rin.Core.Graphics;
 using Rin.Core.Graphics.Shaders;
 using Rin.Shade;
 using Rin.World.Graphics.Default.Shaders;
-using Rin.World.Graphics.Mesh;
 
 namespace Rin.World.Graphics.Default;
 
@@ -40,10 +39,6 @@ public sealed class MeshDepthPass : SimpleMaterialPass
 
     public override void Write(Span<byte> destination, ProcessedMesh mesh)
     {
-        MemoryMarshal.Write(destination, new MeshInstance
-        {
-            Transform = mesh.Transform,
-            Vertices = new BufferRef<Vertex>(mesh.VertexBuffer.GetAddress())
-        });
+        MemoryMarshal.Write(destination, mesh.ToInstance());
     }
 }
