@@ -592,6 +592,7 @@ internal sealed class BodyLowering(
     {
         var method = ExtensionMembers.Normalize(invocation.TargetMethod);
         if (substitution is not null) method = substitution.Apply(method);
+        method = InterfaceDispatch.Resolve(invocation, method, substitution);
         if (overrides is not null) method = OverrideResolution.Resolve(method, overrides);
 
         if (IsVectorMatrixTransform(method))
@@ -633,8 +634,11 @@ internal sealed class BodyLowering(
             return call;
         }
 
-        diagnostics.Add(Diagnostic.Create(Diagnostics.Emitter.NoSourceForMethod,
-            invocation.Syntax.GetLocation(), method.Name));
+        diagnostics.Add(method.ContainingType is { TypeKind: TypeKind.Interface } owner
+            ? Diagnostic.Create(Diagnostics.Emitter.InterfaceCallWithoutConcreteType,
+                invocation.Syntax.GetLocation(), method.Name, owner.Name)
+            : Diagnostic.Create(Diagnostics.Emitter.NoSourceForMethod,
+                invocation.Syntax.GetLocation(), method.Name));
         return "/* unresolved call */";
     }
 
