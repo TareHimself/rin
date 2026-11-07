@@ -1,8 +1,10 @@
 using System.Numerics;
+using Rin.Shade;
 using static Rin.Shade.Shader;
 
 namespace Rin.World.Graphics.Default.Shaders;
 
+[ShadeExport]
 public static class LightMath
 {
     public static Vector3 DirectionToLight(LightInfo light, Vector3 location)

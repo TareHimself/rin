@@ -3,8 +3,6 @@ using JetBrains.Annotations;
 using Rin.Core.Graphics;
 using Rin.Core.Views.Graphics.Shaders;
 using Rin.Shade;
-using Rin.World.Graphics;
-using Rin.World.Graphics.Default.Shaders;
 
 namespace Rin.World.Views.Shaders;
 
@@ -15,10 +13,6 @@ public struct ViewportPushData
     public Matrix4x4 Transform;
     public Vector2 Size;
     public DeviceHandle OutputImage;
-    public GBufferHandles GBuffer;
-    public BufferRef<LightInfo> Lights;
-    public int LightCount;
-    public ViewportChannel Channel;
 }
 
 [Shader]
@@ -67,52 +61,9 @@ public partial class ViewportShader : ViewShader<ViewportShader.FragmentIn>
         return output;
     }
 
-    private Vector4 SampleImage(DeviceHandle handle, Vector2 uv)
-    {
-        return Bindless.SampleTexture(handle, uv, ImageTiling.Repeat, ImageFilter.Linear);
-    }
-
     protected override Vector4 Color(FragmentIn input)
     {
         var data = Push.Data[0];
-        var uv = input.Uv;
-
-        switch (data.Channel)
-        {
-            case ViewportChannel.Color:
-                return new Vector4(SampleImage(data.GBuffer.GBuffer0, uv).XYZ, 1f);
-
-            case ViewportChannel.Location:
-                return new Vector4(SampleImage(data.GBuffer.GBuffer1, uv).XYZ, 1f);
-
-            case ViewportChannel.Normal:
-                return new Vector4(SampleImage(data.GBuffer.GBuffer2, uv).XYZ, 1f);
-
-            case ViewportChannel.RoughnessMetallicSpecular:
-                return new Vector4(SampleImage(data.GBuffer.GBuffer0, uv).W, SampleImage(data.GBuffer.GBuffer1, uv).W,
-                    SampleImage(data.GBuffer.GBuffer2, uv).W, 1f);
-
-            case ViewportChannel.Emissive:
-                return new Vector4(new Vector3(SampleImage(data.GBuffer.GBuffer3, uv).X), 1f);
-
-            case ViewportChannel.Radiance:
-            {
-                var location = SampleImage(data.GBuffer.GBuffer1, uv).XYZ;
-                var normal = SampleImage(data.GBuffer.GBuffer2, uv).XYZ;
-                var radiance = new Vector3(0f);
-                for (var i = 0; i < data.LightCount; i++)
-                {
-                    var light = data.Lights[i];
-                    var toSurface = LightMath.DirectionToLight(light, location);
-                    var noL = Max(Dot(normal, toSurface), 0f);
-                    radiance += noL * light.Radiance * light.Color * LightMath.Attenuation(light, location);
-                }
-
-                return new Vector4(radiance, 1f);
-            }
-
-            default:
-                return SampleImage(data.OutputImage, uv);
-        }
+        return Bindless.SampleTexture(data.OutputImage, input.Uv, ImageTiling.Repeat, ImageFilter.Linear);
     }
 }

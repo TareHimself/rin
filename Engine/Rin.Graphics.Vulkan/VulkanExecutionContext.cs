@@ -1,4 +1,3 @@
-using System.Buffers;
 using System.Collections.Frozen;
 using System.Diagnostics;
 using System.Numerics;
@@ -9,6 +8,7 @@ using Rin.Graphics.Vulkan.Descriptors;
 using Rin.Graphics.Vulkan.Shaders;
 using TerraFX.Interop.Vulkan;
 using static TerraFX.Interop.Vulkan.Vulkan;
+using Rin.Core.Shared.Pooling;
 
 namespace Rin.Graphics.Vulkan;
 
@@ -79,50 +79,42 @@ public class VulkanExecutionContext(
         {
             const int maxStackBarriers = 6;
 
-            var rented = barriers.Length >= maxStackBarriers ? ArrayPool<VkImageMemoryBarrier2>.Shared.Rent(barriers.Length) : null;
-            try
+            using var scratch = new ScratchSpan<VkImageMemoryBarrier2>(barriers.Length,
+                barriers.Length < maxStackBarriers ? stackalloc VkImageMemoryBarrier2[barriers.Length] : default);
+            var vkBarriers = scratch.Span;
+            for (var i = 0; i < barriers.Length; i++)
             {
-                // ArrayPool.Rent may return an array larger than requested -- slice to the exact length,
-                // otherwise imageMemoryBarrierCount below would overcount and submit uninitialized barriers.
-                Span<VkImageMemoryBarrier2> vkBarriers = rented is not null
-                    ? rented.AsSpan(0, barriers.Length)
-                    : stackalloc VkImageMemoryBarrier2[barriers.Length];
-                for (var i = 0; i < barriers.Length; i++)
+                var barrier = barriers[i];
+                var image = VulkanGraphicsModule.Get().GetImage(barrier.Texture);
+                Debug.Assert(image is not null, "Invalid image resource handle");
+                var ops = new ImageBarrierOptions(image!.Format, barrier.From, barrier.To);
+                image.Layout = barrier.To;
+                vkBarriers[i] = new VkImageMemoryBarrier2
                 {
-                    var barrier = barriers[i];
-                    var image = VulkanGraphicsModule.Get().GetImage(barrier.Texture);
-                    Debug.Assert(image is not null, "Invalid image resource handle");
-                    var ops = new ImageBarrierOptions(image!.Format, barrier.From, barrier.To);
-                    image.Layout = barrier.To;
-                    vkBarriers[i].sType = VkStructureType.VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2;
-                    vkBarriers[i].srcStageMask = ops.WaitCompleteStages;
-                    vkBarriers[i].dstStageMask = ops.StartAfterStages;
-                    vkBarriers[i].srcAccessMask = ops.SrcAccessFlags;
-                    vkBarriers[i].dstAccessMask = ops.DstAccessFlags;
-                    vkBarriers[i].oldLayout = barrier.From.ToVk();
-                    vkBarriers[i].newLayout = barrier.To.ToVk();
-                    vkBarriers[i].image = image.VulkanImage;
-                    vkBarriers[i].subresourceRange = ops.SubresourceRange;
-                }
-
-                fixed (VkImageMemoryBarrier2* pBarriers = vkBarriers)
-                {
-                    var depInfo = new VkDependencyInfo
-                    {
-                        sType = VkStructureType.VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
-                        imageMemoryBarrierCount = (uint)vkBarriers.Length,
-                        pImageMemoryBarriers = pBarriers
-                    };
-
-                    vkCmdPipelineBarrier2(CommandBuffer, &depInfo);
-                }
+                    sType = VkStructureType.VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
+                    srcStageMask = ops.WaitCompleteStages,
+                    dstStageMask = ops.StartAfterStages,
+                    srcAccessMask = ops.SrcAccessFlags,
+                    dstAccessMask = ops.DstAccessFlags,
+                    oldLayout = barrier.From.ToVk(),
+                    newLayout = barrier.To.ToVk(),
+                    srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+                    dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+                    image = image.VulkanImage,
+                    subresourceRange = ops.SubresourceRange
+                };
             }
-            finally
+
+            fixed (VkImageMemoryBarrier2* pBarriers = vkBarriers)
             {
-                if (rented != null)
+                var depInfo = new VkDependencyInfo
                 {
-                    ArrayPool<VkImageMemoryBarrier2>.Shared.Return(rented);
-                }
+                    sType = VkStructureType.VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
+                    imageMemoryBarrierCount = (uint)vkBarriers.Length,
+                    pImageMemoryBarriers = pBarriers
+                };
+
+                vkCmdPipelineBarrier2(CommandBuffer, &depInfo);
             }
         }
 
@@ -136,51 +128,43 @@ public class VulkanExecutionContext(
         {
             const int maxStackBarriers = 6;
 
-            var rented = barriers.Length >= maxStackBarriers ? ArrayPool<VkBufferMemoryBarrier2>.Shared.Rent(barriers.Length) : null;
-            try
+            using var scratch = new ScratchSpan<VkBufferMemoryBarrier2>(barriers.Length,
+                barriers.Length < maxStackBarriers ? stackalloc VkBufferMemoryBarrier2[barriers.Length] : default);
+            var vkBarriers = scratch.Span;
+            for (var i = 0; i < barriers.Length; i++)
             {
-                // ArrayPool.Rent may return an array larger than requested -- slice to the exact length,
-                // otherwise bufferMemoryBarrierCount below would overcount and submit uninitialized barriers.
-                Span<VkBufferMemoryBarrier2> vkBarriers = rented is not null
-                    ? rented.AsSpan(0, barriers.Length)
-                    : stackalloc VkBufferMemoryBarrier2[barriers.Length];
-                for (var i = 0; i < barriers.Length; i++)
+                var barrier = barriers[i];
+                var ops = new MemoryBarrierOptions(barrier.From, barrier.To, barrier.FromOperation,
+                    barrier.ToOperation);
+                var view = barrier.View;
+                Debug.Assert(view.IsValid, "Buffer view is not valid");
+                var vulkanBuffer = VulkanGraphicsModule.Get().ResolveBuffer(view.Buffer);
+                Debug.Assert(vulkanBuffer is not null, "Buffer handle is not resolvable");
+                vkBarriers[i] = new VkBufferMemoryBarrier2
                 {
-                    var barrier = barriers[i];
-                    var ops = new MemoryBarrierOptions(barrier.From, barrier.To, barrier.FromOperation,
-                        barrier.ToOperation);
-                    var view = barrier.View;
-                    Debug.Assert(view.IsValid, "Buffer view is not valid");
-                    var vulkanBuffer = VulkanGraphicsModule.Get().ResolveBuffer(view.Buffer);
-                    Debug.Assert(vulkanBuffer is not null, "Buffer handle is not resolvable");
-                    vkBarriers[i].sType = VkStructureType.VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER_2;
-                    vkBarriers[i].srcStageMask = ops.WaitForStages;
-                    vkBarriers[i].dstStageMask = ops.NextStages;
-                    vkBarriers[i].srcAccessMask = ops.SrcAccessFlags;
-                    vkBarriers[i].dstAccessMask = ops.DstAccessFlags;
-                    vkBarriers[i].buffer = vulkanBuffer!.NativeBuffer;
-                    vkBarriers[i].offset = barrier.View.Offset;
-                    vkBarriers[i].size = barrier.View.Size;
-                }
-
-                fixed (VkBufferMemoryBarrier2* pBarriers = vkBarriers)
-                {
-                    var depInfo = new VkDependencyInfo
-                    {
-                        sType = VkStructureType.VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
-                        bufferMemoryBarrierCount = (uint)vkBarriers.Length,
-                        pBufferMemoryBarriers = pBarriers
-                    };
-
-                    vkCmdPipelineBarrier2(CommandBuffer, &depInfo);
-                }
+                    sType = VkStructureType.VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER_2,
+                    srcStageMask = ops.WaitForStages,
+                    dstStageMask = ops.NextStages,
+                    srcAccessMask = ops.SrcAccessFlags,
+                    dstAccessMask = ops.DstAccessFlags,
+                    srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+                    dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+                    buffer = vulkanBuffer!.NativeBuffer,
+                    offset = barrier.View.Offset,
+                    size = barrier.View.Size
+                };
             }
-            finally
+
+            fixed (VkBufferMemoryBarrier2* pBarriers = vkBarriers)
             {
-                if (rented != null)
+                var depInfo = new VkDependencyInfo
                 {
-                    ArrayPool<VkBufferMemoryBarrier2>.Shared.Return(rented);
-                }
+                    sType = VkStructureType.VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
+                    bufferMemoryBarrierCount = (uint)vkBarriers.Length,
+                    pBufferMemoryBarriers = pBarriers
+                };
+
+                vkCmdPipelineBarrier2(CommandBuffer, &depInfo);
             }
         }
 
@@ -372,57 +356,43 @@ public class VulkanExecutionContext(
 
 
         const int maxStackAttachments = 6;
-        var rentedAttachments = attachments.Length > maxStackAttachments
-            ? ArrayPool<VkRenderingAttachmentInfo>.Shared.Rent(attachments.Length)
-            : null;
-        try
+        using var scratch = new ScratchSpan<VkRenderingAttachmentInfo>(attachments.Length,
+            attachments.Length <= maxStackAttachments ? stackalloc VkRenderingAttachmentInfo[attachments.Length] : default);
+        var attachmentsSpan = scratch.Span;
+        for (var i = 0; i < attachments.Length; i++)
         {
-            // Must be sized to attachments.Length exactly: a fixed-size buffer here would either send
-            // uninitialized trailing attachments (few attachments) or write out of bounds (many attachments).
-            Span<VkRenderingAttachmentInfo> attachmentsSpan = rentedAttachments is not null
-                ? rentedAttachments.AsSpan(0, attachments.Length)
-                : stackalloc VkRenderingAttachmentInfo[attachments.Length];
-            for (var i = 0; i < attachments.Length; i++)
-            {
-                var vkAttachment = VulkanGraphicsModule.Get().GetTexture(attachments[i]);
-                Debug.Assert(vkAttachment is not null, "Invalid texture resource handle");
-                attachmentsSpan[i] = vkAttachment!.MakeColorAttachmentInfo(clearColor);
-            }
+            var vkAttachment = VulkanGraphicsModule.Get().GetTexture(attachments[i]);
+            Debug.Assert(vkAttachment is not null, "Invalid texture resource handle");
+            attachmentsSpan[i] = vkAttachment!.MakeColorAttachmentInfo(clearColor);
+        }
 
-            CommandBuffer
-                .BeginRendering(extent, attachmentsSpan,
-                    vkDepthAttachment?.MakeDepthAttachmentInfo(),
-                    vkStencilAttachment?.MakeStencilAttachmentInfo())
-                .SetViewports([
-                    new VkViewport
+        CommandBuffer
+            .BeginRendering(extent, attachmentsSpan,
+                vkDepthAttachment?.MakeDepthAttachmentInfo(),
+                vkStencilAttachment?.MakeStencilAttachmentInfo())
+            .SetViewports([
+                new VkViewport
+                {
+                    x = 0,
+                    y = 0,
+                    width = extent.Width,
+                    height = extent.Height,
+                    minDepth = 0.0f,
+                    maxDepth = 1.0f
+                }
+            ])
+            .SetScissors([
+                new VkRect2D
+                {
+                    offset = new VkOffset2D(),
+                    extent = new VkExtent2D
                     {
-                        x = 0,
-                        y = 0,
                         width = extent.Width,
-                        height = extent.Height,
-                        minDepth = 0.0f,
-                        maxDepth = 1.0f
+                        height = extent.Height
                     }
-                ])
-                .SetScissors([
-                    new VkRect2D
-                    {
-                        offset = new VkOffset2D(),
-                        extent = new VkExtent2D
-                        {
-                            width = extent.Width,
-                            height = extent.Height
-                        }
-                    }
-                ]);
-        }
-        finally
-        {
-            if (rentedAttachments != null)
-            {
-                ArrayPool<VkRenderingAttachmentInfo>.Shared.Return(rentedAttachments);
-            }
-        }
+                }
+            ]);
+        
 
         if (vkDepthAttachment != null)
         {

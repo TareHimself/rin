@@ -1,11 +1,13 @@
 ﻿using System.Numerics;
 using JetBrains.Annotations;
+using Rin.Shade;
 
 namespace Rin.World.Graphics;
 
 /// <summary>
 ///     Packed info about a light in the scene
 /// </summary>
+[ShadeExport]
 [NoReorder]
 public struct LightInfo
 {

@@ -46,7 +46,8 @@ public class DefaultWorldViewDataTests
             typeof(CullingPass),
             typeof(FillIndirectBuffersPass),
             typeof(DepthPrepassIndirectPass),
-            typeof(FillGBufferIndirectPass)
+            typeof(LightGridPass),
+            typeof(ForwardIndirectPass)
         }));
     }
 
@@ -58,7 +59,8 @@ public class DefaultWorldViewDataTests
         Assert.That(passes.Select(p => p.GetType()), Is.EqualTo(new[]
         {
             typeof(DepthPrepassDirectPass),
-            typeof(FillGBufferDirectPass)
+            typeof(LightGridPass),
+            typeof(ForwardDirectPass)
         }));
     }
 
@@ -68,5 +70,15 @@ public class DefaultWorldViewDataTests
         var render = new DefaultRenderSystem { DrawMode = MeshDrawMode.Direct };
 
         Assert.That(CreateView(render).DrawMode, Is.EqualTo(MeshDrawMode.Direct));
+    }
+
+    [Test]
+    public void TheViewDrawsTheChannelItsCameraViewAsksFor()
+    {
+        var camera = TestCameras.Identity with { Channel = RenderChannel.LightCount };
+
+        var view = (DefaultWorldViewData)new DefaultRenderSystem().Snapshot(camera, new Extent2D(1, 1));
+
+        Assert.That(view.Channel, Is.EqualTo(RenderChannel.LightCount));
     }
 }

@@ -22,6 +22,7 @@ public struct SurfaceVertexOut
 
 public struct SurfaceFragmentIn
 {
+    [Position] public Vector4 Position;
     [Semantic("UV")] public Vector2 Uv;
     [Semantic("WORLD_POSITION")] public Vector3 WorldPosition;
     [Semantic("WORLD_NORMAL")] public Vector3 WorldNormal;
@@ -29,7 +30,7 @@ public struct SurfaceFragmentIn
 }
 
 /// <summary>
-///     The engine half of every surface material's shader: vertex transform and G-buffer packing around
+///     The engine half of every surface material's shader: vertex transform and clustered forward lighting around
 ///     <see cref="ISurfaceMaterial{TSelf}.Evaluate" />. A material's shader is
 ///     <c>[Shader] public partial class GoldShader : SurfaceShader&lt;Gold&gt;;</c>.
 /// </summary>
@@ -64,21 +65,29 @@ public abstract class SurfaceShader<TMaterial> : Shader where TMaterial : unmana
         return output;
     }
 
-    [Fragment, Depth]
-    public GBufferOutput Fragment(SurfaceFragmentIn input)
+    [Fragment, Depth, Attachment(AttachmentFormat.RGBA16)]
+    public Vector4 Fragment(SurfaceFragmentIn input)
     {
+        var scene = Push.Scene[0];
         SurfaceInput surfaceInput;
         surfaceInput.Uv = input.Uv;
         surfaceInput.WorldPosition = input.WorldPosition;
         surfaceInput.WorldNormal = Normalize(input.WorldNormal);
 
         var surface = TMaterial.Evaluate(Push.Draws[input.InstanceId].Material, surfaceInput, Bindless);
+        var lighting = LightGrid.Light(surface, input.WorldPosition, scene.CameraPosition,
+            new Vector2(input.Position.X, input.Position.Y), scene.Grid[0]);
 
-        GBufferOutput output;
-        output.GBuffer0 = new Vector4(surface.BaseColor, surface.Roughness);
-        output.GBuffer1 = new Vector4(input.WorldPosition, surface.Metallic);
-        output.GBuffer2 = new Vector4(surface.Normal, surface.Specular);
-        output.GBuffer3 = new Vector4(surface.Emissive, 0f, 0f, 0f);
-        return output;
+        return scene.Channel switch
+        {
+            RenderChannel.Color => new Vector4(surface.BaseColor, 1f),
+            RenderChannel.Location => new Vector4(input.WorldPosition, 1f),
+            RenderChannel.Normal => new Vector4(surface.Normal, 1f),
+            RenderChannel.RoughnessMetallicSpecular => new Vector4(surface.Roughness, surface.Metallic, surface.Specular, 1f),
+            RenderChannel.Emissive => new Vector4(new Vector3(surface.Emissive), 1f),
+            RenderChannel.Radiance => new Vector4(lighting.Radiance, 1f),
+            RenderChannel.LightCount => new Vector4(LightGrid.Heatmap(lighting.LightCount, 32f), 1f),
+            _ => new Vector4(LightMath.Lin2Rgb(lighting.Color), 1f)
+        };
     }
 }

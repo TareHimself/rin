@@ -22,7 +22,7 @@ void compute()
     uint previousMin;
     InterlockedMin(push.counters[1], push.value, previousMin);
     InterlockedMax(push.signed[0], (int)push.value);
-    InterlockedOr(push.counters[2], 1);
+    InterlockedOr(push.counters[2], 1u);
     uint swapped;
     InterlockedExchange(push.counters[3], previousMin, swapped);
     uint seen;

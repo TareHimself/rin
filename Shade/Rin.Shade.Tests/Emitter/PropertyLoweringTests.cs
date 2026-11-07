@@ -65,7 +65,7 @@ public class PropertyLoweringTests
         Assert.That(slang, Does.Contain("uint getId()"));
         // IdMask has no Slang declaration of its own (static fields aren't struct members) - its
         // compile-time value must be inlined, not referenced by a qualified name pointing at nothing.
-        Assert.That(slang, Does.Contain("return this.data >> 8 & 16777215;"));
+        Assert.That(slang, Does.Contain("return this.data >> 8 & 16777215u;"));
         Assert.That(slang, Does.Contain("handle.getId()"));
     }
 }

@@ -21,6 +21,7 @@ public class DefaultWorldViewData : IWorldCollectedData
         FieldOfView = viewer.FieldOfView;
         NearClip = viewer.NearClipPlane;
         FarClip = viewer.FarClipPlane;
+        Channel = viewer.Channel;
         Extent = extent;
         Projection = MathR.PerspectiveProjection(FieldOfView, extent, NearClip);
         ViewProjection = View * Projection;
@@ -48,15 +49,18 @@ public class DefaultWorldViewData : IWorldCollectedData
     [PublicAPI] public float NearClip { get; }
     [PublicAPI] public float FarClip { get; }
     [PublicAPI] public Extent2D Extent { get; }
+    [PublicAPI] public RenderChannel Channel { get; }
 
     public LightInfo[] Lights => Snapshot.Lights;
 
     public uint DepthImageId { get; set; }
-    public uint GBufferImage0 { get; set; }
-    public uint GBufferImage1 { get; set; }
-    public uint GBufferImage2 { get; set; }
-    public uint GBufferImage3 { get; set; }
     public uint OutputImageId { get; set; }
+
+    public uint LightGridBufferId { get; set; }
+    public uint PointLightsBufferId { get; set; }
+    public uint DirectionalLightsBufferId { get; set; }
+    public uint LightBinsBufferId { get; set; }
+    public uint TileMasksBufferId { get; set; }
 
     public uint[] IndirectCommandBuffers { get; set; } = [];
     public uint[] IndirectCommandCountBuffers { get; set; } = [];
@@ -68,21 +72,16 @@ public class DefaultWorldViewData : IWorldCollectedData
         return OutputImageId;
     }
 
-    public uint GetGBufferImageId(int index)
+    /// <summary>
+    ///     Declares a graphics read of every light grid buffer, for a pass that shades with the grid.
+    /// </summary>
+    public void ReadLightGrid(IGraphConfig config)
     {
-        return index switch
-        {
-            0 => GBufferImage0,
-            1 => GBufferImage1,
-            2 => GBufferImage2,
-            3 => GBufferImage3,
-            _ => 0
-        };
-    }
-
-    public LightInfo[] GetLights()
-    {
-        return Lights;
+        config.ReadBuffer(LightGridBufferId, GraphBufferUsage.Graphics);
+        config.ReadBuffer(PointLightsBufferId, GraphBufferUsage.Graphics);
+        config.ReadBuffer(DirectionalLightsBufferId, GraphBufferUsage.Graphics);
+        config.ReadBuffer(LightBinsBufferId, GraphBufferUsage.Graphics);
+        config.ReadBuffer(TileMasksBufferId, GraphBufferUsage.Graphics);
     }
 
     public void Write(IGraphBuilder builder)
@@ -92,7 +91,6 @@ public class DefaultWorldViewData : IWorldCollectedData
         builder.AddPass(new InitViewResourcesPass(this));
         var useIndirect = UseIndirectDrawing(DrawMode, IGraphicsModule.Get().CurrentDevice.SupportsIndirectRendering);
         foreach (var pass in CreateGeometryPasses(useIndirect)) builder.AddPass(pass);
-        builder.AddPass(new LightingPass(this));
     }
 
     /// <summary>
@@ -109,12 +107,12 @@ public class DefaultWorldViewData : IWorldCollectedData
     }
 
     /// <summary>
-    ///     The passes that cull, build draw commands and draw the scene's meshes into the depth and G-buffer images.
-    ///     The direct set has no culling or command passes.
+    ///     The passes that cull, build draw commands, write depth, build the light grid and draw the lit scene into the
+    ///     output image. The direct set has no culling or command passes.
     /// </summary>
     public IReadOnlyList<IPass> CreateGeometryPasses(bool useIndirect)
     {
-        if (!useIndirect) return [new DepthPrepassDirectPass(this), new FillGBufferDirectPass(this)];
+        if (!useIndirect) return [new DepthPrepassDirectPass(this), new LightGridPass(this), new ForwardDirectPass(this)];
 
         var cullingPass = new CullingPass(this);
         return
@@ -122,7 +120,8 @@ public class DefaultWorldViewData : IWorldCollectedData
             cullingPass,
             new FillIndirectBuffersPass(cullingPass, this),
             new DepthPrepassIndirectPass(this),
-            new FillGBufferIndirectPass(this)
+            new LightGridPass(this),
+            new ForwardIndirectPass(this)
         ];
     }
 }
