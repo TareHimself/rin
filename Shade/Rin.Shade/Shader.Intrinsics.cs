@@ -153,4 +153,16 @@ public abstract partial class Shader
     /// </summary>
     [SlangExpression("NonUniformResourceIndex(@0)")]
     public static extern uint NonUniformResourceIndex(uint index);
+
+    /// <summary>
+    /// The index of the lowest set bit of <paramref name="value" />, or 0xFFFFFFFF when no bit is set.
+    /// </summary>
+    [SlangExpression("firstbitlow(@0)")]
+    public static extern uint FirstBitLow(uint value);
+
+    /// <summary>
+    /// The number of set bits in <paramref name="value" />.
+    /// </summary>
+    [SlangExpression("countbits(@0)")]
+    public static extern uint CountBits(uint value);
 }
