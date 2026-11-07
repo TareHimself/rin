@@ -14,51 +14,29 @@ public static class MathR
     public static Vector3 Right => Vector3.UnitX;
     public static Vector3 Forward => Vector3.UnitZ;
 
+    /// <summary>
+    ///     An infinite reversed-Z perspective projection: depth is 1 at <paramref name="near" /> and falls toward 0 with
+    ///     distance, so there is no far plane. <paramref name="fieldOfView" /> is vertical, in degrees.
+    /// </summary>
     [Pure]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Matrix4x4 PerspectiveProjection(float fieldOfViewX, float fieldOfViewY, float near, float far)
+    public static Matrix4x4 PerspectiveProjection(float fieldOfView, float width, float height, float near)
     {
-        var y = 1 / float.Tan(float.DegreesToRadians(fieldOfViewY));
-        var x = 1 / float.Tan(float.DegreesToRadians(fieldOfViewX));
+        var y = 1 / float.Tan(float.DegreesToRadians(fieldOfView / 2));
+        var x = y / (width / height);
 
-        var mat = Matrix4x4.Identity;
-
-        mat[0, 0] = x;
-        mat[1, 1] = -y;
-        mat[2, 2] = near * near * near / (far + near);
-        mat[2, 3] = 1f;
-        mat[3, 3] = 0f;
-        mat[3, 2] = near * far / (far + near);
-
-        return mat;
+        return new Matrix4x4(
+            x, 0f, 0f, 0f,
+            0f, -y, 0f, 0f,
+            0f, 0f, 0f, 1f,
+            0f, 0f, near, 0f);
     }
 
     [Pure]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Matrix4x4 PerspectiveProjection(float fieldOfView, float width, float height, float near, float far)
+    public static Matrix4x4 PerspectiveProjection(float fieldOfView, in Extent2D extent, float near)
     {
-        var tan = 1 / float.Tan(float.DegreesToRadians(fieldOfView / 2));
-        var aspect = width / height;
-        var y = tan;
-        var x = y / aspect;
-
-        var mat = Matrix4x4.Identity;
-
-        mat[0, 0] = x;
-        mat[1, 1] = -y;
-        mat[2, 2] = near * near * near / (far + near);
-        mat[2, 3] = 1f;
-        mat[3, 3] = 0f;
-        mat[3, 2] = near * far / (far + near);
-
-        return mat;
-    }
-
-    [Pure]
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Matrix4x4 PerspectiveProjection(float fieldOfView, in Extent2D extent, float near, float far)
-    {
-        return PerspectiveProjection(fieldOfView, extent.Width, extent.Height, near, far);
+        return PerspectiveProjection(fieldOfView, extent.Width, extent.Height, near);
     }
 
     [Pure]
@@ -76,60 +54,35 @@ public static class MathR
         return OrthographicProjection(0.0f, width, 0.0f, height, near, far);
     }
 
-
+    /// <summary>
+    ///     The world-space planes of a view made with <see cref="PerspectiveProjection(float, float, float, float)" />.
+    ///     A point p is inside a plane when <c>Vector4.Dot(plane, new Vector4(p, 1)) &gt;= 0</c>. The projection has no
+    ///     far plane, so <see cref="Frustum.Far" /> sits at <paramref name="far" /> along the view's forward axis.
+    /// </summary>
     [Pure]
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Frustum ExtractWorldSpaceFrustum(in Matrix4x4 view, in Matrix4x4 projection,
-        in Matrix4x4 viewProjection)
+    public static Frustum ExtractWorldSpaceFrustum(in Matrix4x4 view, in Matrix4x4 viewProjection, float far)
     {
-        // Step 1: Extract clip-space frustum planes from the viewProjection matrix
         var m = viewProjection;
+        var x = new Vector4(m.M11, m.M21, m.M31, m.M41);
+        var y = new Vector4(m.M12, m.M22, m.M32, m.M42);
+        var z = new Vector4(m.M13, m.M23, m.M33, m.M43);
+        var w = new Vector4(m.M14, m.M24, m.M34, m.M44);
 
-        Vector4 left = new(m.M14 + m.M11, m.M24 + m.M21, m.M34 + m.M31, m.M44 + m.M41);
-        Vector4 right = new(m.M14 - m.M11, m.M24 - m.M21, m.M34 - m.M31, m.M44 - m.M41);
-        Vector4 bottom = new(m.M14 + m.M12, m.M24 + m.M22, m.M34 + m.M32, m.M44 + m.M42);
-        Vector4 top = new(m.M14 - m.M12, m.M24 - m.M22, m.M34 - m.M32, m.M44 - m.M42);
-        Vector4 near = new(m.M14 + m.M13, m.M24 + m.M23, m.M34 + m.M33, m.M44 + m.M43);
-        Vector4 far = new(m.M14 - m.M13, m.M24 - m.M23, m.M34 - m.M33, m.M44 - m.M43);
-
-        // Step 2: Normalize the planes
-        static Vector4 Normalize(Vector4 p)
-        {
-            var normal = new Vector3(p.X, p.Y, p.Z);
-            var length = normal.Length();
-            return p / length;
-        }
-
-        left = Normalize(left);
-        right = Normalize(right);
-        bottom = Normalize(bottom);
-        top = Normalize(top);
-        near = Normalize(near);
-        far = Normalize(far);
-
-        // Step 3: Transform to world space using inverse-transpose of the view matrix
-        if (!Matrix4x4.Invert(viewProjection, out var invView))
-            throw new InvalidOperationException("View matrix is not invertible");
-
-        var invViewT = Matrix4x4.Transpose(invView);
-
-        left = Vector4.Transform(left, invViewT);
-        right = Vector4.Transform(right, invViewT);
-        bottom = Vector4.Transform(bottom, invViewT);
-        top = Vector4.Transform(top, invViewT);
-        near = Vector4.Transform(near, invViewT);
-        far = Vector4.Transform(far, invViewT);
-
-        // Step 4: Assign to Frustum struct
+        // The projection flips Y, so clip-space -Y is up.
         return new Frustum
         {
-            Left = left,
-            Right = right,
-            Bottom = bottom,
-            Top = top,
-            Near = near,
-            Far = far
+            Left = NormalizePlane(w + x),
+            Right = NormalizePlane(w - x),
+            Bottom = NormalizePlane(w - y),
+            Top = NormalizePlane(w + y),
+            Near = NormalizePlane(w - z),
+            Far = NormalizePlane(new Vector4(-view.M13, -view.M23, -view.M33, far - view.M43))
         };
+    }
+
+    private static Vector4 NormalizePlane(Vector4 plane)
+    {
+        return plane / new Vector3(plane.X, plane.Y, plane.Z).Length();
     }
 
     [Pure]
