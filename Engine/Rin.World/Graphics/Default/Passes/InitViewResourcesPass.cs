@@ -18,7 +18,7 @@ public class InitViewResourcesPass(DefaultWorldViewData view) : IPass
     public void Execute(ICompiledGraph graph, IExecutionContext ctx)
     {
         ctx
-            .ClearColorImages(Vector4.Zero, [graph.GetImageOrException(view.OutputImageId)])
+            .ClearColorImages(new Vector4(0f, 0f, 0f, 1f), [graph.GetImageOrException(view.OutputImageId)])
             .ClearDepthImages(0, [graph.GetImageOrException(view.DepthImageId)]);
     }
 }
