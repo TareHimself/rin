@@ -30,11 +30,6 @@ public static class EnumerableExtensions
             while (e1.MoveNext() && e2.MoveNext() && e3.MoveNext() && e4.MoveNext() && e5.MoveNext())
                 yield return (e1.Current, e2.Current, e3.Current, e4.Current, e5.Current);
         }
-
-        public Queue<TFirst> ToQueue()
-        {
-            return new Queue<TFirst>(first);
-        }
     }
 
 
@@ -83,17 +78,6 @@ public static class EnumerableExtensions
                 yield return asArray[i];
             }
         }
-    }
-
-    public static ulong ComputeByteSize<T>(this IEnumerable<T> target) where T : unmanaged
-    {
-        return Utils.ByteSizeOf<T>(target.Count());
-    }
-
-    public static List<T> UpdateIndex<T>(this List<T> target, int index, Func<T, T> updater)
-    {
-        target[index] = updater(target[index]);
-        return target;
     }
 
     public static T? TryGet<T>(this T[] target, int index) where T : class?

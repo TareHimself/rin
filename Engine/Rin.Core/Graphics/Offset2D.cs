@@ -1,13 +1,8 @@
-﻿using System.Diagnostics;
-using System.Globalization;
-using System.Text.Json;
-using System.Text.Json.Nodes;
-using System.Text.Json.Serialization;
+﻿using System.Globalization;
 using JetBrains.Annotations;
 
 namespace Rin.Core.Graphics;
 
-[JsonConverter(typeof(JsonConverter))]
 [NoReorder]
 public record struct Offset2D : IFormattable
 {
@@ -44,26 +39,5 @@ public record struct Offset2D : IFormattable
     {
         x = X;
         y = Y;
-    }
-
-    public class JsonConverter : JsonConverter<Extent2D>
-    {
-        public override Extent2D Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
-        {
-            var obj = JsonNode.Parse(ref reader)?.AsObject();
-            Debug.Assert(obj is not null);
-            return new Extent2D(
-                obj[nameof(Extent2D.Width)]?.GetValue<uint>() ?? 0,
-                obj[nameof(Extent2D.Height)]?.GetValue<uint>() ?? 0
-            );
-        }
-
-        public override void Write(Utf8JsonWriter writer, Extent2D value, JsonSerializerOptions options)
-        {
-            writer.WriteStartObject();
-            writer.WriteNumber("Width", value.Width);
-            writer.WriteNumber("Height", value.Height);
-            writer.WriteEndObject();
-        }
     }
 }
