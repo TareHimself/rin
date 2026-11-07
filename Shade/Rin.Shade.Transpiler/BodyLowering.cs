@@ -391,7 +391,7 @@ internal sealed class BodyLowering(
             case ILiteralOperation { ConstantValue: { HasValue: true, Value: bool flag } }:
                 return flag ? "true" : "false";
             case ILiteralOperation { ConstantValue: { HasValue: true, Value: var value } }:
-                return Convert.ToString(value, CultureInfo.InvariantCulture) ?? "0";
+                return LiteralText(value);
             case IConversionOperation conversion:
                 return conversion.IsImplicit
                     ? LowerExpr(conversion.Operand)
@@ -563,7 +563,7 @@ internal sealed class BodyLowering(
             // StructLowering only emits instance fields, so a static/const field has no Slang declaration
             // to reference. Inline its value instead.
             if (field.Field.HasConstantValue)
-                return Convert.ToString(field.Field.ConstantValue, CultureInfo.InvariantCulture) ?? "0";
+                return LiteralText(field.Field.ConstantValue);
 
             // A static readonly with an initializer is a `static const` that StaticConstLowering declares.
             if (StaticConstLowering.IsStaticConst(field.Field)) return StaticConstLowering.Reference(field.Field);
@@ -1067,4 +1067,17 @@ internal sealed class BodyLowering(
 
     private static bool IsMatrix4X4(ITypeSymbol? type) =>
         type?.OriginalDefinition.ToDisplayString() == "System.Numerics.Matrix4x4";
+
+    // Slang reads an unsuffixed integer literal as int, or int64 when it does not fit, so unsigned and 64-bit values
+    // keep their suffix. 0xFFFFFFFFu would otherwise become a signed 64-bit constant.
+    private static string LiteralText(object? value)
+    {
+        return value switch
+        {
+            uint unsigned => $"{unsigned}u",
+            ulong unsignedLong => $"{unsignedLong}ull",
+            long signedLong => $"{signedLong}ll",
+            _ => Convert.ToString(value, CultureInfo.InvariantCulture) ?? "0"
+        };
+    }
 }

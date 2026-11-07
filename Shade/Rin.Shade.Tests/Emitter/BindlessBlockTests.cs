@@ -102,8 +102,8 @@ public class BindlessBlockTests
         var slang = result.Shaders["SampleShader"].Replace("\r\n", "\n");
         Assert.That(slang, Does.Contain("Sample(bindless.samplers[1], uv).x"));
         Assert.That(slang, Does.Contain(".Load(int3(2, 3, 0)).y"));
-        Assert.That(slang, Does.Contain("NonUniformResourceIndex(3)"));
-        Assert.That(slang, Does.Contain(".GetDimensions(0, width, height, levels);"));
+        Assert.That(slang, Does.Contain("NonUniformResourceIndex(3u)"));
+        Assert.That(slang, Does.Contain(".GetDimensions(0u, width, height, levels);"));
     }
 
     [Test]

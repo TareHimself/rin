@@ -75,7 +75,7 @@ void compute(ComputeIn input)
     var vertex = mesh.vertices[0];
     var vertexCount = mesh.count;
     var bounds = UpdatableBounds3D(vertex.getLocation());
-    for (var i = 1; i < vertexCount; i++)
+    for (var i = 1u; i < vertexCount; i++)
     {
         vertex = mesh.vertices[i];
         bounds.update(vertex.getLocation());

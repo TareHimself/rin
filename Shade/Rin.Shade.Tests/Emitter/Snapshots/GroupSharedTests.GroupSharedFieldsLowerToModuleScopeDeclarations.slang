@@ -30,10 +30,10 @@ void compute(ComputeIn input)
     partial[input.groupIndex] = push.input[input.threadId];
     if (input.groupIndex == 0)
     {
-        count = 0;
+        count = 0u;
     }
     GroupMemoryBarrierWithGroupSync();
-    InterlockedAdd(count, 1);
+    InterlockedAdd(count, 1u);
     GroupMemoryBarrierWithGroupSync();
     if (input.groupIndex != 0)
     {

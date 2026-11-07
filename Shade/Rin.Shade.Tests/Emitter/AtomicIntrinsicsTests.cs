@@ -48,7 +48,7 @@ public class AtomicIntrinsicsTests
             Assert.That(slang, Does.Contain("InterlockedAdd(push.counters[0], push.value);"));
             Assert.That(slang, Does.Contain("InterlockedMin(push.counters[1], push.value, previousMin);"));
             Assert.That(slang, Does.Contain("InterlockedMax(push.signed[0], (int)push.value);"));
-            Assert.That(slang, Does.Contain("InterlockedOr(push.counters[2], 1);"));
+            Assert.That(slang, Does.Contain("InterlockedOr(push.counters[2], 1u);"));
             Assert.That(slang, Does.Contain("InterlockedExchange(push.counters[3], previousMin, swapped);"));
             Assert.That(slang, Does.Contain("InterlockedCompareExchange(push.counters[4], swapped, push.value, seen);"));
         });
