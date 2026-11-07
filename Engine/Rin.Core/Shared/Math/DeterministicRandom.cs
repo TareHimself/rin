@@ -1,22 +1,20 @@
-namespace Rin.World;
+namespace Rin.Core.Shared.Math;
 
 /// <summary>
-///     The world's deterministic random numbers (xoshiro256**, seeded through SplitMix64). Its state is saved in every
-///     <see cref="WorldSnapshot" />, so a restored world draws the same sequence it drew after the save.
+///     Deterministic random numbers (xoshiro256**, seeded through SplitMix64) whose <see cref="Current" /> state can be
+///     saved and restored, so a restored generator draws the same sequence it drew after the save.
 /// </summary>
 /// <remarks>
 ///     A port of the public-domain reference implementations,
 ///     <see href="https://prng.di.unimi.it/xoshiro256starstar.c">xoshiro256starstar.c</see> and
-///     <see href="https://prng.di.unimi.it/splitmix64.c">splitmix64.c</see>; <c>SimRandomTests</c> checks it against their
-///     outputs. A library is not used because the state must be saved in snapshots, which the common ones hide.
-///     Draw from it only inside the tick, in a fixed order, and never from presentation code: a draw anywhere else
-///     changes every later draw of the simulation.
+///     <see href="https://prng.di.unimi.it/splitmix64.c">splitmix64.c</see>; <c>DeterministicRandomTests</c> checks it against
+///     their outputs. A library is not used because the state must be saved, which the common ones hide.
 /// </remarks>
-public sealed class SimRandom
+public sealed class DeterministicRandom
 {
     private State _state;
 
-    public SimRandom(ulong seed = 0) => Seed(seed);
+    public DeterministicRandom(ulong seed = 0) => Seed(seed);
 
     public void Seed(ulong seed)
     {
@@ -67,7 +65,10 @@ public sealed class SimRandom
 
     public bool NextBool() => (NextUInt64() >> 63) != 0;
 
-    internal State Current
+    /// <summary>
+    ///     The generator's state, to save and later assign back.
+    /// </summary>
+    public State Current
     {
         get => _state;
         set => _state = value;
@@ -99,11 +100,11 @@ public sealed class SimRandom
         return z ^ (z >> 31);
     }
 
-    internal struct State(ulong s0, ulong s1, ulong s2, ulong s3)
+    public struct State(ulong s0, ulong s1, ulong s2, ulong s3)
     {
-        public ulong S0 = s0;
-        public ulong S1 = s1;
-        public ulong S2 = s2;
-        public ulong S3 = s3;
+        internal ulong S0 = s0;
+        internal ulong S1 = s1;
+        internal ulong S2 = s2;
+        internal ulong S3 = s3;
     }
 }

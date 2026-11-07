@@ -1,3 +1,4 @@
+using Rin.Core.Shared.Math;
 using System.Numerics;
 using Rin.World.Graphics;
 using Rin.World.Physics;
@@ -138,7 +139,7 @@ public class DeterminismTests
             if (context.Tick % 9 == 0) DespawnFirstWanderer(world);
         }
 
-        private void SpawnWanderer(World world, SimRandom random, long tick)
+        private void SpawnWanderer(World world, DeterministicRandom random, long tick)
         {
             var entity = world.Commands.Spawn();
             var local = new LocalTransform { Position = new Vector3(tick % 7 - 3, 2 + random.NextFloat() * 4, random.NextFloat(-2, 2)) };
