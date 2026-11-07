@@ -94,15 +94,21 @@ public class VulkanExecutionContext(
                     Debug.Assert(image is not null, "Invalid image resource handle");
                     var ops = new ImageBarrierOptions(image!.Format, barrier.From, barrier.To);
                     image.Layout = barrier.To;
-                    vkBarriers[i].sType = VkStructureType.VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2;
-                    vkBarriers[i].srcStageMask = ops.WaitCompleteStages;
-                    vkBarriers[i].dstStageMask = ops.StartAfterStages;
-                    vkBarriers[i].srcAccessMask = ops.SrcAccessFlags;
-                    vkBarriers[i].dstAccessMask = ops.DstAccessFlags;
-                    vkBarriers[i].oldLayout = barrier.From.ToVk();
-                    vkBarriers[i].newLayout = barrier.To.ToVk();
-                    vkBarriers[i].image = image.VulkanImage;
-                    vkBarriers[i].subresourceRange = ops.SubresourceRange;
+                    // Assigned whole: pooled arrays are not zeroed, and a stale pNext crashes the validation layer.
+                    vkBarriers[i] = new VkImageMemoryBarrier2
+                    {
+                        sType = VkStructureType.VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
+                        srcStageMask = ops.WaitCompleteStages,
+                        dstStageMask = ops.StartAfterStages,
+                        srcAccessMask = ops.SrcAccessFlags,
+                        dstAccessMask = ops.DstAccessFlags,
+                        oldLayout = barrier.From.ToVk(),
+                        newLayout = barrier.To.ToVk(),
+                        srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+                        dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+                        image = image.VulkanImage,
+                        subresourceRange = ops.SubresourceRange
+                    };
                 }
 
                 fixed (VkImageMemoryBarrier2* pBarriers = vkBarriers)
@@ -153,14 +159,20 @@ public class VulkanExecutionContext(
                     Debug.Assert(view.IsValid, "Buffer view is not valid");
                     var vulkanBuffer = VulkanGraphicsModule.Get().ResolveBuffer(view.Buffer);
                     Debug.Assert(vulkanBuffer is not null, "Buffer handle is not resolvable");
-                    vkBarriers[i].sType = VkStructureType.VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER_2;
-                    vkBarriers[i].srcStageMask = ops.WaitForStages;
-                    vkBarriers[i].dstStageMask = ops.NextStages;
-                    vkBarriers[i].srcAccessMask = ops.SrcAccessFlags;
-                    vkBarriers[i].dstAccessMask = ops.DstAccessFlags;
-                    vkBarriers[i].buffer = vulkanBuffer!.NativeBuffer;
-                    vkBarriers[i].offset = barrier.View.Offset;
-                    vkBarriers[i].size = barrier.View.Size;
+                    // Assigned whole: pooled arrays are not zeroed, and a stale pNext crashes the validation layer.
+                    vkBarriers[i] = new VkBufferMemoryBarrier2
+                    {
+                        sType = VkStructureType.VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER_2,
+                        srcStageMask = ops.WaitForStages,
+                        dstStageMask = ops.NextStages,
+                        srcAccessMask = ops.SrcAccessFlags,
+                        dstAccessMask = ops.DstAccessFlags,
+                        srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+                        dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+                        buffer = vulkanBuffer!.NativeBuffer,
+                        offset = barrier.View.Offset,
+                        size = barrier.View.Size
+                    };
                 }
 
                 fixed (VkBufferMemoryBarrier2* pBarriers = vkBarriers)
