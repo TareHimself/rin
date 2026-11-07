@@ -22,9 +22,9 @@ public class DefaultWorldViewData : IWorldCollectedData
         NearClip = viewer.NearClipPlane;
         FarClip = viewer.FarClipPlane;
         Extent = extent;
-        Projection = MathR.PerspectiveProjection(FieldOfView, extent, NearClip, FarClip);
+        Projection = MathR.PerspectiveProjection(FieldOfView, extent, NearClip);
         ViewProjection = View * Projection;
-        ViewFrustum = MathR.ExtractWorldSpaceFrustum(View, Projection, ViewProjection);
+        ViewFrustum = MathR.ExtractWorldSpaceFrustum(View, ViewProjection, FarClip);
     }
 
     [PublicAPI] public DefaultWorldSnapshot Snapshot { get; }
