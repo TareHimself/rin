@@ -1,5 +1,4 @@
 using Rin.Core.Extensions;
-using System.Buffers;
 using System.Numerics;
 using JetBrains.Annotations;
 using Rin.Core.Graphics;
@@ -17,6 +16,7 @@ using Rin.Core.Shared.Math;
 using Rin.Core.Views.Graphics.Quads;
 using Rin.Core.Views.Graphics.Shaders;
 using Rin.Shade;
+using Rin.Core.Shared.Pooling;
 
 namespace Rin.Core.Views.Content;
 
@@ -113,29 +113,19 @@ internal partial class VideoCommandHandler : ICommandHandlerWithPreAdd
             var buffer = graph.GetBufferOrException(_itemBufferId);
 
             {
-                var rented = _commands.Length > MaxStackVideoItems
-                    ? ArrayPool<VideoItem>.Shared.Rent(_commands.Length)
-                    : null;
-                try
+                using var scratch = new ScratchSpan<VideoItem>(_commands.Length,
+                    _commands.Length <= MaxStackVideoItems ? stackalloc VideoItem[_commands.Length] : default);
+                var videoItems = scratch.Span;
+                for(var i = 0; i < _commands.Length; i++)
                 {
-                    var videoItems = rented is not null
-                        ? rented.AsSpan(0, _commands.Length)
-                        : stackalloc VideoItem[_commands.Length];
-                    for(var i = 0; i < _commands.Length; i++)
-                    {
-                        var command = _commands[i];
-                        videoItems[i].Transform = command.Transform;
-                        videoItems[i].Size = command.Size;
-                        videoItems[i].Luma = graph.GetImage(_resourcesPass.LumaImageIds[i]);
-                        videoItems[i].Chroma = graph.GetImage(_resourcesPass.ChromaImageIds[i]);
-                        videoItems[i].Colorimetry = command.Colorimetry;
-                    }
-                    buffer.Write(videoItems);
+                    var command = _commands[i];
+                    videoItems[i].Transform = command.Transform;
+                    videoItems[i].Size = command.Size;
+                    videoItems[i].Luma = graph.GetImage(_resourcesPass.LumaImageIds[i]);
+                    videoItems[i].Chroma = graph.GetImage(_resourcesPass.ChromaImageIds[i]);
+                    videoItems[i].Colorimetry = command.Colorimetry;
                 }
-                finally
-                {
-                    if(rented is not null) ArrayPool<VideoItem>.Shared.Return(rented);
-                }
+                buffer.Write(videoItems);
             }
             
             var compareMask = uint.MaxValue;

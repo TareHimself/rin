@@ -1,5 +1,4 @@
-﻿using System.Buffers;
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using System.Numerics;
 using Rin.Core;
 using Rin.Core.Graphics;
@@ -7,6 +6,7 @@ using Rin.Graphics.Vulkan.Descriptors;
 using Rin.Graphics.Vulkan.Images;
 using Rin.Shade;
 using TerraFX.Interop.Vulkan;
+using Rin.Core.Shared.Pooling;
 
 namespace Rin.Graphics.Vulkan;
 
@@ -370,20 +370,12 @@ internal static class VulkanExtensions
     public static VkCommandBuffer BindDescriptorSets(this in VkCommandBuffer cmd, VkPipelineBindPoint bindPoint,
         VkPipelineLayout pipelineLayout, ReadOnlySpan<DescriptorSet> sets, uint firstSet = 0)
     {
-        var rented = sets.Length > MaxStackSets ? ArrayPool<VkDescriptorSet>.Shared.Rent(sets.Length) : null;
-        try
-        {
-            var vkSets = rented is null
-                ? stackalloc VkDescriptorSet[sets.Length]
-                : rented.AsSpan(0, sets.Length);
-            for (var i = 0; i < sets.Length; i++) vkSets[i] = (VkDescriptorSet)sets[i];
+        using var scratch = new ScratchSpan<VkDescriptorSet>(sets.Length,
+            sets.Length <= MaxStackSets ? stackalloc VkDescriptorSet[sets.Length] : default);
+        var vkSets = scratch.Span;
+        for (var i = 0; i < sets.Length; i++) vkSets[i] = (VkDescriptorSet)sets[i];
 
-            return cmd.BindDescriptorSets(bindPoint, pipelineLayout, vkSets, firstSet);
-        }
-        finally
-        {
-            if (rented is not null) ArrayPool<VkDescriptorSet>.Shared.Return(rented);
-        }
+        return cmd.BindDescriptorSets(bindPoint, pipelineLayout, vkSets, firstSet);
     }
 
     public static VkPipeline CreateComputePipeline(in this VkDevice device, in VkPipelineLayout layout,

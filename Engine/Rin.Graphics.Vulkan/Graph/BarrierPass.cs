@@ -1,4 +1,4 @@
-﻿using System.Buffers;
+﻿using Rin.Core.Shared.Pooling;
 using Rin.Core.Graphics;
 using Rin.Core.Graphics.Graph;
 
@@ -42,54 +42,40 @@ internal class BarrierPass(BufferResourceSync[] buffers, ImageResourceSync[] ima
     {
         if (ctx is VulkanExecutionContext vkCtx)
         {
-            var rentedBuffers = buffers.Length > MaxStackBarriers
-                ? ArrayPool<BufferBarrier>.Shared.Rent(buffers.Length)
-                : null;
-            var rentedImages = images.Length > MaxStackBarriers
-                ? ArrayPool<TextureBarrier>.Shared.Rent(images.Length)
-                : null;
-            try
+            using var bufferScratch = new ScratchSpan<BufferBarrier>(buffers.Length,
+                buffers.Length <= MaxStackBarriers ? stackalloc BufferBarrier[buffers.Length] : default);
+            using var imageScratch = new ScratchSpan<TextureBarrier>(images.Length,
+                images.Length <= MaxStackBarriers ? stackalloc TextureBarrier[images.Length] : default);
+            var bufferBarriers = bufferScratch.Span;
+            var imageBarriers = imageScratch.Span;
+
+            for (var i = 0; i < buffers.Length; i++)
             {
-                var bufferBarriers = rentedBuffers is not null
-                    ? rentedBuffers.AsSpan(0, buffers.Length)
-                    : stackalloc BufferBarrier[buffers.Length];
-                var imageBarriers = rentedImages is not null
-                    ? rentedImages.AsSpan(0, images.Length)
-                    : stackalloc TextureBarrier[images.Length];
-
-                for (var i = 0; i < buffers.Length; i++)
+                bufferBarriers[i].View = graph.GetBufferOrException(buffers[i].ResourceId);
+                bufferBarriers[i].From = buffers[i].PreviousUsage;
+                bufferBarriers[i].To = buffers[i].NextUsage;
+                bufferBarriers[i].FromOperation = buffers[i].PreviousOperation;
+                bufferBarriers[i].ToOperation = buffers[i].NextOperation;
+            }
+            var imageCount = 0;
+            foreach (var sync in images)
+            {
+                var texture = graph.GetImageOrException(sync.ResourceId);
+                var from = sync.PreviousLayout;
+                if (sync.FromCurrentLayout)
                 {
-                    bufferBarriers[i].View = graph.GetBufferOrException(buffers[i].ResourceId);
-                    bufferBarriers[i].From = buffers[i].PreviousUsage;
-                    bufferBarriers[i].To = buffers[i].NextUsage;
-                    bufferBarriers[i].FromOperation = buffers[i].PreviousOperation;
-                    bufferBarriers[i].ToOperation = buffers[i].NextOperation;
-                }
-                var imageCount = 0;
-                foreach (var sync in images)
-                {
-                    var texture = graph.GetImageOrException(sync.ResourceId);
-                    var from = sync.PreviousLayout;
-                    if (sync.FromCurrentLayout)
-                    {
-                        from = VulkanGraphicsModule.Get().GetImage(texture)!.Layout;
-                        if (from == sync.NextLayout && sync.NextOperation == ResourceOperation.Read) continue;
-                    }
-
-                    imageBarriers[imageCount].Texture = texture;
-                    imageBarriers[imageCount].From = from;
-                    imageBarriers[imageCount].To = sync.NextLayout;
-                    imageCount++;
+                    from = VulkanGraphicsModule.Get().GetImage(texture)!.Layout;
+                    if (from == sync.NextLayout && sync.NextOperation == ResourceOperation.Read) continue;
                 }
 
-                vkCtx.Barrier(bufferBarriers);
-                vkCtx.Barrier(imageBarriers[..imageCount]);
+                imageBarriers[imageCount].Texture = texture;
+                imageBarriers[imageCount].From = from;
+                imageBarriers[imageCount].To = sync.NextLayout;
+                imageCount++;
             }
-            finally
-            {
-                if (rentedBuffers is not null) ArrayPool<BufferBarrier>.Shared.Return(rentedBuffers);
-                if (rentedImages is not null) ArrayPool<TextureBarrier>.Shared.Return(rentedImages);
-            }
+
+            vkCtx.Barrier(bufferBarriers);
+            vkCtx.Barrier(imageBarriers[..imageCount]);
         }
     }
 }

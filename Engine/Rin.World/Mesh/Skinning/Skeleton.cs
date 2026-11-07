@@ -1,10 +1,10 @@
-using System.Buffers;
 using System.Collections.Frozen;
 using System.Numerics;
 using System.Runtime.InteropServices;
 using JetBrains.Annotations;
 using Rin.Core.Shared;
 using Rin.Core.Shared.Math;
+using Rin.Core.Shared.Pooling;
 
 namespace Rin.World.Mesh.Skinning;
 
@@ -54,17 +54,9 @@ public class Skeleton
     /// </summary>
     public void ResolvePose(in SkeletalPose pose, Span<Matrix4x4> into)
     {
-        var rented = Bones.Length > MaxStackResolvedFlags ? ArrayPool<bool>.Shared.Rent(Bones.Length) : null;
-        var resolved = rented is null ? stackalloc bool[Bones.Length] : rented.AsSpan(0, Bones.Length);
-        resolved.Clear();
-        try
-        {
-            for (var i = 0; i < Bones.Length; i++) ResolveBone(i, pose, into, resolved);
-        }
-        finally
-        {
-            if (rented is not null) ArrayPool<bool>.Shared.Return(rented);
-        }
+        using var scratch = new ScratchSpan<bool>(Bones.Length,
+            Bones.Length <= MaxStackResolvedFlags ? stackalloc bool[Bones.Length] : default);
+        for (var i = 0; i < Bones.Length; i++) ResolveBone(i, pose, into, scratch.Span);
     }
     
     public PooledMemory<Matrix4x4> ResolvePosePooled(in SkeletalPose pose)
