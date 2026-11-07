@@ -132,13 +132,13 @@ The tick is deterministic on the same build and CPU family. Tick code must:
 
 ```mermaid
 flowchart LR
-    S["skinning, bounds, scene data"] --> C["culling, indirect commands"] --> D["depth prepass"] --> G["G-buffer"] --> LG["light grid"] --> L["lighting"]
+    S["skinning, bounds, scene data"] --> C["culling, indirect commands"] --> D["depth prepass"] --> LG["light grid"] --> F["forward color"]
 ```
 
-The light grid sorts point lights by view depth into 1024 depth bins on the CPU (`LightBinner`), then a compute pass marks which lights touch each 32 x 32 pixel tile. Lighting only loops the lights in both a pixel's tile and its depth bin, plus every directional light. A light reaches nothing past its `Radius`.
+The light grid sorts point lights by view depth into 1024 depth bins on the CPU (`LightBinner`), then a compute pass marks which lights touch each 32 x 32 pixel tile. The forward pass draws every mesh again with its material's shader, which evaluates the surface and lights it right there, looping only the lights in both the pixel's tile and its depth bin, plus every directional light. A light reaches nothing past its `Radius`. There is no G-buffer.
 
 Draws are batched by index buffer plus material pass, and materials that don't move vertices share one depth pass. Without indirect rendering (or with `DrawMode = Direct`), culling is skipped and meshes draw from the CPU. Culling doesn't cull anything yet.
 
-`Viewport` shows a world in a Rin.Core surface. A click cycles the debug channel (scene, G-buffer channels, radiance).
+`Viewport` shows a world in a Rin.Core surface. A click cycles its `RenderChannel`: the lit scene, the surface's color, location, normal, roughness/metallic/specular and emissive, the incoming radiance, and a heatmap of how many lights each pixel loops. The channel travels in the `CameraView`, and the surface shader picks it at the end of its fragment.
 
 References: Rin.Core, Rin.Shade, Rin.SourceGenerators. Packages: BepuPhysics, Friflo.Engine.ECS.

@@ -21,17 +21,6 @@ using ICommand = Rin.Core.Views.Graphics.Commands.ICommand;
 
 namespace Rin.World.Views;
 
-public enum ViewportChannel
-{
-    Scene,
-    Color,
-    Location,
-    Normal,
-    RoughnessMetallicSpecular,
-    Emissive,
-    Radiance
-}
-
 internal partial class ViewportCommandHandler : ICommandHandlerWithPreAdd
 {
     [GraphicsShader<ViewportShader>]
@@ -64,9 +53,6 @@ internal partial class ViewportCommandHandler : ICommandHandlerWithPreAdd
         for (var i = 0; i < commands.Length; i++) _commands[i] = (DrawViewportCommand)commands[i];
     }
 
-    private uint[][] _gBufferImageIds = [];
-    private uint[] _lightsBufferIds = [];
-
     public void Configure(IPassConfig passConfig, SurfaceContext surfaceContext, IGraphConfig config)
     {
         _pushBufferIds = new uint[_commands.Length];
@@ -74,24 +60,8 @@ internal partial class ViewportCommandHandler : ICommandHandlerWithPreAdd
             _pushBufferIds[i] = config.CreateBuffer<ViewportPushData>(GraphBufferUsage.HostThenGraphics);
 
         _outputImageIds = new uint[_renderContexts.Length];
-        _gBufferImageIds = new uint[_renderContexts.Length][];
-        _lightsBufferIds = new uint[_renderContexts.Length];
         for (var i = 0; i < _renderContexts.Length; i++)
-        {
-            var context = _renderContexts[i];
-            _outputImageIds[i] = config.ReadTexture(context.GetOutputImageId(), ImageLayout.ShaderReadOnly);
-
-            var gBufferIds = new uint[4];
-            for (var j = 0; j < gBufferIds.Length; j++)
-            {
-                var id = context.GetGBufferImageId(j);
-                gBufferIds[j] = id > 0 ? config.ReadTexture(id, ImageLayout.ShaderReadOnly) : 0;
-            }
-
-            _gBufferImageIds[i] = gBufferIds;
-            _lightsBufferIds[i] = config.CreateBuffer<LightInfo>(System.Math.Max(context.GetLights().Length, 1),
-                GraphBufferUsage.HostThenGraphics);
-        }
+            _outputImageIds[i] = config.ReadTexture(_renderContexts[i].GetOutputImageId(), ImageLayout.ShaderReadOnly);
     }
 
     public void Execute(IPassConfig passConfig,
@@ -104,10 +74,6 @@ internal partial class ViewportCommandHandler : ICommandHandlerWithPreAdd
                 var cmd = _commands[i];
                 var outputImage = graph.GetImageOrException(_outputImageIds[i]);
                 var pushBuffer = graph.GetBufferOrException(_pushBufferIds[i]);
-                var gBufferIds = _gBufferImageIds[i];
-                var lights = _renderContexts[i].GetLights();
-                var lightsBuffer = graph.GetBufferOrException(_lightsBufferIds[i]);
-                if (lights.Length > 0) lightsBuffer.Write(lights);
 
                 ctx.SetStencilCompareMask(cmd.StencilMask);
                 pushBuffer.WriteSingle(
@@ -116,17 +82,7 @@ internal partial class ViewportCommandHandler : ICommandHandlerWithPreAdd
                         Projection = surfaceContext.ProjectionMatrix,
                         Transform = cmd.Transform,
                         Size = cmd.DisplaySize,
-                        OutputImage = outputImage,
-                        GBuffer = new GBufferHandles
-                        {
-                            GBuffer0 = gBufferIds[0] > 0 ? graph.GetImageOrException(gBufferIds[0]) : ResourceHandle.InvalidTexture,
-                            GBuffer1 = gBufferIds[1] > 0 ? graph.GetImageOrException(gBufferIds[1]) : ResourceHandle.InvalidTexture,
-                            GBuffer2 = gBufferIds[2] > 0 ? graph.GetImageOrException(gBufferIds[2]) : ResourceHandle.InvalidTexture,
-                            GBuffer3 = gBufferIds[3] > 0 ? graph.GetImageOrException(gBufferIds[3]) : ResourceHandle.InvalidTexture
-                        },
-                        Lights = new BufferRef<LightInfo>(lightsBuffer.GetAddress()),
-                        LightCount = lights.Length,
-                        Channel = cmd.Channel
+                        OutputImage = outputImage
                     });
                 bindContext
                     .Push(new ViewportShader.PushConstants { Data = new BufferRef<ViewportPushData>(pushBuffer.GetAddress()) })
@@ -139,8 +95,7 @@ internal partial class ViewportCommandHandler : ICommandHandlerWithPreAdd
 internal class DrawViewportCommand(
     IWorldCollectedData context,
     in Vector2 displaySize,
-    in Matrix4x4 transform,
-    ViewportChannel channel)
+    in Matrix4x4 transform)
     : TCommand<MainPassConfig, ViewportCommandHandler>
 {
     /// <summary>Immutable world snapshot taken on the collect thread; render size is baked in.</summary>
@@ -150,8 +105,6 @@ internal class DrawViewportCommand(
     public Vector2 DisplaySize { get; } = displaySize;
 
     public Matrix4x4 Transform { get; } = transform;
-
-    public ViewportChannel Channel { get; } = channel;
 }
 
 public class Viewport : ContentView
@@ -162,13 +115,13 @@ public class Viewport : ContentView
     private readonly RenderFeature _render;
     private readonly Entity _cameraEntity;
     private bool _captureMouse;
-    private ViewportChannel _channel = ViewportChannel.Scene;
+    private RenderChannel _channel = RenderChannel.Scene;
     private bool _ignoreNextMove;
     private Vector2 _mousePosition;
 
     // Render-target size is debounced: it only follows the content size once that size has
     // settled, so a live resize (splitter / window drag) stretches the last render instead of
-    // reallocating the whole G-buffer set every frame.
+    // reallocating the render targets every frame.
     private Vector2 _renderSize;
     private Vector2 _lastContentSize;
     private int _settleFrames;
@@ -194,13 +147,14 @@ public class Viewport : ContentView
     {
         return _channel switch
         {
-            ViewportChannel.Scene => "Default",
-            ViewportChannel.Color => "Color",
-            ViewportChannel.Location => "Location",
-            ViewportChannel.Normal => "Normal",
-            ViewportChannel.RoughnessMetallicSpecular => "Roughness Metallic Specular",
-            ViewportChannel.Emissive => "Emissive",
-            ViewportChannel.Radiance => "Radiance",
+            RenderChannel.Scene => "Default",
+            RenderChannel.Color => "Color",
+            RenderChannel.Location => "Location",
+            RenderChannel.Normal => "Normal",
+            RenderChannel.RoughnessMetallicSpecular => "Roughness Metallic Specular",
+            RenderChannel.Emissive => "Emissive",
+            RenderChannel.Radiance => "Radiance",
+            RenderChannel.LightCount => "Light Count",
             _ => throw new ArgumentOutOfRangeException()
         };
     }
@@ -264,8 +218,8 @@ public class Viewport : ContentView
             case CursorButton.One:
             {
                 var currentIdx = (int)_channel;
-                currentIdx = (currentIdx + 1) % 7;
-                _channel = (ViewportChannel)currentIdx;
+                currentIdx = (currentIdx + 1) % ((int)RenderChannel.LightCount + 1);
+                _channel = (RenderChannel)currentIdx;
                 GetModeText();
                 e.Target = this;
                 break;
@@ -315,13 +269,13 @@ public class Viewport : ContentView
     {
         // Runs on the collect (main) thread, inside the render barrier, so reading the world is safe.
         var context = Snapshot(GetRenderSize().ToExtent());
-        commands.Add(new DrawViewportCommand(context, GetContentSize(), transform, _channel));
+        commands.Add(new DrawViewportCommand(context, GetContentSize(), transform));
         commands.AddText(transform, "Noto Sans", GetModeText());
     }
 
 
     private IWorldCollectedData Snapshot(in Extent2D extent) =>
-        _render.RenderSystem.Snapshot(_render.World.GetCameraView(_cameraEntity), extent);
+        _render.RenderSystem.Snapshot(_render.World.GetCameraView(_cameraEntity) with { Channel = _channel }, extent);
 
     protected virtual void OnMouseDelta(Vector2 delta)
     {

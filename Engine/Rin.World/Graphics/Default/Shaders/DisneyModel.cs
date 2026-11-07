@@ -1,9 +1,12 @@
 using System.Numerics;
+using Rin.World.Graphics.Surfaces;
+using Rin.Shade;
 using static Rin.Shade.Shader;
 
 namespace Rin.World.Graphics.Default.Shaders;
 
 // https://schuttejoe.github.io/post/disneybsdf/
+[ShadeExport]
 public static class DisneyModel
 {
     private const float ReciprocalPi = 0.3183098861837907f;
@@ -34,9 +37,8 @@ public static class DisneyModel
         return GeometrySchlick(noL, roughness) * GeometrySchlick(noV, roughness);
     }
 
-    public static Vector3 Eval(GBufferSample surface, Vector3 eye, LightInfo light)
+    public static Vector3 Eval(Surface surface, Vector3 location, Vector3 eye, LightInfo light)
     {
-        var location = surface.Location;
         var toSurface = LightMath.DirectionToLight(light, location);
         var normal = surface.Normal;
 
@@ -51,7 +53,7 @@ public static class DisneyModel
             var reflectance = surface.Specular;
             var roughness = surface.Roughness;
             var metallic = surface.Metallic;
-            var baseColor = surface.Color;
+            var baseColor = surface.BaseColor;
             var halfway = Normalize(view + toSurface);
 
             var noV = Clamp(Dot(normal, view), 0f, 1f);

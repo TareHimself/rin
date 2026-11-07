@@ -1,6 +1,7 @@
 using System.Numerics;
 using JetBrains.Annotations;
 using Rin.Shade;
+using Rin.World.Graphics.Surfaces;
 using static Rin.Shade.Shader;
 
 namespace Rin.World.Graphics.Default.Shaders;
@@ -9,6 +10,7 @@ namespace Rin.World.Graphics.Default.Shaders;
 ///     One view's light grid: the point lights sorted by view depth, the z-bins from <see cref="LightBinner" />, and one
 ///     bitmask word per 32 lights per screen tile.
 /// </summary>
+[ShadeExport]
 [NoReorder]
 public struct LightGridInfo
 {
@@ -31,9 +33,22 @@ public struct LightGridInfo
 }
 
 /// <summary>
+///     What lighting one surface point produced. <see cref="Color" /> is linear, <see cref="Radiance" /> is the incoming
+///     light without the surface's response, for the radiance channel.
+/// </summary>
+[ShadeExport]
+public struct LightingResult
+{
+    public Vector3 Color;
+    public Vector3 Radiance;
+    public uint LightCount;
+}
+
+/// <summary>
 ///     Grid lookups shared by the tile pass and the shading loop. Everything but <see cref="BinOf" /> is plain
 ///     arithmetic, so it also runs as ordinary C# in tests.
 /// </summary>
+[ShadeExport]
 public static class LightGrid
 {
     public const uint TileSize = 32;
@@ -86,6 +101,55 @@ public static class LightGrid
         var low = first > wordStart ? first - wordStart : 0u;
         var high = last - wordStart < 31u ? last - wordStart : 31u;
         return (0xFFFFFFFFu << (int)low) & (0xFFFFFFFFu >> (int)(31u - high));
+    }
+
+    /// <summary>
+    ///     Lights a surface point with every directional light and the point lights in both its z-bin and its tile.
+    /// </summary>
+    public static LightingResult Light(Surface surface, Vector3 location, Vector3 eye, Vector2 pixel, LightGridInfo grid)
+    {
+        LightingResult result;
+        result.Color = LightMath.Rgb2Lin(new Vector3(surface.Emissive));
+        result.Radiance = new Vector3(0f);
+        result.LightCount = (uint)grid.DirectionalLightCount;
+        for (var i = 0; i < grid.DirectionalLightCount; i++)
+            Add(ref result, surface, location, eye, grid.DirectionalLights[i]);
+
+        var depth = Vector4.Transform(new Vector4(location, 1f), grid.View).Z;
+        var bin = grid.Bins[BinOf(depth, grid.Near, grid.BinScale)];
+        var first = bin & 0xFFFFu;
+        var last = bin >> 16;
+        if (first > last) return result;
+
+        var tile = ((uint)pixel.Y / TileSize * grid.TilesX + (uint)pixel.X / TileSize) * grid.WordCount;
+        for (var word = first / 32u; word <= last / 32u; word++)
+        {
+            var bits = grid.TileMasks[tile + word] & RangeMask(word, first, last);
+            result.LightCount += CountBits(bits);
+            while (bits != 0u)
+            {
+                Add(ref result, surface, location, eye, grid.PointLights[word * 32u + FirstBitLow(bits)]);
+                bits &= bits - 1u;
+            }
+        }
+
+        return result;
+    }
+
+    /// <summary>
+    ///     Blue at zero lights, green at half of <paramref name="hot" />, red at <paramref name="hot" /> or more.
+    /// </summary>
+    public static Vector3 Heatmap(uint count, float hot)
+    {
+        var t = Min(count / hot, 1f) * 2f - 1f;
+        return new Vector3(Saturate(t), 1f - Abs(t), Saturate(-t));
+    }
+
+    private static void Add(ref LightingResult result, Surface surface, Vector3 location, Vector3 eye, LightInfo light)
+    {
+        result.Color += DisneyModel.Eval(surface, location, eye, light);
+        var noL = Max(Dot(surface.Normal, LightMath.DirectionToLight(light, location)), 0f);
+        result.Radiance += noL * light.Radiance * light.Color * LightMath.Attenuation(light, location);
     }
 
     /// <summary>
