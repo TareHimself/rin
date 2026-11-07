@@ -3,7 +3,6 @@ using System.Diagnostics;
 using System.Numerics;
 using Rin.Core;
 using Rin.Core.Graphics;
-using Rin.Core.Graphics.Shaders;
 using Rin.Graphics.Vulkan.Descriptors;
 using Rin.Graphics.Vulkan.Images;
 using Rin.Shade;
@@ -12,6 +11,7 @@ using TerraFX.Interop.Vulkan;
 namespace Rin.Graphics.Vulkan;
 
 using static TerraFX.Interop.Vulkan.Vulkan;
+using Rin.Graphics.Vulkan.Shaders;
 
 internal static class VulkanExtensions
 {

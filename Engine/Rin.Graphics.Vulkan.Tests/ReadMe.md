@@ -12,7 +12,7 @@ dotnet test Engine/Rin.Graphics.Vulkan.Tests/Rin.Graphics.Vulkan.Tests.csproj -p
 | File | Covers |
 | --- | --- |
 | `NativeTests.cs` | Every checked wrapper throws `NativeException` naming the export and code when the native side fails, returns quietly on `Ok`, and `GraphicsResult` and `VulkanInitResult` still match `result.hpp` and `graphics.hpp` |
-| `VulkanExceptionTests.cs` | `ThrowIfFailed` throws on negative `VkResult` codes only |
+| `VulkanExceptionTests.cs` | `ThrowIfFailed` throws on negative `VkResult` codes only, as a `VulkanException`, which is a Core `GraphicsException` |
 | `FrameCollectorTests.cs` | Collect hands the newest batch to the render thread, a batch it skipped is disposed, renderers with nothing to draw are left out, a renderer removed after the collect is dropped from the batch, and a window renderer is found by its window until it is removed |
 | `ResourceLanesTests.cs` | Typed lanes and the shared lane together: merging stops at a fence and at peeked items, a shared write is one fence in each lane it names (one for a copy within a buffer, one per kind for a copy between a buffer and a texture) and once in the shared lane, ordered takes run shared writes in enqueue order with the writes ahead of them and respect the budget, dropping a resource cancels the shared writes that name it |
 | `UploadBatchTests.cs` | Filling a flush batch from the lanes: the action cap, an action whose resource cannot be acquired is dropped and its task cancelled, each resource is acquired once, buffer writes group by handle, order across resources joined by a copy is kept, a texture to buffer copy leaves no texture in a transfer layout, staging sizes are aligned |

@@ -1,4 +1,5 @@
-namespace Rin.Core.Graphics;
+using Rin.Core.Graphics;
+namespace Rin.Graphics.Vulkan;
 
 public struct TextureBarrier(ResourceHandle texture, ImageLayout from, ImageLayout to)
 {

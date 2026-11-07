@@ -1,4 +1,4 @@
-﻿namespace Rin.Core.Graphics.Shaders;
+﻿namespace Rin.Graphics.Vulkan.Descriptors;
 
 public enum DescriptorType
 {
