@@ -58,6 +58,12 @@ public class DefaultWorldViewData : IWorldCollectedData
     public uint GBufferImage3 { get; set; }
     public uint OutputImageId { get; set; }
 
+    public uint LightGridBufferId { get; set; }
+    public uint PointLightsBufferId { get; set; }
+    public uint DirectionalLightsBufferId { get; set; }
+    public uint LightBinsBufferId { get; set; }
+    public uint TileMasksBufferId { get; set; }
+
     public uint[] IndirectCommandBuffers { get; set; } = [];
     public uint[] IndirectCommandCountBuffers { get; set; } = [];
     public uint[] DepthIndirectCommandBuffers { get; set; } = [];
@@ -92,6 +98,7 @@ public class DefaultWorldViewData : IWorldCollectedData
         builder.AddPass(new InitViewResourcesPass(this));
         var useIndirect = UseIndirectDrawing(DrawMode, IGraphicsModule.Get().CurrentDevice.SupportsIndirectRendering);
         foreach (var pass in CreateGeometryPasses(useIndirect)) builder.AddPass(pass);
+        builder.AddPass(new LightGridPass(this));
         builder.AddPass(new LightingPass(this));
     }
 

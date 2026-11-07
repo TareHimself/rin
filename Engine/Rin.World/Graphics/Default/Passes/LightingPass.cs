@@ -14,7 +14,6 @@ public partial class LightingPass(DefaultWorldViewData context) : IPass
     [GraphicsShader<LightingShader>]
     private partial IGraphicsShader Shader { get; }
 
-    private uint _lightBufferId;
     private uint _worldBufferId;
 
     public uint Id { get; set; }
@@ -27,7 +26,11 @@ public partial class LightingPass(DefaultWorldViewData context) : IPass
         config.ReadTexture(context.GBufferImage3, ImageLayout.ShaderReadOnly);
         context.OutputImageId = config.CreateTexture(context.Extent, LightingShader.Descriptor.Output.Format.ToImageFormat(), ImageLayout.ColorAttachment);
         _worldBufferId = config.CreateBuffer<LightingInfo>(GraphBufferUsage.HostThenGraphics);
-        _lightBufferId = config.CreateBuffer<LightInfo>(context.Lights.Length, GraphBufferUsage.HostThenGraphics);
+        config.ReadBuffer(context.LightGridBufferId, GraphBufferUsage.Graphics);
+        config.ReadBuffer(context.PointLightsBufferId, GraphBufferUsage.Graphics);
+        config.ReadBuffer(context.DirectionalLightsBufferId, GraphBufferUsage.Graphics);
+        config.ReadBuffer(context.LightBinsBufferId, GraphBufferUsage.Graphics);
+        config.ReadBuffer(context.TileMasksBufferId, GraphBufferUsage.Graphics);
     }
 
     public void Execute(ICompiledGraph graph, IExecutionContext ctx)
@@ -40,8 +43,7 @@ public partial class LightingPass(DefaultWorldViewData context) : IPass
             var gBuffer3 = graph.GetImageOrException(context.GBufferImage3);
             var outputImage = graph.GetImageOrException(context.OutputImageId);
             var buffer = graph.GetBufferOrException(_worldBufferId);
-            var lightsBuffer = graph.GetBufferOrException(_lightBufferId);
-            lightsBuffer.Write(context.Lights);
+            var gridBuffer = graph.GetBufferOrException(context.LightGridBufferId);
 
             buffer.WriteSingle(
                 new LightingInfo
@@ -54,8 +56,7 @@ public partial class LightingPass(DefaultWorldViewData context) : IPass
                         GBuffer3 = gBuffer3
                     },
                     Eye = context.ViewTransform.Position,
-                    Lights = new BufferRef<LightInfo>(lightsBuffer.GetAddress()),
-                    LightCount = context.Lights.Length
+                    Grid = new BufferRef<LightGridInfo>(gridBuffer.GetAddress())
                 });
 
             ctx

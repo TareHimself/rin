@@ -132,8 +132,10 @@ The tick is deterministic on the same build and CPU family. Tick code must:
 
 ```mermaid
 flowchart LR
-    S["skinning, bounds, scene data"] --> C["culling, indirect commands"] --> D["depth prepass"] --> G["G-buffer"] --> L["lighting"]
+    S["skinning, bounds, scene data"] --> C["culling, indirect commands"] --> D["depth prepass"] --> G["G-buffer"] --> LG["light grid"] --> L["lighting"]
 ```
+
+The light grid sorts point lights by view depth into 1024 depth bins on the CPU (`LightBinner`), then a compute pass marks which lights touch each 32 x 32 pixel tile. Lighting only loops the lights in both a pixel's tile and its depth bin, plus every directional light. A light reaches nothing past its `Radius`.
 
 Draws are batched by index buffer plus material pass, and materials that don't move vertices share one depth pass. Without indirect rendering (or with `DrawMode = Direct`), culling is skipped and meshes draw from the CPU. Culling doesn't cull anything yet.
 

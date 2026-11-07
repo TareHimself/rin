@@ -10,8 +10,7 @@ public struct LightingInfo
 {
     public GBufferHandles GBuffer;
     public Vector3 Eye;
-    public BufferRef<LightInfo> Lights;
-    public int LightCount;
+    public BufferRef<LightGridInfo> Grid;
 }
 
 [Shader]
@@ -63,10 +62,32 @@ public partial class LightingShader : Shader
     public Vector4 Fragment(FragmentIn input)
     {
         var data = Push.Data[0];
+        var grid = data.Grid[0];
         var surface = Bindless.SampleGBuffer(data.GBuffer, input.Uv);
 
         var color = LightMath.Rgb2Lin(new Vector3(surface.Emissive));
-        for (var i = 0; i < data.LightCount; i++) color += DisneyModel.Eval(surface, data.Eye, data.Lights[i]);
+        for (var i = 0; i < grid.DirectionalLightCount; i++)
+            color += DisneyModel.Eval(surface, data.Eye, grid.DirectionalLights[i]);
+
+        var depth = Vector4.Transform(new Vector4(surface.Location, 1f), grid.View).Z;
+        var bin = grid.Bins[LightGrid.BinOf(depth, grid.Near, grid.BinScale)];
+        var first = bin & 0xFFFFu;
+        var last = bin >> 16;
+        if (first <= last)
+        {
+            var tileX = (uint)(input.Uv.X * grid.Width) / LightGrid.TileSize;
+            var tileY = (uint)(input.Uv.Y * grid.Height) / LightGrid.TileSize;
+            var masks = (tileY * grid.TilesX + tileX) * grid.WordCount;
+            for (var word = first / 32u; word <= last / 32u; word++)
+            {
+                var bits = grid.TileMasks[masks + word] & LightGrid.RangeMask(word, first, last);
+                while (bits != 0u)
+                {
+                    color += DisneyModel.Eval(surface, data.Eye, grid.PointLights[word * 32u + FirstBitLow(bits)]);
+                    bits &= bits - 1u;
+                }
+            }
+        }
 
         return new Vector4(LightMath.Lin2Rgb(color), 1f);
     }
