@@ -1,3 +1,4 @@
+using Rin.Core.Shared.Math;
 using Rin.World.Ecs;
 using Rin.World.Scheduling;
 using Rin.World.Transforms;
@@ -63,9 +64,10 @@ public sealed class World
     internal bool IsRestoring => _restoring;
 
     /// <summary>
-    ///     The simulation's random numbers, saved in every snapshot. Seed it before the first tick.
+    ///     The simulation's random numbers, saved in every snapshot. Seed it before the first tick, and draw from it only
+    ///     inside the tick in a fixed order: a draw from presentation code changes every later draw.
     /// </summary>
-    public SimRandom Random { get; } = new();
+    public DeterministicRandom Random { get; } = new();
 
     public void AddSystem(TickPhase phase, TickSystem system) => _schedule.Add(phase, system);
 
@@ -132,7 +134,7 @@ public sealed class World
         TickIndex = reader.Read<long>();
         _accumulator = reader.Read<float>();
         InterpolationAlpha = _accumulator / TickInterval;
-        Random.Current = reader.Read<SimRandom.State>();
+        Random.Current = reader.Read<DeterministicRandom.State>();
         _store.Restore(ref reader);
 
         for (var i = 0; i < _restoreListeners.Count; i++) _restoreListeners[i].AfterRestore();

@@ -1,6 +1,7 @@
-﻿using JetBrains.Annotations;
+﻿using Rin.Core.Graphics;
+using JetBrains.Annotations;
 
-namespace Rin.Core.Graphics;
+namespace Rin.Graphics.Vulkan;
 
 [NoReorder]
 public record struct SamplerSpec

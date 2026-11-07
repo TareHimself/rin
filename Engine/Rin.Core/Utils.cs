@@ -10,23 +10,7 @@ public static class Utils
         var watch = Stopwatch.StartNew();
         func();
         watch.Stop();
-        Console.WriteLine($"[Measure: {name}]: {watch.Elapsed.Microseconds / 1000.0f}ms");
-    }
-
-    public static void Benchmark(string name, Action func, int iterations)
-    {
-        var watch = Stopwatch.StartNew();
-        watch.Stop();
-        var total = TimeSpan.Zero;
-        for (var i = 0; i < iterations; i++)
-        {
-            watch.Restart();
-            func();
-            watch.Stop();
-            total += watch.Elapsed;
-        }
-
-        Console.WriteLine($"[Benchmark: {name}]: {total.TotalNanoseconds / iterations / 1000.0f}ms");
+        Console.WriteLine($"[Measure: {name}]: {watch.Elapsed.TotalMilliseconds}ms");
     }
 
     public static T Measure<T>(string name, Func<T> func)
@@ -34,7 +18,7 @@ public static class Utils
         var watch = Stopwatch.StartNew();
         var r = func();
         watch.Stop();
-        Console.WriteLine($"[Measure: {name}]: {watch.Elapsed.Microseconds / 1000.0f}ms");
+        Console.WriteLine($"[Measure: {name}]: {watch.Elapsed.TotalMilliseconds}ms");
         return r;
     }
 

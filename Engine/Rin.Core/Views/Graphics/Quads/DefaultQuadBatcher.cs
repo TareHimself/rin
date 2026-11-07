@@ -9,7 +9,6 @@ using Rin.Shade;
 
 namespace Rin.Core.Views.Graphics.Quads;
 
-[ViewsBatcher]
 public sealed partial class DefaultQuadBatcher : SimpleQuadBatcher<QuadBatch>
 {
     [GraphicsShader<QuadBatchShader>]

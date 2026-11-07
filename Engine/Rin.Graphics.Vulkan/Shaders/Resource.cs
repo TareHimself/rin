@@ -1,4 +1,4 @@
-using Rin.Core.Graphics.Shaders;
+using Rin.Graphics.Vulkan.Descriptors;
 
 namespace Rin.Graphics.Vulkan.Shaders;
 

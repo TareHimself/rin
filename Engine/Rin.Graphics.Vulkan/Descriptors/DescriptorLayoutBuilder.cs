@@ -1,6 +1,7 @@
 ﻿using Rin.Core.Graphics.Shaders;
 using TerraFX.Interop.Vulkan;
 using static TerraFX.Interop.Vulkan.VkStructureType;
+using Rin.Graphics.Vulkan.Shaders;
 
 namespace Rin.Graphics.Vulkan.Descriptors;
 

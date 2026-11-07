@@ -10,7 +10,7 @@ CI passes `-p:RinShadeSkipCompile=true` for this project.
 
 | Folder | Covers |
 | --- | --- |
-| root | `World`: entity handles, the hierarchy, hooks and the command buffer, snapshot save and restore (round trip, zero allocation), `SimRandom`, and `DeterminismTests`: a scripted input log run twice and rolled back, hashed every tick |
+| root | `World`: entity handles, the hierarchy, hooks and the command buffer, snapshot save and restore (round trip, zero allocation, the saved `Random`), and `DeterminismTests`: a scripted input log run twice and rolled back, hashed every tick |
 | `Ecs/` | Queries over the Friflo backend and their zero-allocation check, the entity id allocator, and that every component and tag in Friflo's reflection-scanned schema was registered by the generator (a missing one would break a NativeAOT build) |
 | `Scheduling/` | The tick and frame scheduler, time scale and interpolation alpha |
 | `Transforms/` | Transform setters and propagation |

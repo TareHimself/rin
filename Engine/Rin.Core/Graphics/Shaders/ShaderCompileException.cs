@@ -1,5 +1,5 @@
 ﻿namespace Rin.Core.Graphics.Shaders;
 
-public class ShaderCompileException(string message) : Exception(message)
+public class ShaderCompileException(string message) : GraphicsException(message)
 {
 }

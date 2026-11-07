@@ -11,12 +11,6 @@ public class ClipInfo(uint id, Matrix4x4 transform, Vector2 size)
     public Matrix4x4 Transform = transform;
 }
 
-public struct PendingCommand(ICommand cmd, uint clipId)
-{
-    public ICommand Cmd = cmd;
-    public readonly uint ClipId = clipId;
-}
-
 public readonly struct ClipStackKey(uint[] ids) : IEquatable<ClipStackKey>
 {
     public static readonly ClipStackKey Empty = new([]);

@@ -1,3 +1,4 @@
+using Rin.Core.Shared.Math;
 using System.Numerics;
 using Rin.World.Scheduling;
 using Rin.World.Transforms;
@@ -185,7 +186,7 @@ public class WorldSnapshotTests
         for (var i = 0; i < ticks; i++) world.Update(world.TickInterval);
     }
 
-    private static ulong[] Draw(SimRandom random) => [random.NextUInt64(), random.NextUInt64(), random.NextUInt64()];
+    private static ulong[] Draw(DeterministicRandom random) => [random.NextUInt64(), random.NextUInt64(), random.NextUInt64()];
 
     private static List<Entity> ChildrenOf(World world, Entity parent)
     {

@@ -6,19 +6,6 @@ namespace Rin.Core.Extensions;
 public static class TaskExtensions
 {
 
-    public static IEnumerable<T> WaitAll<T>(this IEnumerable<Task<T>> tasks)
-    {
-        var taskArray = tasks as Task<T>[] ?? tasks.ToArray();
-        Task.WaitAll(taskArray);
-        var results = new T[taskArray.Length];
-        for (var i = 0; i < taskArray.Length; i++)
-        {
-            results[i] = taskArray[i].Result;
-        }
-
-        return results;
-    }
-
     public static Task<TV> Then<T, TV>(this Task<T> task, Func<T, TV> then)
     {
         return task.Then(static (result, callback) => callback(result), then);
@@ -166,11 +153,5 @@ public static class TaskExtensions
     public static ConfiguredTaskAwaitable DispatchRender<TState>(this Task task, Action<TState> then, TState state)
     {
         return task.Dispatch(IApplication.Get().RenderDispatcher, then, state);
-    }
-
-    public static T WaitForResult<T>(this Task<T> task)
-    {
-        task.Wait();
-        return task.Result;
     }
 }

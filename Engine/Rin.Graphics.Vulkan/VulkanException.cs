@@ -1,3 +1,4 @@
+using Rin.Core.Graphics;
 using TerraFX.Interop.Vulkan;
 
 namespace Rin.Graphics.Vulkan;
@@ -5,7 +6,7 @@ namespace Rin.Graphics.Vulkan;
 /// <summary>
 ///     A Vulkan call made through TerraFX returned an error.
 /// </summary>
-public sealed class VulkanException(VkResult result, string call) : Exception($"{call} failed with {result}")
+public sealed class VulkanException(VkResult result, string call) : GraphicsException($"{call} failed with {result}")
 {
     public VkResult Result { get; } = result;
     public string Call { get; } = call;

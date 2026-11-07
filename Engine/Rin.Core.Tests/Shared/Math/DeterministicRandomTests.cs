@@ -1,6 +1,8 @@
-namespace Rin.World.Tests;
+using Rin.Core.Shared.Math;
 
-public class SimRandomTests
+namespace Rin.Core.Tests.Shared.Math;
+
+public class DeterministicRandomTests
 {
     // The seed fills the state with the reference splitmix64.c's first four outputs from 1477776061723855037, as
     // published in rand_xoshiro's tests. The expected values step that state with the reference xoshiro256starstar.c
@@ -8,7 +10,7 @@ public class SimRandomTests
     [Test]
     public void MatchesTheReferenceImplementations()
     {
-        var random = new SimRandom(1477776061723855037);
+        var random = new DeterministicRandom(1477776061723855037);
         ulong[] expected =
         [
             5157112160024420127, 1500938876607723663, 16125041519135623862, 10010941967492962366,
@@ -21,14 +23,14 @@ public class SimRandomTests
     [Test]
     public void TheSameSeedGivesTheSameSequence()
     {
-        Assert.That(Draw(new SimRandom(42)), Is.EqualTo(Draw(new SimRandom(42))));
-        Assert.That(Draw(new SimRandom(42)), Is.Not.EqualTo(Draw(new SimRandom(43))));
+        Assert.That(Draw(new DeterministicRandom(42)), Is.EqualTo(Draw(new DeterministicRandom(42))));
+        Assert.That(Draw(new DeterministicRandom(42)), Is.Not.EqualTo(Draw(new DeterministicRandom(43))));
     }
 
     [Test]
     public void SeedRestartsTheSequence()
     {
-        var random = new SimRandom(7);
+        var random = new DeterministicRandom(7);
         var first = Draw(random);
 
         random.Seed(7);
@@ -39,7 +41,7 @@ public class SimRandomTests
     [Test]
     public void ValuesStayInTheirRanges()
     {
-        var random = new SimRandom(1);
+        var random = new DeterministicRandom(1);
         for (var i = 0; i < 10_000; i++)
         {
             Assert.That(random.NextInt(7), Is.InRange(0, 6));
@@ -52,13 +54,13 @@ public class SimRandomTests
     [Test]
     public void AnEmptyRangeThrows()
     {
-        var random = new SimRandom();
+        var random = new DeterministicRandom();
 
         Assert.Throws<ArgumentOutOfRangeException>(() => random.NextInt(0));
         Assert.Throws<ArgumentOutOfRangeException>(() => random.NextInt(5, 5));
     }
 
-    private static ulong[] Draw(SimRandom random)
+    private static ulong[] Draw(DeterministicRandom random)
     {
         var values = new ulong[16];
         for (var i = 0; i < values.Length; i++) values[i] = random.NextUInt64();

@@ -1,3 +1,5 @@
+using Rin.Core.Shared.Math;
+
 namespace Rin.World.Scheduling;
 
 public readonly struct TickContext(World world, long tick, float deltaSeconds)
@@ -11,5 +13,5 @@ public readonly struct TickContext(World world, long tick, float deltaSeconds)
     /// </summary>
     public float DeltaSeconds { get; } = deltaSeconds;
 
-    public SimRandom Random => World.Random;
+    public DeterministicRandom Random => World.Random;
 }

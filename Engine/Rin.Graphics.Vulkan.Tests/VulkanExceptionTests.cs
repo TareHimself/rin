@@ -1,3 +1,4 @@
+using Rin.Core.Graphics;
 using TerraFX.Interop.Vulkan;
 
 namespace Rin.Graphics.Vulkan.Tests;
@@ -22,6 +23,7 @@ public class VulkanExceptionTests
 
         Assert.Multiple(() =>
         {
+            Assert.That(exception, Is.InstanceOf<GraphicsException>());
             Assert.That(exception.Result, Is.EqualTo(result));
             Assert.That(exception.Call, Is.EqualTo("vkCall"));
             Assert.That(exception.Message, Is.EqualTo($"vkCall failed with {result}"));

@@ -2,12 +2,12 @@ using System.Diagnostics;
 using System.Runtime.InteropServices;
 using Rin.Core.Extensions;
 using Rin.Core.Graphics;
-using Rin.Core.Graphics.Shaders;
 using Rin.Core.Shared;
 using Rin.Core.Shared.Buffers;
 using Rin.Graphics.Vulkan.Descriptors;
 using Rin.Graphics.Vulkan.Images;
 using TerraFX.Interop.Vulkan;
+using Rin.Graphics.Vulkan.Shaders;
 
 namespace Rin.Graphics.Vulkan;
 
