@@ -285,6 +285,8 @@ public class ScriptFeatureTests
         Assert.That(probe.Sibling, Is.SameAs(sibling));
         Assert.That(probe.Remote, Is.SameAs(remote));
         Assert.That(probe.OwnHealth, Is.EqualTo(3));
+        Assert.That(probe.HasSpeed, Is.False);
+        Assert.That(probe.FoundOtherHealth, Is.EqualTo(7));
         Assert.That(_world.Get<Health>(other).Value, Is.EqualTo(8));
     }
 
@@ -301,11 +303,17 @@ public class ScriptFeatureTests
 
         public int OwnHealth { get; private set; }
 
+        public bool HasSpeed { get; private set; }
+
+        public int? FoundOtherHealth { get; private set; }
+
         protected override void Start()
         {
             Sibling = GetScript<Recorder>();
             Remote = GetScript<Recorder>(other);
             OwnHealth = GetComponent<Health>().Value;
+            HasSpeed = HasComponent<Speed>() || TryGetComponent<Speed>(out _);
+            FoundOtherHealth = TryGetComponent<Health>(other, out var health) ? health.Value : null;
             GetComponent<Health>(other).Value++;
         }
     }

@@ -37,6 +37,20 @@ public abstract class Script
 
     protected ref T GetComponent<T>(Entity entity) where T : struct, IComponentData => ref World.Get<T>(entity);
 
+    protected bool HasComponent<T>() where T : struct, IComponentData => World.Has<T>(Entity);
+
+    protected bool HasComponent<T>(Entity entity) where T : struct, IComponentData => World.Has<T>(entity);
+
+    protected bool TryGetComponent<T>(out T component) where T : struct, IComponentData =>
+        TryGetComponent(Entity, out component);
+
+    protected bool TryGetComponent<T>(Entity entity, out T component) where T : struct, IComponentData
+    {
+        var found = World.Has<T>(entity);
+        component = found ? World.Get<T>(entity) : default;
+        return found;
+    }
+
     private ScriptFeature Feature => _feature ?? throw new InvalidOperationException($"{GetType().Name} is not attached.");
 
     /// <summary>

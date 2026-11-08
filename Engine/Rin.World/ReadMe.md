@@ -43,7 +43,7 @@ flowchart LR
 
 ## Scripts and tasks
 
-`new ScriptFeature(world)`, then `scripts.Attach(entity, script)`. A `Script` has `Start`, `Tick`, `Stop` and `Restore`. An entity holds an ordered list of scripts, so small behaviors compose: `Insert` places one at an index, `Detach(script)` removes one and `DetachAll` (or a despawn) stops them in reverse order. Scripts tick entity by entity, in list order. `GameTask` methods are `async` on the tick, not the thread pool. From SceneTest:
+`new ScriptFeature(world)`, then `scripts.Attach(entity, script)`. A `Script` has `Start`, `Tick`, `Stop` and `Restore`. An entity can hold several, run in order. `GameTask` methods are `async` on the tick, not the thread pool. From SceneTest:
 
 ```csharp
 public sealed class BoxRain(float intervalSeconds, Action dropBox) : Script
@@ -63,7 +63,6 @@ public sealed class BoxRain(float intervalSeconds, Action dropBox) : Script
 }
 ```
 
-- Inside a script, `GetScript<T>()` and `GetComponent<T>()` reach the entity's other scripts and components. Both take an optional `Entity` for another entity.
 - `TaskContext` also has `Ticks`, `NextTick`, `Until`, `Event<T>`, `WhenAny` and `WhenAll`.
 - A cancel throws `GameTaskCanceledException` at the pending `await`, so `catch` and `finally` run. `CancelReason` says why.
 - Awaiting a regular `Task` faults the task.
