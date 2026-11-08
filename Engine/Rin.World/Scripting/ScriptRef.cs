@@ -1,9 +1,7 @@
 namespace Rin.World.Scripting;
 
 /// <summary>
-///     Added by <see cref="ScriptFeature.Attach" />: the slot of the entity's <see cref="Script" /> in the feature.
-///     Removing it, or despawning the entity, detaches the script. A snapshot restore clears it and the feature binds it
-///     again.
+///     Slot of the entity's script list. Removing it detaches every script.
 /// </summary>
 public readonly struct ScriptRef : IDerivedComponentData
 {

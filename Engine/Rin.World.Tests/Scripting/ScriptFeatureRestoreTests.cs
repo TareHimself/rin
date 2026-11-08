@@ -34,10 +34,28 @@ public class ScriptFeatureRestoreTests
         Assert.That(_world.Get<Health>(entity).Value, Is.EqualTo(3));
         Tick(2);
 
-        Assert.That(_scripts.GetScript(entity), Is.SameAs(script));
+        Assert.That(_scripts.GetScripts(entity).ToArray(), Is.EqualTo(new[] { script }));
         Assert.That(_scripts.Tasks.RunningCount, Is.EqualTo(1));
         Assert.That(_world.Get<Health>(entity).Value, Is.EqualTo(5));
         Assert.That(_log, Is.EqualTo(new[] { "start", "finally Restored", "restore" }));
+    }
+
+    [Test]
+    public void AnEntityKeepsAllItsScriptsInOrderAcrossARestore()
+    {
+        var entity = _world.Spawn();
+        _world.Add(entity, new Health(0));
+        var first = new Counter(_log);
+        var second = new Counter(_log);
+        _scripts.Attach(entity, first);
+        _scripts.Attach(entity, second);
+        _world.SaveSnapshot(_snapshot);
+
+        _world.RestoreSnapshot(_snapshot);
+
+        Assert.That(_scripts.GetScripts(entity).ToArray(), Is.EqualTo(new[] { first, second }));
+        Assert.That(_scripts.Count, Is.EqualTo(2));
+        Assert.That(_scripts.Tasks.RunningCount, Is.EqualTo(2));
     }
 
     [Test]
@@ -81,12 +99,12 @@ public class ScriptFeatureRestoreTests
         _world.Add(entity, new Health(0));
         _scripts.Attach(entity, new Counter(_log));
         _world.SaveSnapshot(_snapshot);
-        _scripts.Detach(entity);
+        _scripts.DetachAll(entity);
 
         _world.RestoreSnapshot(_snapshot);
 
         Assert.That(_world.Has<ScriptRef>(entity), Is.False);
-        Assert.That(_scripts.GetScript(entity), Is.Null);
+        Assert.That(_scripts.GetScripts(entity).IsEmpty, Is.True);
         Assert.That(_scripts.Count, Is.Zero);
     }
 
@@ -98,8 +116,8 @@ public class ScriptFeatureRestoreTests
         _scripts.Attach(first, new Counter(_log));
         _scripts.Attach(second, new Counter(_log));
         _world.SaveSnapshot(_snapshot);
-        _scripts.Detach(first);
-        _scripts.Detach(second);
+        _scripts.DetachAll(first);
+        _scripts.DetachAll(second);
         _scripts.Attach(first, new Counter(_log));
         _scripts.Attach(second, new Counter(_log));
         var swapped = new WorldSnapshot();

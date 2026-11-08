@@ -28,9 +28,9 @@ public class ScriptFeatureTests
 
         _scripts.Attach(entity, script);
         Assert.That(_world.Has<ScriptRef>(entity), Is.True);
-        Assert.That(_scripts.GetScript(entity), Is.SameAs(script));
+        Assert.That(_scripts.GetScripts(entity).ToArray(), Is.EqualTo(new[] { script }));
         Tick(2);
-        _scripts.Detach(entity);
+        _scripts.DetachAll(entity);
         Tick(1);
 
         Assert.That(_log, Is.EqualTo(new[] { "a.start", "a.tick0", "a.tick1", "a.stop" }));
@@ -46,7 +46,7 @@ public class ScriptFeatureTests
         _scripts.Attach(entities[2], new Recorder("c", _log));
         _scripts.Attach(entities[0], new Recorder("a", _log));
         _scripts.Attach(entities[1], new Recorder("b", _log));
-        _scripts.Detach(entities[0]);
+        _scripts.DetachAll(entities[0]);
         _scripts.Attach(entities[3], new Recorder("d", _log));
         _log.Clear();
 
@@ -113,14 +113,14 @@ public class ScriptFeatureTests
             _log.Add("entity task");
         });
 
-        _scripts.Detach(entity);
+        _scripts.DetachAll(entity);
         Tick(3);
 
         Assert.That(_log, Is.EqualTo(new[] { "finally Detached alive=True", "stop", "entity task" }));
     }
 
     [Test]
-    public void RestoreCancelsEveryTaskThenCallsRestoreInAttachOrder()
+    public void RestoreCancelsEveryTaskThenCallsRestoreInTickOrder()
     {
         var first = _world.Spawn();
         var second = _world.Spawn();
@@ -167,9 +167,155 @@ public class ScriptFeatureTests
         Assert.That(_log, Is.EqualTo(new[] { "despawned", "alive=False" }));
     }
 
+    [Test]
+    public void AnEntitysScriptsTickInListOrderBeforeTheNextEntity()
+    {
+        var first = _world.Spawn();
+        var second = _world.Spawn();
+        _scripts.Attach(first, new Recorder("a1", _log));
+        _scripts.Attach(second, new Recorder("b1", _log));
+        _scripts.Attach(first, new Recorder("a2", _log));
+        _scripts.Insert(first, 0, new Recorder("a0", _log));
+        _log.Clear();
+
+        Tick(1);
+
+        Assert.That(_log, Is.EqualTo(new[] { "a0.tick0", "a1.tick0", "a2.tick0", "b1.tick0" }));
+        Assert.That(_scripts.Count, Is.EqualTo(4));
+    }
+
+    [Test]
+    public void DetachingOneScriptKeepsTheOthersAndTheLastRemovesTheScriptRef()
+    {
+        var entity = _world.Spawn();
+        var a = new Recorder("a", _log);
+        var b = new Recorder("b", _log);
+        _scripts.Attach(entity, a);
+        _scripts.Attach(entity, b);
+
+        Assert.That(_scripts.Detach(a), Is.True);
+        Assert.That(_world.Has<ScriptRef>(entity), Is.True);
+        Assert.That(_scripts.GetScripts(entity).ToArray(), Is.EqualTo(new[] { b }));
+        Assert.That(_scripts.Detach(a), Is.False);
+        Assert.That(_scripts.Detach(b), Is.True);
+
+        Assert.That(_world.Has<ScriptRef>(entity), Is.False);
+        Assert.That(_log, Is.EqualTo(new[] { "a.start", "b.start", "a.stop", "b.stop" }));
+        Assert.That(_scripts.Count, Is.Zero);
+    }
+
+    [Test]
+    public void DespawnStopsAnEntitysScriptsInReverseOrder()
+    {
+        var entity = _world.Spawn();
+        _scripts.Attach(entity, new Recorder("a", _log));
+        _scripts.Attach(entity, new Recorder("b", _log));
+        _scripts.Attach(entity, new Recorder("c", _log));
+        _log.Clear();
+
+        _world.Despawn(entity);
+
+        Assert.That(_log, Is.EqualTo(new[] { "c.stop", "b.stop", "a.stop" }));
+        Assert.That(_scripts.Count, Is.Zero);
+    }
+
+    [Test]
+    public void GetScriptFindsTheFirstScriptOfAType()
+    {
+        var entity = _world.Spawn();
+        var recorder = new Recorder("a", _log);
+        _scripts.Attach(entity, new Waiter(_log));
+        _scripts.Attach(entity, recorder);
+        _scripts.Attach(entity, new Recorder("b", _log));
+
+        Assert.That(_scripts.GetScript<Recorder>(entity), Is.SameAs(recorder));
+        Assert.That(_scripts.GetScript<Countdown>(entity), Is.Null);
+        Assert.That(_scripts.GetScript<Recorder>(_world.Spawn()), Is.Null);
+    }
+
+    [Test]
+    public void AScriptDetachingASiblingDuringATickSkipsItAndOneInsertedStartsTickingNextTick()
+    {
+        var entity = _world.Spawn();
+        var sibling = new Recorder("sibling", _log);
+        _scripts.Attach(entity, new Recorder("first", _log)
+        {
+            OnTick = tick =>
+            {
+                if (tick != 0) return;
+                _scripts.Detach(sibling);
+                _scripts.Insert(entity, 0, new Recorder("inserted", _log));
+            }
+        });
+        _scripts.Attach(entity, sibling);
+        _log.Clear();
+
+        Tick(2);
+
+        Assert.That(_log, Is.EqualTo(new[]
+        {
+            "first.tick0", "sibling.stop", "inserted.start", "inserted.tick1", "first.tick1"
+        }));
+    }
+
+    [Test]
+    public void InsertOutsideTheListThrowsAndLeavesTheEntityUntouched()
+    {
+        var entity = _world.Spawn();
+
+        Assert.Throws<ArgumentOutOfRangeException>(() => _scripts.Insert(entity, 1, new Recorder("a", _log)));
+        Assert.That(_world.Has<ScriptRef>(entity), Is.False);
+        Assert.That(_log, Is.Empty);
+    }
+
+    [Test]
+    public void AScriptCanReachOtherScriptsAndComponents()
+    {
+        var self = _world.Spawn();
+        var other = _world.Spawn();
+        _world.Add(self, new Health(3));
+        _world.Add(other, new Health(7));
+        var sibling = new Recorder("sibling", _log);
+        var remote = new Recorder("remote", _log);
+        _scripts.Attach(self, sibling);
+        _scripts.Attach(other, remote);
+        var probe = new Probe(other);
+        _scripts.Attach(self, probe);
+
+        Assert.That(probe.Sibling, Is.SameAs(sibling));
+        Assert.That(probe.Remote, Is.SameAs(remote));
+        Assert.That(probe.OwnHealth, Is.EqualTo(3));
+        Assert.That(probe.HasSpeed, Is.False);
+        Assert.That(probe.FoundOtherHealth, Is.EqualTo(7));
+        Assert.That(_world.Get<Health>(other).Value, Is.EqualTo(8));
+    }
+
     private void Tick(int count)
     {
         for (var i = 0; i < count; i++) _world.Update(Interval);
+    }
+
+    private sealed class Probe(Entity other) : Script
+    {
+        public Recorder? Sibling { get; private set; }
+
+        public Recorder? Remote { get; private set; }
+
+        public int OwnHealth { get; private set; }
+
+        public bool HasSpeed { get; private set; }
+
+        public int? FoundOtherHealth { get; private set; }
+
+        protected override void Start()
+        {
+            Sibling = GetScript<Recorder>();
+            Remote = GetScript<Recorder>(other);
+            OwnHealth = GetComponent<Health>().Value;
+            HasSpeed = HasComponent<Speed>() || TryGetComponent<Speed>(out _);
+            FoundOtherHealth = TryGetComponent<Health>(other, out var health) ? health.Value : null;
+            GetComponent<Health>(other).Value++;
+        }
     }
 
     private sealed class SelfDespawner(List<string> log) : Script

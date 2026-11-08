@@ -4,8 +4,8 @@ using Rin.World.Tasks;
 namespace Rin.World.Scripting;
 
 /// <summary>
-///     Logic for one entity, attached with <see cref="ScriptFeature.Attach" />. A script holds no state that must survive
-///     a snapshot restore: keep that in components and rebuild the tasks from it in <see cref="Restore" />.
+///     A behavior on an entity. State that must survive a restore lives in components; <see cref="Restore" /> rebuilds
+///     tasks from it.
 /// </summary>
 public abstract class Script
 {
@@ -29,6 +29,28 @@ public abstract class Script
     /// </summary>
     public TaskContext Tasks => new(Feature.Tasks, Entity, this);
 
+    protected T? GetScript<T>() where T : Script => GetScript<T>(Entity);
+
+    protected T? GetScript<T>(Entity entity) where T : Script => Feature.GetScript<T>(entity);
+
+    protected ref T GetComponent<T>() where T : struct, IComponentData => ref World.Get<T>(Entity);
+
+    protected ref T GetComponent<T>(Entity entity) where T : struct, IComponentData => ref World.Get<T>(entity);
+
+    protected bool HasComponent<T>() where T : struct, IComponentData => World.Has<T>(Entity);
+
+    protected bool HasComponent<T>(Entity entity) where T : struct, IComponentData => World.Has<T>(entity);
+
+    protected bool TryGetComponent<T>(out T component) where T : struct, IComponentData =>
+        TryGetComponent(Entity, out component);
+
+    protected bool TryGetComponent<T>(Entity entity, out T component) where T : struct, IComponentData
+    {
+        var found = World.Has<T>(entity);
+        component = found ? World.Get<T>(entity) : default;
+        return found;
+    }
+
     private ScriptFeature Feature => _feature ?? throw new InvalidOperationException($"{GetType().Name} is not attached.");
 
     /// <summary>
@@ -39,7 +61,7 @@ public abstract class Script
     }
 
     /// <summary>
-    ///     Called every tick in <see cref="TickPhase.Gameplay" />, in attach order, from the first Gameplay phase that starts after the attach.
+    ///     Called every <see cref="TickPhase.Gameplay" /> phase after the attach.
     /// </summary>
     protected internal virtual void Tick(in TickContext context)
     {
@@ -60,6 +82,8 @@ public abstract class Script
     protected internal virtual void Restore()
     {
     }
+
+    internal bool IsAttachedTo(ScriptFeature feature) => _feature == feature;
 
     internal void Bind(ScriptFeature feature, Entity entity)
     {

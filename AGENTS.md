@@ -52,6 +52,7 @@ Follow standard C# comment conventions.
   already obvious from its name or a one-line body, skip the doc or cut its content to a single line instead
   of restating the implementation in prose. Save the longer explanation for the type-level summary/remarks
   where a non-obvious mechanism genuinely needs it.
+- When changing code, keep its existing doc comments as short as they were or shorter: replace words, don't add them.
 - Keeping the content to one line never means collapsing the tags onto that same line. `<summary>` (and every
   other XML doc tag) always keeps its three-line form - opening tag, content, closing tag, each on their own
   line - exactly like the example above, even when the content is a single short sentence:
@@ -105,5 +106,7 @@ Keep the docs true. A change is not done until the docs it affects are updated i
   reference, so do not inventory files, members or parameters in prose. Prefer a table or a Mermaid diagram over
   paragraphs wherever the content has structure (a list of things, a flow, a set of layers), and keep prose for
   rationale and context.
+- New public members are not a ReadMe change. Touch a ReadMe when what the project does or how it is used changes,
+  and then in a line, not a list of the new API.
 - Design plans and handoff notes are not repo docs. Do not commit them.
 
