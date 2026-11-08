@@ -4,8 +4,9 @@ using Rin.World.Tasks;
 namespace Rin.World.Scripting;
 
 /// <summary>
-///     Logic for one entity, attached with <see cref="ScriptFeature.Attach" />. A script holds no state that must survive
-///     a snapshot restore: keep that in components and rebuild the tasks from it in <see cref="Restore" />.
+///     A behavior attached to an entity with <see cref="ScriptFeature.Attach" />, alongside any other scripts it has. A
+///     script holds no state that must survive a snapshot restore: keep that in components and rebuild the tasks from it
+///     in <see cref="Restore" />.
 /// </summary>
 public abstract class Script
 {
@@ -39,7 +40,7 @@ public abstract class Script
     }
 
     /// <summary>
-    ///     Called every tick in <see cref="TickPhase.Gameplay" />, in attach order, from the first Gameplay phase that starts after the attach.
+    ///     Called every tick in <see cref="TickPhase.Gameplay" />, in the feature's tick order, from the first Gameplay phase that starts after the attach.
     /// </summary>
     protected internal virtual void Tick(in TickContext context)
     {
@@ -60,6 +61,8 @@ public abstract class Script
     protected internal virtual void Restore()
     {
     }
+
+    internal bool IsAttachedTo(ScriptFeature feature) => _feature == feature;
 
     internal void Bind(ScriptFeature feature, Entity entity)
     {

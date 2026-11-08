@@ -43,7 +43,7 @@ flowchart LR
 
 ## Scripts and tasks
 
-`new ScriptFeature(world)`, then `scripts.Attach(entity, script)`. A `Script` has `Start`, `Tick`, `Stop` and `Restore`, one per entity. `GameTask` methods are `async` on the tick, not the thread pool. From SceneTest:
+`new ScriptFeature(world)`, then `scripts.Attach(entity, script)`. A `Script` has `Start`, `Tick`, `Stop` and `Restore`. An entity holds an ordered list of scripts, so small behaviors compose: `Insert` places one at an index, `Detach(script)` removes one and `DetachAll` (or a despawn) stops them in reverse order. Scripts tick entity by entity, in list order. `GameTask` methods are `async` on the tick, not the thread pool. From SceneTest:
 
 ```csharp
 public sealed class BoxRain(float intervalSeconds, Action dropBox) : Script

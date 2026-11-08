@@ -1,3 +1,5 @@
+using System.Buffers;
+using System.Runtime.InteropServices;
 using Rin.World.Scheduling;
 using Rin.World.Tasks;
 
@@ -5,19 +7,23 @@ namespace Rin.World.Scripting;
 
 /// <summary>
 ///     Attaches managed <see cref="Script" />s to entities through a <see cref="ScriptRef" /> component, ticks them in
-///     <see cref="TickPhase.Gameplay" /> in attach order and owns the <see cref="GameTaskScheduler" /> their tasks run on.
+///     <see cref="TickPhase.Gameplay" /> and owns the <see cref="GameTaskScheduler" /> their tasks run on.
 /// </summary>
 /// <remarks>
-///     Scripts are not in a snapshot. After a restore a script stays attached when its entity exists and had a
-///     <see cref="ScriptRef" /> in the snapshot; every other script is stopped and detached (its entity is gone or got the
-///     script after the save). Then <see cref="Restore" /> runs. An entity that had a script at save time whose script
-///     was detached since gets none back.
+///     Each entity holds an ordered list of scripts. Ticks go entity by entity, in the order each entity got its first
+///     script, then through that entity's list in order.
+///     <para />
+///     Scripts are not in a snapshot. After a restore an entity keeps its scripts when it exists and had a
+///     <see cref="ScriptRef" /> in the snapshot; every other entity's scripts are stopped and detached (the entity is gone
+///     or got its first script after the save). Then <see cref="Restore" /> runs. An entity that had scripts at save time
+///     but lost them since gets none back.
 /// </remarks>
 public sealed class ScriptFeature : IWorldRestoreListener
 {
-    private readonly List<Script?> _slots = [];
+    private readonly List<List<Script>?> _slots = [];
     private readonly Stack<int> _freeSlots = [];
-    private readonly List<Script?> _attachOrder = [];
+    private readonly Stack<List<Script>> _pooledLists = [];
+    private readonly List<int> _tickOrder = [];
     private readonly Query<ScriptRef> _scriptRefs;
     private readonly List<Entity> _unboundRefs = [];
 
@@ -35,55 +41,86 @@ public sealed class ScriptFeature : IWorldRestoreListener
 
     public GameTaskScheduler Tasks { get; }
 
+    /// <summary>
+    ///     Attached scripts across every entity.
+    /// </summary>
     public int Count { get; private set; }
 
     /// <summary>
-    ///     Adds a <see cref="ScriptRef" /> and calls <see cref="Script.Start" /> right away. One script per entity, use
-    ///     child entities for more. A structural change, so not for use inside a query loop.
+    ///     Appends <paramref name="script" /> to the entity's scripts and calls <see cref="Script.Start" /> right away.
+    ///     The entity's first script adds a <see cref="ScriptRef" />, a structural change not for use inside a query loop.
     /// </summary>
-    public void Attach(Entity entity, Script script)
+    public void Attach(Entity entity, Script script) => Insert(entity, GetScripts(entity).Length, script);
+
+    /// <summary>
+    ///     Like <see cref="Attach" />, but at <paramref name="index" /> in the entity's scripts.
+    /// </summary>
+    public void Insert(Entity entity, int index, Script script)
     {
         if (script.IsAttached) throw new InvalidOperationException($"{script.GetType().Name} is already attached.");
-        if (World.Has<ScriptRef>(entity)) throw new InvalidOperationException($"{entity} already has a script.");
+        var scripts = FindScripts(entity);
+        ArgumentOutOfRangeException.ThrowIfNegative(index);
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(index, scripts?.Count ?? 0);
 
-        // Added first, so a throwing Add leaves the feature untouched.
-        var slot = _freeSlots.TryPeek(out var free) ? free : _slots.Count;
-        World.Add(entity, new ScriptRef(slot));
-        if (slot == _slots.Count) _slots.Add(null);
-        else _freeSlots.Pop();
-
-        _slots[slot] = script;
-        _attachOrder.Add(script);
+        scripts ??= AddScriptList(entity);
+        scripts.Insert(index, script);
         Count++;
         script.Bind(this, entity);
         script.Start();
     }
 
     /// <summary>
-    ///     Removes the <see cref="ScriptRef" />, which cancels the script's tasks and calls <see cref="Script.Stop" />.
+    ///     Detaches one script, which cancels its tasks and calls <see cref="Script.Stop" />. Detaching an entity's last
+    ///     script removes its <see cref="ScriptRef" />.
     /// </summary>
-    public bool Detach(Entity entity) => World.Remove<ScriptRef>(entity);
+    public bool Detach(Script script)
+    {
+        if (!script.IsAttachedTo(this) || FindScripts(script.Entity) is not { } scripts) return false;
+        if (scripts.Count == 1) return World.Remove<ScriptRef>(script.Entity);
 
-    public Script? GetScript(Entity entity) =>
-        World.Has<ScriptRef>(entity) && World.Get<ScriptRef>(entity) is { IsBound: true } scriptRef ? _slots[scriptRef.Slot] : null;
+        scripts.Remove(script);
+        Release(script, CancelReason.Detached);
+        return true;
+    }
+
+    /// <summary>
+    ///     Removes the <see cref="ScriptRef" />, which detaches every script of the entity in reverse order.
+    /// </summary>
+    public bool DetachAll(Entity entity) => World.Remove<ScriptRef>(entity);
+
+    public ReadOnlySpan<Script> GetScripts(Entity entity) =>
+        FindScripts(entity) is { } scripts ? CollectionsMarshal.AsSpan(scripts) : [];
+
+    /// <summary>
+    ///     The entity's first script of type <typeparamref name="T" />, or null.
+    /// </summary>
+    public T? GetScript<T>(Entity entity) where T : Script
+    {
+        foreach (var script in GetScripts(entity))
+            if (script is T match) return match;
+        return null;
+    }
 
     /// <summary>
     ///     The entry point for a snapshot restore: cancels every task with <see cref="CancelReason.Restored" />, then
-    ///     calls <see cref="Script.Restore" /> on each script in attach order.
+    ///     calls <see cref="Script.Restore" /> on each script in tick order.
     /// </summary>
     public void Restore()
     {
         Tasks.CancelAll(CancelReason.Restored);
-        var count = _attachOrder.Count;
-        for (var i = 0; i < count; i++) _attachOrder[i]?.Restore();
+        var scripts = RentScriptsInTickOrder(out var count);
+        for (var i = 0; i < count; i++)
+            if (scripts[i].IsAttachedTo(this)) scripts[i].Restore();
+        ArrayPool<Script>.Shared.Return(scripts, clearArray: true);
     }
 
     internal void TickScripts(in TickContext context)
     {
-        // Scripts attached while this runs start ticking next tick; detached ones leave a hole, compacted after.
-        var count = _attachOrder.Count;
-        for (var i = 0; i < count; i++) _attachOrder[i]?.Tick(context);
-        CompactAttachOrder();
+        // A copy, so attaches and detaches during the tick cannot shift the order; new scripts tick from the next tick.
+        var scripts = RentScriptsInTickOrder(out var count);
+        for (var i = 0; i < count; i++)
+            if (scripts[i].IsAttachedTo(this)) scripts[i].Tick(context);
+        ArrayPool<Script>.Shared.Return(scripts, clearArray: true);
     }
 
     void IWorldRestoreListener.BeforeRestore()
@@ -94,10 +131,10 @@ public sealed class ScriptFeature : IWorldRestoreListener
     {
         for (var slot = 0; slot < _slots.Count; slot++)
         {
-            if (_slots[slot] is not { } script) continue;
-            var entity = script.Entity;
+            if (_slots[slot] is not { } scripts) continue;
+            var entity = scripts[0].Entity;
             if (World.IsAlive(entity) && World.Has<ScriptRef>(entity)) World.Get<ScriptRef>(entity) = new ScriptRef(slot);
-            else Release(script, slot, CancelReason.Restored);
+            else ReleaseAll(slot, CancelReason.Restored);
         }
 
         foreach (var (scriptRefs, entities) in _scriptRefs)
@@ -106,29 +143,61 @@ public sealed class ScriptFeature : IWorldRestoreListener
         foreach (var entity in _unboundRefs) World.Remove<ScriptRef>(entity);
         _unboundRefs.Clear();
 
-        CompactAttachOrder();
         Restore();
     }
 
-    private void CompactAttachOrder()
+    private List<Script>? FindScripts(Entity entity) =>
+        World.Has<ScriptRef>(entity) && World.Get<ScriptRef>(entity) is { IsBound: true } scriptRef ? _slots[scriptRef.Slot] : null;
+
+    private List<Script> AddScriptList(Entity entity)
     {
-        if (_attachOrder.Count != Count) _attachOrder.RemoveAll(static script => script is null);
+        // Added first, so a throwing Add leaves the feature untouched.
+        var slot = _freeSlots.TryPeek(out var free) ? free : _slots.Count;
+        World.Add(entity, new ScriptRef(slot));
+        if (slot == _slots.Count) _slots.Add(null);
+        else _freeSlots.Pop();
+
+        var scripts = _pooledLists.TryPop(out var pooled) ? pooled : [];
+        _slots[slot] = scripts;
+        _tickOrder.Add(slot);
+        return scripts;
+    }
+
+    private Script[] RentScriptsInTickOrder(out int count)
+    {
+        var scripts = ArrayPool<Script>.Shared.Rent(Count);
+        count = 0;
+        foreach (var slot in _tickOrder)
+        {
+            _slots[slot]!.CopyTo(scripts, count);
+            count += _slots[slot]!.Count;
+        }
+
+        return scripts;
     }
 
     private void OnScriptRefRemoved(Entity entity, ref ScriptRef scriptRef)
     {
         if (!scriptRef.IsBound) return;
         var reason = World.IsDespawning(entity) ? CancelReason.Despawned : CancelReason.Detached;
-        Release(_slots[scriptRef.Slot]!, scriptRef.Slot, reason);
+        ReleaseAll(scriptRef.Slot, reason);
     }
 
-    private void Release(Script script, int slot, CancelReason reason)
+    private void ReleaseAll(int slot, CancelReason reason)
     {
+        var scripts = _slots[slot]!;
         _slots[slot] = null;
         _freeSlots.Push(slot);
-        _attachOrder[_attachOrder.IndexOf(script)] = null;
-        Count--;
+        _tickOrder.Remove(slot);
 
+        for (var i = scripts.Count - 1; i >= 0; i--) Release(scripts[i], reason);
+        scripts.Clear();
+        _pooledLists.Push(scripts);
+    }
+
+    private void Release(Script script, CancelReason reason)
+    {
+        Count--;
         Tasks.Cancel(script, reason);
         script.Stop();
         script.Unbind();
