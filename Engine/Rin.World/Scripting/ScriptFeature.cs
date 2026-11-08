@@ -6,17 +6,11 @@ using Rin.World.Tasks;
 namespace Rin.World.Scripting;
 
 /// <summary>
-///     Attaches managed <see cref="Script" />s to entities through a <see cref="ScriptRef" /> component, ticks them in
-///     <see cref="TickPhase.Gameplay" /> and owns the <see cref="GameTaskScheduler" /> their tasks run on.
+///     Runs an ordered list of <see cref="Script" />s per entity, entity by entity in first-attach order.
 /// </summary>
 /// <remarks>
-///     Each entity holds an ordered list of scripts. Ticks go entity by entity, in the order each entity got its first
-///     script, then through that entity's list in order.
-///     <para />
-///     Scripts are not in a snapshot. After a restore an entity keeps its scripts when it exists and had a
-///     <see cref="ScriptRef" /> in the snapshot; every other entity's scripts are stopped and detached (the entity is gone
-///     or got its first script after the save). Then <see cref="Restore" /> runs. An entity that had scripts at save time
-///     but lost them since gets none back.
+///     Scripts are not in a snapshot: a restore keeps an entity's scripts only if it had a <see cref="ScriptRef" /> at
+///     save time.
 /// </remarks>
 public sealed class ScriptFeature : IWorldRestoreListener
 {
@@ -41,20 +35,13 @@ public sealed class ScriptFeature : IWorldRestoreListener
 
     public GameTaskScheduler Tasks { get; }
 
-    /// <summary>
-    ///     Attached scripts across every entity.
-    /// </summary>
     public int Count { get; private set; }
 
     /// <summary>
-    ///     Appends <paramref name="script" /> to the entity's scripts and calls <see cref="Script.Start" /> right away.
-    ///     The entity's first script adds a <see cref="ScriptRef" />, a structural change not for use inside a query loop.
+    ///     The entity's first script adds a <see cref="ScriptRef" />, so not inside a query loop.
     /// </summary>
     public void Attach(Entity entity, Script script) => Insert(entity, GetScripts(entity).Length, script);
 
-    /// <summary>
-    ///     Like <see cref="Attach" />, but at <paramref name="index" /> in the entity's scripts.
-    /// </summary>
     public void Insert(Entity entity, int index, Script script)
     {
         if (script.IsAttached) throw new InvalidOperationException($"{script.GetType().Name} is already attached.");
@@ -70,8 +57,7 @@ public sealed class ScriptFeature : IWorldRestoreListener
     }
 
     /// <summary>
-    ///     Detaches one script, which cancels its tasks and calls <see cref="Script.Stop" />. Detaching an entity's last
-    ///     script removes its <see cref="ScriptRef" />.
+    ///     Detaching the last script removes the <see cref="ScriptRef" />.
     /// </summary>
     public bool Detach(Script script)
     {
@@ -84,16 +70,13 @@ public sealed class ScriptFeature : IWorldRestoreListener
     }
 
     /// <summary>
-    ///     Removes the <see cref="ScriptRef" />, which detaches every script of the entity in reverse order.
+    ///     Stops every script in reverse order.
     /// </summary>
     public bool DetachAll(Entity entity) => World.Remove<ScriptRef>(entity);
 
     public ReadOnlySpan<Script> GetScripts(Entity entity) =>
         FindScripts(entity) is { } scripts ? CollectionsMarshal.AsSpan(scripts) : [];
 
-    /// <summary>
-    ///     The entity's first script of type <typeparamref name="T" />, or null.
-    /// </summary>
     public T? GetScript<T>(Entity entity) where T : Script
     {
         foreach (var script in GetScripts(entity))
@@ -102,8 +85,7 @@ public sealed class ScriptFeature : IWorldRestoreListener
     }
 
     /// <summary>
-    ///     The entry point for a snapshot restore: cancels every task with <see cref="CancelReason.Restored" />, then
-    ///     calls <see cref="Script.Restore" /> on each script in tick order.
+    ///     Cancels every task, then calls <see cref="Script.Restore" /> on each script.
     /// </summary>
     public void Restore()
     {
@@ -116,7 +98,7 @@ public sealed class ScriptFeature : IWorldRestoreListener
 
     internal void TickScripts(in TickContext context)
     {
-        // A copy, so attaches and detaches during the tick cannot shift the order; new scripts tick from the next tick.
+        // Copied so attaches and detaches during the tick can't shift the order.
         var scripts = RentScriptsInTickOrder(out var count);
         for (var i = 0; i < count; i++)
             if (scripts[i].IsAttachedTo(this)) scripts[i].Tick(context);

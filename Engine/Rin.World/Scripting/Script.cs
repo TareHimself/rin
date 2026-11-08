@@ -4,9 +4,8 @@ using Rin.World.Tasks;
 namespace Rin.World.Scripting;
 
 /// <summary>
-///     A behavior attached to an entity with <see cref="ScriptFeature.Attach" />, alongside any other scripts it has. A
-///     script holds no state that must survive a snapshot restore: keep that in components and rebuild the tasks from it
-///     in <see cref="Restore" />.
+///     A behavior on an entity. State that must survive a restore lives in components; <see cref="Restore" /> rebuilds
+///     tasks from it.
 /// </summary>
 public abstract class Script
 {
@@ -40,7 +39,7 @@ public abstract class Script
     }
 
     /// <summary>
-    ///     Called every tick in <see cref="TickPhase.Gameplay" />, in the feature's tick order, from the first Gameplay phase that starts after the attach.
+    ///     Called every <see cref="TickPhase.Gameplay" /> phase after the attach.
     /// </summary>
     protected internal virtual void Tick(in TickContext context)
     {
