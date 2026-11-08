@@ -29,6 +29,14 @@ public abstract class Script
     /// </summary>
     public TaskContext Tasks => new(Feature.Tasks, Entity, this);
 
+    protected T? GetScript<T>() where T : Script => GetScript<T>(Entity);
+
+    protected T? GetScript<T>(Entity entity) where T : Script => Feature.GetScript<T>(entity);
+
+    protected ref T GetComponent<T>() where T : struct, IComponentData => ref World.Get<T>(Entity);
+
+    protected ref T GetComponent<T>(Entity entity) where T : struct, IComponentData => ref World.Get<T>(entity);
+
     private ScriptFeature Feature => _feature ?? throw new InvalidOperationException($"{GetType().Name} is not attached.");
 
     /// <summary>

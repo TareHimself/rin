@@ -268,9 +268,46 @@ public class ScriptFeatureTests
         Assert.That(_log, Is.Empty);
     }
 
+    [Test]
+    public void AScriptCanReachOtherScriptsAndComponents()
+    {
+        var self = _world.Spawn();
+        var other = _world.Spawn();
+        _world.Add(self, new Health(3));
+        _world.Add(other, new Health(7));
+        var sibling = new Recorder("sibling", _log);
+        var remote = new Recorder("remote", _log);
+        _scripts.Attach(self, sibling);
+        _scripts.Attach(other, remote);
+        var probe = new Probe(other);
+        _scripts.Attach(self, probe);
+
+        Assert.That(probe.Sibling, Is.SameAs(sibling));
+        Assert.That(probe.Remote, Is.SameAs(remote));
+        Assert.That(probe.OwnHealth, Is.EqualTo(3));
+        Assert.That(_world.Get<Health>(other).Value, Is.EqualTo(8));
+    }
+
     private void Tick(int count)
     {
         for (var i = 0; i < count; i++) _world.Update(Interval);
+    }
+
+    private sealed class Probe(Entity other) : Script
+    {
+        public Recorder? Sibling { get; private set; }
+
+        public Recorder? Remote { get; private set; }
+
+        public int OwnHealth { get; private set; }
+
+        protected override void Start()
+        {
+            Sibling = GetScript<Recorder>();
+            Remote = GetScript<Recorder>(other);
+            OwnHealth = GetComponent<Health>().Value;
+            GetComponent<Health>(other).Value++;
+        }
     }
 
     private sealed class SelfDespawner(List<string> log) : Script

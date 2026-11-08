@@ -63,6 +63,7 @@ public sealed class BoxRain(float intervalSeconds, Action dropBox) : Script
 }
 ```
 
+- Inside a script, `GetScript<T>()` and `GetComponent<T>()` reach the entity's other scripts and components. Both take an optional `Entity` for another entity.
 - `TaskContext` also has `Ticks`, `NextTick`, `Until`, `Event<T>`, `WhenAny` and `WhenAll`.
 - A cancel throws `GameTaskCanceledException` at the pending `await`, so `catch` and `finally` run. `CancelReason` says why.
 - Awaiting a regular `Task` faults the task.
