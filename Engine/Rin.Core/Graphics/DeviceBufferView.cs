@@ -146,12 +146,6 @@ public readonly record struct DeviceBufferView
         return GetView(offset, Utils.ByteSizeOf<T>());
     }
 
-    public ulong GetAddress()
-    {
-        Debug.Assert(IsValid, "Buffer is not valid");
-        return IGraphicsModule.Get().GetBufferAddress(Buffer) + Offset;
-    }
-
     /// <summary>
     ///     A shader's view of this range: the buffer's bindless slot and the range's byte offset.
     /// </summary>

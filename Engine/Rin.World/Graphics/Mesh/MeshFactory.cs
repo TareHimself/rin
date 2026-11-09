@@ -109,7 +109,7 @@ public class MeshFactory : IMeshFactory
             var indicesByteSize = indices.GetByteSize();
 
             var vertexHandle = graphics.CreateBuffer(verticesByteSize,
-                BufferCreateFlags.Storage | BufferCreateFlags.TransferDst | BufferCreateFlags.DeviceAddress);
+                BufferCreateFlags.Storage | BufferCreateFlags.TransferDst);
             var indexHandle = graphics.CreateBuffer(indicesByteSize,
                 BufferCreateFlags.Storage | BufferCreateFlags.TransferDst | BufferCreateFlags.Index);
             vertexBuffer = new DeviceBufferView(vertexHandle, 0, verticesByteSize);

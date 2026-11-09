@@ -403,11 +403,6 @@ public class ResourcePool : IResourcePool
             set => _resource.Buffer.GraphState = value;
         }
 
-        public ulong GetAddress()
-        {
-            return _resource.Buffer.GetAddress();
-        }
-
         public DeviceBufferView GetView(ulong offset, ulong size)
         {
             return new DeviceBufferView(Handle, Offset + offset, size);

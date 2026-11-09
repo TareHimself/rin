@@ -983,12 +983,6 @@ public partial class VulkanGraphicsModule
         }
     }
 
-    public ulong GetBufferAddress(in ResourceHandle handle)
-    {
-        var buffer = ResolveBuffer(handle) ?? throw new ArgumentException("Invalid buffer handle", nameof(handle));
-        return buffer.GetAddress();
-    }
-
     public void SetDebugName(in ResourceHandle handle, string name)
     {
         var allocation = handle.Type == ResourceType.Buffer

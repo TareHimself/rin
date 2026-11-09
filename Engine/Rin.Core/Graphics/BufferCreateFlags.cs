@@ -16,5 +16,4 @@ public enum BufferCreateFlags
     Uniform = 1 << 5,
     Index = 1 << 6,
     Indirect = 1 << 7,
-    DeviceAddress = 1 << 8,
 }

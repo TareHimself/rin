@@ -7,7 +7,7 @@ public class BufferResourceDescriptor(ulong size, BufferCreateFlags usage) : IRe
     public readonly ulong Size = size;
 
     public readonly BufferCreateFlags Usage =
-        BufferCreateFlags.Storage | BufferCreateFlags.DeviceAddress | usage;
+        BufferCreateFlags.Storage | usage;
 
     public override int GetHashCode()
     {

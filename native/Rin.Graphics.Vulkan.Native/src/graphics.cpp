@@ -67,7 +67,6 @@ GraphicsResult createVulkanInstance(std::uint64_t windowHandle, VulkanInitResult
         vk::PhysicalDeviceShaderDrawParametersFeatures drawParametersFeatures{};
         drawParametersFeatures.setShaderDrawParameters(true);
         features12
-            .setBufferDeviceAddress(true)
             .setDescriptorIndexing(true)
             .setDescriptorBindingPartiallyBound(true)
             .setRuntimeDescriptorArray(true)
@@ -214,7 +213,6 @@ GraphicsResult allocatorCreate(VkInstance instance, VkDevice device, VkPhysicalD
     {
         require(outAllocator != nullptr, GraphicsResult::InvalidArgument);
         auto allocatorCreateInfo = VmaAllocatorCreateInfo{};
-        allocatorCreateInfo.flags = VMA_ALLOCATOR_CREATE_BUFFER_DEVICE_ADDRESS_BIT;
         allocatorCreateInfo.device = (device);
         allocatorCreateInfo.physicalDevice = (physicalDevice);
         allocatorCreateInfo.instance = (instance);

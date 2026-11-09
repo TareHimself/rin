@@ -18,11 +18,6 @@ public class ExternalVulkanBuffer(IVulkanDeviceBuffer source, in DeviceBufferVie
         set => source.GraphState = value;
     }
 
-    public ulong GetAddress()
-    {
-        return source.GetAddress();
-    }
-
     public DeviceBufferView GetView(ulong offset, ulong size)
     {
         return new DeviceBufferView(Handle, Offset + offset, size);
