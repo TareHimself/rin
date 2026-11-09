@@ -72,11 +72,17 @@ GraphicsResult createVulkanInstance(std::uint64_t windowHandle, VulkanInitResult
             .setDescriptorBindingPartiallyBound(true)
             .setRuntimeDescriptorArray(true)
             .setShaderSampledImageArrayNonUniformIndexing(true)
+            .setShaderStorageBufferArrayNonUniformIndexing(true)
             .setDescriptorBindingSampledImageUpdateAfterBind(true)
             .setDescriptorBindingStorageImageUpdateAfterBind(true)
             .setDescriptorBindingStorageBufferUpdateAfterBind(true)
             .setDescriptorBindingVariableDescriptorCount(true)
             .setScalarBlockLayout(true);
+
+        // Vertex and fragment shaders write through the bindless buffer heap like compute does.
+        VkPhysicalDeviceFeatures storeFeatures{};
+        storeFeatures.vertexPipelineStoresAndAtomics = VK_TRUE;
+        storeFeatures.fragmentStoresAndAtomics = VK_TRUE;
 
         VkSurfaceKHR surf = rwin::createSurface(windowHandle,instance);
         require(surf != VK_NULL_HANDLE, GraphicsResult::SurfaceCreationFailed);
@@ -84,6 +90,7 @@ GraphicsResult createVulkanInstance(std::uint64_t windowHandle, VulkanInitResult
         vkb::PhysicalDeviceSelector selector{vkbInstance};
         selector.set_minimum_version(1,3)
                 .set_required_features_13(features)
+                .set_required_features(storeFeatures)
                 .set_required_features_12(features12)
                 .set_surface(surf);
         selector

@@ -248,7 +248,31 @@ public class DescriptorSet
             dstSet = _descriptorSet,
             dstArrayElement = arrayOffset
         };
-        _infoIndex.Add(_pendingImages.Count);
+        _infoIndex.Add(_pendingBuffers.Count);
+        _pendingBuffers.Add(info);
+        _pendingWrite.Add(write);
+        return this;
+    }
+
+    public DescriptorSet WriteStorageBuffer(uint binding, IVulkanDeviceBuffer buffer, ulong range, uint arrayOffset = 0)
+    {
+        var info = new VkDescriptorBufferInfo
+        {
+            buffer = buffer.NativeBuffer,
+            offset = 0,
+            range = range
+        };
+
+        var write = new VkWriteDescriptorSet
+        {
+            sType = VkStructureType.VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+            descriptorType = VkDescriptorType.VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+            dstBinding = binding,
+            descriptorCount = 1,
+            dstSet = _descriptorSet,
+            dstArrayElement = arrayOffset
+        };
+        _infoIndex.Add(_pendingBuffers.Count);
         _pendingBuffers.Add(info);
         _pendingWrite.Add(write);
         return this;
@@ -276,7 +300,7 @@ public class DescriptorSet
             dstSet = _descriptorSet,
             dstArrayElement = arrayOffset
         };
-        _infoIndex.Add(_pendingImages.Count);
+        _infoIndex.Add(_pendingBuffers.Count);
         _pendingBuffers.Add(info);
         _pendingWrite.Add(write);
         return this;

@@ -18,6 +18,7 @@ public class CompiledComputeShader : IComputeShader, IVulkanShader
     private readonly Dictionary<uint, VkDescriptorSetLayout> _descriptorLayouts = [];
     private readonly IComputeDescriptor _descriptor;
     private VkPipeline _pipeline;
+    private bool _usesBindless;
     private VkPipelineLayout _pipelineLayout;
     private VkShaderModule _shaderModule;
 
@@ -51,6 +52,7 @@ public class CompiledComputeShader : IComputeShader, IVulkanShader
         var vkContext = (VulkanExecutionContext)ctx;
         vkCmdBindPipeline(vkContext.CommandBuffer,
             VkPipelineBindPoint.VK_PIPELINE_BIND_POINT_COMPUTE, _pipeline);
+        if (_usesBindless) VulkanGraphicsModule.Get().BindBindlessComputeDescriptors(vkContext.CommandBuffer);
 
         return new VulkanComputeBindContext(this, vkContext);
     }
@@ -78,6 +80,7 @@ public class CompiledComputeShader : IComputeShader, IVulkanShader
             bindlessBlocks);
         Resources = resources.ToFrozenDictionary();
         PushConstants = pushConstants.ToFrozenDictionary();
+        _usesBindless = bindlessBlocks.Count > 0;
         {
             var layouts = CompiledShaderManager.BuildDescriptorLayouts(Resources.Values, bindlessBlocks);
             for (var i = 0; i < layouts.Count; i++) _descriptorLayouts.Add((uint)i, layouts[i]);
