@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.Operations;
 
 namespace Rin.Shade.Transpiler;
 
@@ -12,20 +13,45 @@ namespace Rin.Shade.Transpiler;
 /// </summary>
 internal static class BindingLowering
 {
-    /// <summary>
-    /// A field is a parameter block if it says so, or if its type is a named bindless block.
-    /// </summary>
     public static bool HasBindingGroupAttribute(IFieldSymbol field) =>
-        field.GetAttributes().Any(a => a.AttributeClass?.ToDisplayString() == "Rin.Shade.BindingGroupAttribute") ||
-        BindlessBlockName(field) is not null;
+        field.GetAttributes().Any(a => a.AttributeClass?.ToDisplayString() == "Rin.Shade.BindingGroupAttribute");
 
     /// <summary>
-    /// The name from the field type's [BindlessBlock] attribute, or null if the type has none.
+    /// The name from the type's [BindlessBlock] attribute, or null if it has none.
     /// </summary>
-    public static string? BindlessBlockName(IFieldSymbol field) =>
-        field.Type.GetAttributes()
+    public static string? BindlessBlockName(ITypeSymbol type) =>
+        type.GetAttributes()
             .FirstOrDefault(a => a.AttributeClass?.ToDisplayString() == "Rin.Shade.BindlessBlockAttribute")
             ?.ConstructorArguments.FirstOrDefault().Value as string;
+
+    /// <summary>
+    /// Whether the field is one of a bindless block's resources, which live in the block's parameter block.
+    /// </summary>
+    public static bool IsBindlessBlockMember(IFieldSymbol field) =>
+        field is { IsStatic: true, IsConst: false } && BindlessBlockName(field.ContainingType) is not null;
+
+    /// <summary>
+    /// The module-scope parameter block a bindless block's static fields are read through.
+    /// </summary>
+    public static string BindlessBlockGlobal(INamedTypeSymbol block) => $"rin_{Naming.ToSlangIdentifier(block.Name)}";
+
+    /// <summary>
+    /// The bindless blocks whose resources the bodies read, in first-use order.
+    /// </summary>
+    public static List<INamedTypeSymbol> FindBindlessBlocks(IEnumerable<IOperation> bodies) =>
+        bodies.SelectMany(body => body.DescendantsAndSelf())
+            .OfType<IFieldReferenceOperation>()
+            .Where(reference => IsBindlessBlockMember(reference.Field))
+            .Select(reference => reference.Field.ContainingType)
+            .Distinct<INamedTypeSymbol>(SymbolEqualityComparer.Default)
+            .ToList();
+
+    /// <summary>
+    /// The parameter block declaration for a bindless block.
+    /// </summary>
+    public static string LowerBindlessBlock(INamedTypeSymbol block) =>
+        $"[BindlessBlock({SymbolDisplay.FormatLiteral(BindlessBlockName(block)!, quote: true)})] " +
+        $"ParameterBlock<{TypeMapping.MapType(block)}> {BindlessBlockGlobal(block)};";
 
     public const string BindlessAttributeDeclaration = """
         [__AttributeUsage(_AttributeTargets.Var)]
@@ -56,11 +82,7 @@ internal static class BindingLowering
             return null;
         }
 
-        var name = Naming.ToSlangIdentifier(field.Name);
-        var declaration = $"ParameterBlock<{TypeMapping.MapType(groupType)}> {name};";
-        return BindlessBlockName(field) is { } blockName
-            ? $"[BindlessBlock({SymbolDisplay.FormatLiteral(blockName, quote: true)})] {declaration}"
-            : declaration;
+        return $"ParameterBlock<{TypeMapping.MapType(groupType)}> {Naming.ToSlangIdentifier(field.Name)};";
     }
 
     private static void Diagnose(List<Diagnostic> diagnostics, IFieldSymbol field, Location location, string reason) =>

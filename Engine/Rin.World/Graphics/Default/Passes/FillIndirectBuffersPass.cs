@@ -34,10 +34,10 @@ public partial class FillIndirectBuffersPass(CullingPass cullingPass, DefaultWor
         if (Shader.Bind(ctx) is not { } bindContext) return;
 
         var sceneFrame = view.SceneFrame;
-        var cullingBufferAddress = graph.GetBufferOrException(cullingPass.OutputBufferId).GetAddress();
-        DispatchGroups(graph, bindContext, cullingBufferAddress, sceneFrame.IndirectGroups,
+        var cullingResults = graph.GetBufferOrException(cullingPass.OutputBufferId).ToDeviceSpan<uint>();
+        DispatchGroups(graph, bindContext, cullingResults, sceneFrame.IndirectGroups,
             sceneFrame.MeshRecordBufferIds, view.IndirectCommandBuffers, view.IndirectCommandCountBuffers);
-        DispatchGroups(graph, bindContext, cullingBufferAddress, sceneFrame.DepthIndirectGroups,
+        DispatchGroups(graph, bindContext, cullingResults, sceneFrame.DepthIndirectGroups,
             sceneFrame.DepthMeshRecordBufferIds, view.DepthIndirectCommandBuffers,
             view.DepthIndirectCommandCountBuffers);
     }
@@ -59,7 +59,7 @@ public partial class FillIndirectBuffersPass(CullingPass cullingPass, DefaultWor
     }
 
     private static void DispatchGroups(ICompiledGraph graph, IComputeBindContext bindContext,
-        ulong cullingBufferAddress, IReadOnlyDictionary<DefaultSceneFrame.BatchKey, List<ProcessedMesh>> groups,
+        DeviceSpan<uint> cullingResults, IReadOnlyDictionary<DefaultSceneFrame.BatchKey, List<ProcessedMesh>> groups,
         uint[] meshRecordBufferIds, uint[] commandBufferIds, uint[] countBufferIds)
     {
         var i = 0;
@@ -77,11 +77,11 @@ public partial class FillIndirectBuffersPass(CullingPass cullingPass, DefaultWor
                 .Reset() // We have to reset because we write shader data
                 .Push(new DrawIndirectShader.PushConstants
                 {
-                    CullingResults = new BufferRef<uint>(cullingBufferAddress),
-                    Meshes = new BufferRef<IndirectMeshRecord>(meshRecords.GetAddress()),
+                    CullingResults = cullingResults,
+                    Meshes = meshRecords.ToDeviceSpan<IndirectMeshRecord>(),
                     InvocationCount = invokeCount,
-                    Output = new BufferRef<DrawIndexedIndirectCommand>(commandBuffer.GetAddress()),
-                    DrawCount = new BufferRef<uint>(countBuffer.GetAddress())
+                    Output = commandBuffer.ToDeviceSpan<DrawIndexedIndirectCommand>(),
+                    DrawCount = countBuffer.ToDeviceSpan<uint>()
                 })
                 .Invoke(invokeCount);
         }

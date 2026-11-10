@@ -11,6 +11,7 @@ public class SwitchExpressionTests
         const string source = """
                                using System.Numerics;
                                using Rin.Shade;
+                               using Rin.Shade.Tests;
 
                                namespace SwitchExpressionCheck;
 
@@ -27,7 +28,7 @@ public class SwitchExpressionTests
                                    public float Distance;
                                    public int Lane;
                                    public Vector4 Value;
-                                   public BufferRef<float> Output;
+                                   public TestBuffer<float> Output;
                                }
 
                                [Shader]
@@ -76,13 +77,14 @@ public class SwitchExpressionTests
     {
         const string source = """
                                using Rin.Shade;
+                               using Rin.Shade.Tests;
 
                                namespace SwitchLoopCheck;
 
                                public struct LoopPush
                                {
                                    public int Mode;
-                                   public BufferRef<float> Output;
+                                   public TestBuffer<float> Output;
                                }
 
                                [Shader]
@@ -116,13 +118,14 @@ public class SwitchExpressionTests
     {
         const string source = """
                                using Rin.Shade;
+                               using Rin.Shade.Tests;
 
                                namespace SwitchTypePatternCheck;
 
                                public struct PatternPush
                                {
                                    public int Mode;
-                                   public BufferRef<float> Output;
+                                   public TestBuffer<float> Output;
                                }
 
                                [Shader]

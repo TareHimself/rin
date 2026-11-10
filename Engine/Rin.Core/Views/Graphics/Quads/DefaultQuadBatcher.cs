@@ -42,7 +42,7 @@ public sealed partial class DefaultQuadBatcher : SimpleQuadBatcher<QuadBatch>
         {
             Projection = frame.ProjectionMatrix,
             Viewport = new Vector4(0, 0, frame.Extent.Width, frame.Extent.Height),
-            Quads = new BufferRef<Quad>(view.GetAddress())
+            Quads = view.ToDeviceSpan<Quad>()
         });
         return (uint)quads.Count;
     }

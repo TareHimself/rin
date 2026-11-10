@@ -1,5 +1,6 @@
 using System.Numerics;
 using JetBrains.Annotations;
+using Rin.Core.Graphics;
 using Rin.Shade;
 using Rin.World.Graphics.Surfaces;
 using static Rin.Shade.Shader;
@@ -14,10 +15,10 @@ namespace Rin.World.Graphics.Default.Shaders;
 [NoReorder]
 public struct LightGridInfo
 {
-    public BufferRef<LightInfo> PointLights;
-    public BufferRef<LightInfo> DirectionalLights;
-    public BufferRef<uint> Bins;
-    public BufferRef<uint> TileMasks;
+    public DeviceSpan<LightInfo> PointLights;
+    public DeviceSpan<LightInfo> DirectionalLights;
+    public DeviceSpan<uint> Bins;
+    public DeviceSpan<uint> TileMasks;
     public Matrix4x4 View;
     public int PointLightCount;
     public int DirectionalLightCount;

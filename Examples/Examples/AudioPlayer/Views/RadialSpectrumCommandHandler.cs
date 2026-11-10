@@ -71,8 +71,8 @@ public partial class RadialSpectrumCommandHandler : ICommandHandler
             bindContext
                 .Push(new SpectrumShader.PushConstants
                 {
-                    Data = new BufferRef<SpectrumData>(dataView.GetAddress()),
-                    Bands = new BufferRef<Vector4>(bandView.GetAddress())
+                    Data = dataView.ToDeviceSpan<SpectrumData>(),
+                    Bands = bandView.ToDeviceSpan<Vector4>()
                 })
                 .Draw(6);
 

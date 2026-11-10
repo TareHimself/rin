@@ -10,6 +10,7 @@ public class GroupSharedTests
         const string source = """
                                using System.Runtime.CompilerServices;
                                using Rin.Shade;
+                               using Rin.Shade.Tests;
 
                                namespace GroupSharedCheck;
 
@@ -24,8 +25,8 @@ public class GroupSharedTests
                                {
                                    public struct ReducePush
                                    {
-                                       public BufferRef<float> Input;
-                                       public BufferRef<float> Output;
+                                       public TestBuffer<float> Input;
+                                       public TestBuffer<float> Output;
                                    }
 
                                    public struct ComputeIn
@@ -71,6 +72,7 @@ public class GroupSharedTests
     {
         const string source = """
                                using Rin.Shade;
+                               using Rin.Shade.Tests;
 
                                namespace GroupSharedInstanceCheck;
 
@@ -79,7 +81,7 @@ public class GroupSharedTests
                                {
                                    public struct Push
                                    {
-                                       public BufferRef<uint> Output;
+                                       public TestBuffer<uint> Output;
                                    }
 
                                    [Push] protected Push Data;

@@ -10,6 +10,7 @@ public class GenericMethodTests
         const string source = """
                                using System.Numerics;
                                using Rin.Shade;
+                               using Rin.Shade.Tests;
 
                                namespace GenericMethodCheck;
 
@@ -24,7 +25,7 @@ public class GenericMethodTests
                                    public static T Twice<T>(bool first, T a, T b) where T : unmanaged =>
                                        Pick(first, Pick(first, a, b), b);
 
-                                   public static T Load<T>(BufferRef<T> buffer, int index) where T : unmanaged => buffer[index];
+                                   public static T Load<T>(TestBuffer<T> buffer, int index) where T : unmanaged => buffer[index];
                                }
 
                                public struct GenericPush
@@ -32,8 +33,8 @@ public class GenericMethodTests
                                    public int Flag;
                                    public float A;
                                    public Vector3 B;
-                                   public BufferRef<float> Floats;
-                                   public BufferRef<Vector3> Output;
+                                   public TestBuffer<float> Floats;
+                                   public TestBuffer<Vector3> Output;
                                }
 
                                [Shader]
@@ -64,6 +65,7 @@ public class GenericMethodTests
         const string source = """
                                using System.Numerics;
                                using Rin.Shade;
+                               using Rin.Shade.Tests;
 
                                namespace GenericNameCheck;
 
@@ -77,7 +79,7 @@ public class GenericMethodTests
                                {
                                    public struct NamePush
                                    {
-                                       public BufferRef<int> Output;
+                                       public TestBuffer<int> Output;
                                    }
 
                                    [Push] protected NamePush Push;
@@ -85,7 +87,7 @@ public class GenericMethodTests
                                    [Compute(1, 1, 1)]
                                    public void Compute()
                                    {
-                                       Push.Output[0] = Helpers.SizeTag<float>() + Helpers.SizeTag<Vector2>() + Helpers.SizeTag<BufferRef<Vector4>>();
+                                       Push.Output[0] = Helpers.SizeTag<float>() + Helpers.SizeTag<Vector2>() + Helpers.SizeTag<TestBuffer<Vector4>>();
                                    }
                                }
                                """;
@@ -98,8 +100,8 @@ public class GenericMethodTests
         {
             Assert.That(slang, Does.Contain("int sizeTag_float()"));
             Assert.That(slang, Does.Contain("int sizeTag_float2()"));
-            Assert.That(slang, Does.Contain("int sizeTag_float4Ptr()"));
-            Assert.That(slang, Does.Contain("sizeTag_float() + sizeTag_float2() + sizeTag_float4Ptr()"));
+            Assert.That(slang, Does.Contain("int sizeTag_TestBuffer_float4()"));
+            Assert.That(slang, Does.Contain("sizeTag_float() + sizeTag_float2() + sizeTag_TestBuffer_float4()"));
         });
     }
 }

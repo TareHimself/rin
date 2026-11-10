@@ -23,7 +23,7 @@ public partial class BlurShader : ViewShader<BlurShader.FragmentIn>
 {
     public struct PushConstants
     {
-        public BufferRef<BlurData> Data;
+        public DeviceSpan<BlurData> Data;
         public int IsHorizontal;
     }
 
@@ -45,7 +45,6 @@ public partial class BlurShader : ViewShader<BlurShader.FragmentIn>
     }
 
     [Push] protected PushConstants Push;
-    protected static BindlessData Bindless;
 
     [Vertex]
     public VertexOut Vertex(VertexIn input)
@@ -75,7 +74,7 @@ public partial class BlurShader : ViewShader<BlurShader.FragmentIn>
     {
         var data = Push.Data[0];
         var handle = data.SourceT;
-        var imageSize = Bindless.GetTextureSize(handle);
+        var imageSize = BindlessData.GetTextureSize(handle);
 
         var p1 = data.DestRect.XY;
         var p2 = data.DestRect.ZW;
@@ -93,7 +92,7 @@ public partial class BlurShader : ViewShader<BlurShader.FragmentIn>
         {
             var offset = horizontal ? new Vector2(i * texel.X, 0f) : new Vector2(0f, i * texel.Y);
             var weight = NormPdf(Abs((float)i), sigma);
-            var sample = Bindless.SampleTexture(handle, imageUv + offset, ImageTiling.ClampEdge, ImageFilter.Linear);
+            var sample = BindlessData.SampleTexture(handle, imageUv + offset, ImageTiling.ClampEdge, ImageFilter.Linear);
             color += new Vector4(sample.XYZ * sample.W, sample.W) * weight;
             weightSum += weight;
         }

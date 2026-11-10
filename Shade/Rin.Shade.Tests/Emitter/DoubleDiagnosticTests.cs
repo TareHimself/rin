@@ -7,13 +7,14 @@ public class DoubleDiagnosticTests
 {
     private const string Prelude = """
         using Rin.Shade;
+        using Rin.Shade.Tests;
 
         namespace DoubleCheck;
 
         public struct DoublePush
         {
             public float A;
-            public BufferRef<float> Output;
+            public TestBuffer<float> Output;
         }
 
         """;
@@ -72,7 +73,7 @@ public class DoubleDiagnosticTests
             public struct WidePush
             {
                 public double A;
-                public BufferRef<float> Output;
+                public TestBuffer<float> Output;
             }
 
             [Shader]

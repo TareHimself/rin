@@ -42,7 +42,7 @@ public struct WavyMaterial : ISurfaceMaterial<WavyMaterial>
         return moved;
     }
 
-    public static Surface Evaluate(in WavyMaterial material, in SurfaceInput input, BindlessData textures)
+    public static Surface Evaluate(in WavyMaterial material, in SurfaceInput input)
     {
         Surface surface;
         surface.BaseColor = material.Color;

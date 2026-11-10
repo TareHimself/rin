@@ -15,6 +15,7 @@ public class LanguageFeatureTests
     private const string Source = """
         using System.Numerics;
         using Rin.Shade;
+        using Rin.Shade.Tests;
 
         namespace FeatureCpuCheck;
 
@@ -79,7 +80,7 @@ public class LanguageFeatureTests
             public Vector3 Normal;
             public float Distance;
             public int Flag;
-            public BufferRef<float> Output;
+            public TestBuffer<float> Output;
         }
 
         [Shader]
@@ -107,17 +108,17 @@ public class LanguageFeatureTests
         """;
 
     [StructLayout(LayoutKind.Sequential)]
-    private unsafe struct Push
+    private struct Push
     {
         public float KernelBias;
         public Vector3 Normal;
         public float Distance;
         public int Flag;
-        public float* Output;
+        public TestBuffer<float> Output;
     }
 
     [Test]
-    public unsafe void ConstantsSwitchExpressionsExtensionsAndGenericsRunOnTheCpu()
+    public void ConstantsSwitchExpressionsExtensionsAndGenericsRunOnTheCpu()
     {
         var result = ShadeEmitter.Emit(CompilationBuilder.Build(Source));
         Assert.That(result.Diagnostics, Is.Empty);
@@ -126,18 +127,16 @@ public class LanguageFeatureTests
         using var shader = compiler.Compile(result.Shaders["FeatureShader"]);
 
         var output = new float[4];
-        fixed (float* outputPointer = output)
+        using var buffers = new PinnedBuffers();
+        var push = new Push
         {
-            var push = new Push
-            {
-                KernelBias = 0.125f,
-                Normal = new Vector3(0.5f, 0.75f, 0.25f),
-                Distance = 0.5f,
-                Flag = 1,
-                Output = outputPointer
-            };
-            shader.Dispatch(1, 1, 1, ref push);
-        }
+            KernelBias = 0.125f,
+            Normal = new Vector3(0.5f, 0.75f, 0.25f),
+            Distance = 0.5f,
+            Flag = 1,
+            Output = buffers.Add(output)
+        };
+        shader.Dispatch(1, 1, 1, buffers.Heap, ref push);
 
         Assert.Multiple(() =>
         {

@@ -11,6 +11,7 @@ public class WithExpressionTests
         const string source = """
                                using System.Numerics;
                                using Rin.Shade;
+                               using Rin.Shade.Tests;
 
                                namespace WithExpressionCheck;
 
@@ -25,7 +26,7 @@ public class WithExpressionTests
                                {
                                    public Bounds3D Bounds;
                                    public Vector3 NewUpper;
-                                   public BufferRef<Bounds3D> Output;
+                                   public TestBuffer<Bounds3D> Output;
                                }
 
                                [Shader]
@@ -56,6 +57,7 @@ public class WithExpressionTests
         const string source = """
                                using System.Numerics;
                                using Rin.Shade;
+                               using Rin.Shade.Tests;
 
                                namespace WithDedupeCheck;
 
@@ -70,7 +72,7 @@ public class WithExpressionTests
                                {
                                    public Bounds3D Bounds;
                                    public Vector3 NewUpper;
-                                   public BufferRef<Bounds3D> Output;
+                                   public TestBuffer<Bounds3D> Output;
                                }
 
                                [Shader]
@@ -104,6 +106,7 @@ public class WithExpressionTests
         const string source = """
                                using System.Numerics;
                                using Rin.Shade;
+                               using Rin.Shade.Tests;
 
                                namespace WithRecordCheck;
 
@@ -114,7 +117,7 @@ public class WithExpressionTests
                                {
                                    public Bounds3D Bounds;
                                    public Vector3 NewUpper;
-                                   public BufferRef<Bounds3D> Output;
+                                   public TestBuffer<Bounds3D> Output;
                                }
 
                                [Shader]
@@ -143,6 +146,7 @@ public class WithExpressionTests
     {
         const string source = """
                                using Rin.Shade;
+                               using Rin.Shade.Tests;
 
                                namespace WithSetterCheck;
 
@@ -167,7 +171,7 @@ public class WithExpressionTests
                                {
                                    public Sized Sized;
                                    public float NewArea;
-                                   public BufferRef<Sized> Output;
+                                   public TestBuffer<Sized> Output;
                                }
 
                                [Shader]

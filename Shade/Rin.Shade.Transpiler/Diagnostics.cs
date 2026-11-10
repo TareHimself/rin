@@ -55,7 +55,7 @@ internal static class Diagnostics
         public static readonly DiagnosticDescriptor UnsupportedType = new(
             id: "SHADE0006",
             title: "Unsupported type",
-            messageFormat: "'{0}' cannot be used in a shader: not a recognized built-in, struct, enum, BufferRef<T>, or fixed-size array",
+            messageFormat: "'{0}' cannot be used in a shader: not a recognized built-in, struct, enum or fixed-size array",
             category: "Rin.Shade",
             defaultSeverity: DiagnosticSeverity.Error,
             isEnabledByDefault: true);

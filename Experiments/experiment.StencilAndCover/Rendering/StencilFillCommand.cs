@@ -81,7 +81,7 @@ public partial class StencilFillCommandHandler : ICommandHandler
                     {
                         Projection = surfaceContext.ProjectionMatrix,
                         Transform = command.Transform,
-                        Vertices = new BufferRef<Vector2>(vertexBuffer.GetAddress())
+                        Vertices = vertexBuffer.ToDeviceSpan<Vector2>()
                     })
                     .Draw((uint)command.FanVertices.Count);
 

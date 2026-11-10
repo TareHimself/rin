@@ -39,12 +39,11 @@ public abstract class SurfaceShader<TMaterial> : Shader where TMaterial : unmana
 {
     public struct PushConstants
     {
-        public BufferRef<WorldInfo> Scene;
-        public BufferRef<SurfaceDraw<TMaterial>> Draws;
+        public DeviceSpan<WorldInfo> Scene;
+        public DeviceSpan<SurfaceDraw<TMaterial>> Draws;
     }
 
     [Push] protected PushConstants Push;
-    protected static BindlessData Bindless;
 
     protected override BlendState BlendState => BlendState.Opaque;
 
@@ -74,7 +73,7 @@ public abstract class SurfaceShader<TMaterial> : Shader where TMaterial : unmana
         surfaceInput.WorldPosition = input.WorldPosition;
         surfaceInput.WorldNormal = Normalize(input.WorldNormal);
 
-        var surface = TMaterial.Evaluate(Push.Draws[input.InstanceId].Material, surfaceInput, Bindless);
+        var surface = TMaterial.Evaluate(Push.Draws[input.InstanceId].Material, surfaceInput);
         var lighting = LightGrid.Light(surface, input.WorldPosition, scene.CameraPosition,
             new Vector2(input.Position.X, input.Position.Y), scene.Grid[0]);
 

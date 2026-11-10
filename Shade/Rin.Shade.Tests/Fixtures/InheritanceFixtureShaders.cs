@@ -1,11 +1,12 @@
 using Rin.Shade;
+using Rin.Shade.Tests;
 
 namespace Rin.Shade.Tests.Fixtures;
 
 public struct InheritancePushConstants
 {
     public float Value;
-    public BufferRef<float> Output;
+    public TestBuffer<float> Output;
 }
 
 public abstract class BaseInheritanceShader : Shader

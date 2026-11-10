@@ -1,16 +1,46 @@
-namespace GroupSharedCheck::GroupSharedShader
+[__AttributeUsage(_AttributeTargets.Var)]
+struct BindlessBlockAttribute { string name; };
+
+namespace Rin
 {
-    struct ReducePush
+    namespace Shade
     {
-        float* input;
-        float* output;
+        namespace Tests
+        {
+            struct TestBuffer_float
+            {
+                uint handle;
+                uint offset;
+            }
+
+            struct TestHeap
+            {
+                RWByteAddressBuffer buffers[8];
+            }
+
+        }
+
     }
 
-    struct ComputeIn
+}
+
+namespace GroupSharedCheck
+{
+    namespace GroupSharedShader
     {
-        uint threadId : SV_DispatchThreadID;
-        int groupIndex : SV_GroupIndex;
-        uint groupId : SV_GroupID;
+        struct ReducePush
+        {
+            Rin::Shade::Tests::TestBuffer_float input;
+            Rin::Shade::Tests::TestBuffer_float output;
+        }
+
+        struct ComputeIn
+        {
+            uint threadId : SV_DispatchThreadID;
+            int groupIndex : SV_GroupIndex;
+            uint groupId : SV_GroupID;
+        }
+
     }
 
 }
@@ -18,8 +48,28 @@ namespace GroupSharedCheck::GroupSharedShader
 using namespace GroupSharedCheck::GroupSharedShader;
 using namespace GroupSharedCheck;
 
+[BindlessBlock("test.heap")] ParameterBlock<Rin::Shade::Tests::TestHeap> rin_testHeap;
+
 groupshared float partial[64];
 groupshared uint count;
+
+extension Rin::Shade::Tests::TestBuffer_float
+{
+    uint byteOffset(uint index)
+    {
+        return this.offset + index * (uint)4;
+    }
+
+    float getItem(uint index)
+    {
+        return rin_testHeap.buffers[(int)this.handle].Load<float>(byteOffset(index));
+    }
+
+    void setItem(uint index, float value)
+    {
+        rin_testHeap.buffers[(int)this.handle].Store<float>(byteOffset(index), value);
+    }
+}
 
 [[vk::push_constant]] uniform ConstantBuffer<ReducePush, ScalarDataLayout> push;
 
@@ -27,7 +77,7 @@ groupshared uint count;
 [numthreads(64, 1, 1)]
 void compute(ComputeIn input)
 {
-    partial[input.groupIndex] = push.input[input.threadId];
+    partial[input.groupIndex] = push.input.getItem(input.threadId);
     if (input.groupIndex == 0)
     {
         count = 0u;
@@ -44,5 +94,5 @@ void compute(ComputeIn input)
     {
         sum += partial[i];
     }
-    push.output[input.groupId] = sum;
+    push.output.setItem(input.groupId, sum);
 }

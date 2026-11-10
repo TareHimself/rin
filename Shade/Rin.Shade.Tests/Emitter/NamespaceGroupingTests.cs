@@ -6,6 +6,7 @@ public class NamespaceGroupingTests
 {
     private const string Source = """
         using Rin.Shade;
+        using Rin.Shade.Tests;
 
         namespace Alpha
         {
@@ -25,7 +26,7 @@ public class NamespaceGroupingTests
                 public Alpha.First A;
                 public Beta.Second B;
                 public Alpha.Third C;
-                public BufferRef<float> Output;
+                public TestBuffer<float> Output;
             }
 
             [Shader]

@@ -1,10 +1,17 @@
-namespace AtomicCheck::AtomicShader
+namespace AtomicCheck
 {
-    struct AtomicPush
+    namespace AtomicShader
     {
-        uint* counters;
-        int* signed;
-        uint value;
+        struct AtomicPush
+        {
+            uint value;
+        }
+
+    }
+
+    struct AtomicBindings
+    {
+        RWByteAddressBuffer counters;
     }
 
 }
@@ -12,20 +19,25 @@ namespace AtomicCheck::AtomicShader
 using namespace AtomicCheck::AtomicShader;
 using namespace AtomicCheck;
 
+ParameterBlock<AtomicBindings> bindings;
+
+groupshared uint shared;
+groupshared int signed;
+
 [[vk::push_constant]] uniform ConstantBuffer<AtomicPush, ScalarDataLayout> push;
 
 [shader("compute")]
 [numthreads(1, 1, 1)]
 void compute()
 {
-    InterlockedAdd(push.counters[0], push.value);
+    InterlockedAdd(shared, push.value);
     uint previousMin;
-    InterlockedMin(push.counters[1], push.value, previousMin);
-    InterlockedMax(push.signed[0], (int)push.value);
-    InterlockedOr(push.counters[2], 1u);
+    InterlockedMin(shared, push.value, previousMin);
+    InterlockedMax(signed, (int)push.value);
+    bindings.counters.InterlockedOr(8u, 1u);
     uint swapped;
-    InterlockedExchange(push.counters[3], previousMin, swapped);
+    bindings.counters.InterlockedExchange(12u, previousMin, swapped);
     uint seen;
-    InterlockedCompareExchange(push.counters[4], swapped, push.value, seen);
-    push.counters[5] = seen;
+    bindings.counters.InterlockedCompareExchange(16u, swapped, push.value, seen);
+    bindings.counters.Store<uint>(20u, seen);
 }

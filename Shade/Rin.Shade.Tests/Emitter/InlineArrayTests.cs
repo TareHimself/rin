@@ -11,6 +11,7 @@ public class InlineArrayTests
         const string source = """
                                using System.Runtime.CompilerServices;
                                using Rin.Shade;
+                               using Rin.Shade.Tests;
 
                                namespace InlineArrayLocalCheck;
 
@@ -22,7 +23,7 @@ public class InlineArrayTests
 
                                public struct LocalPush
                                {
-                                   public BufferRef<float> Output;
+                                   public TestBuffer<float> Output;
                                }
 
                                [Shader]
@@ -55,12 +56,13 @@ public class InlineArrayTests
 
     private static string ArrayShader(string body) => $$"""
         using Rin.Shade;
+        using Rin.Shade.Tests;
 
         namespace ArrayCreationCheck;
 
         public struct ArrayPush
         {
-            public BufferRef<float> Output;
+            public TestBuffer<float> Output;
             public int Length;
         }
 

@@ -1,5 +1,6 @@
 using System.Numerics;
 using JetBrains.Annotations;
+using Rin.Core.Graphics;
 using Rin.Shade;
 using Rin.World.Graphics.Mesh;
 using Rin.World.Mesh.Skinning;
@@ -12,10 +13,10 @@ public partial class SkinningShader : Shader
     public struct PushConstants
     {
         public int TotalInvocations;
-        public BufferRef<BufferRef<SkinnedVertex>> Meshes;
-        public BufferRef<BufferRef<Matrix4x4>> Poses;
-        public BufferRef<SkinningExecutionInfo> ExecutionInfo;
-        public BufferRef<Vertex> Output;
+        public DeviceSpan<DeviceSpan<SkinnedVertex>> Meshes;
+        public DeviceSpan<DeviceSpan<Matrix4x4>> Poses;
+        public DeviceSpan<SkinningExecutionInfo> ExecutionInfo;
+        public DeviceSpan<Vertex> Output;
     }
 
     [Push] [UsedImplicitly] protected PushConstants Push;

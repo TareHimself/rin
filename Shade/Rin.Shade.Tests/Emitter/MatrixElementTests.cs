@@ -10,13 +10,14 @@ public class MatrixElementTests
         const string source = """
             using System.Numerics;
             using Rin.Shade;
+            using Rin.Shade.Tests;
 
             namespace MatrixElementCheck;
 
             public struct MatrixPush
             {
                 public Matrix4x4 Matrix;
-                public BufferRef<float> Output;
+                public TestBuffer<float> Output;
             }
 
             [Shader]

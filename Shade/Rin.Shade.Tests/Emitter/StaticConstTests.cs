@@ -11,6 +11,7 @@ public class StaticConstTests
         const string source = """
                                using System.Numerics;
                                using Rin.Shade;
+                               using Rin.Shade.Tests;
 
                                namespace StaticConstCheck;
 
@@ -33,7 +34,7 @@ public class StaticConstTests
                                public struct ConstPush
                                {
                                    public Kernel Kernel;
-                                   public BufferRef<Vector3> Output;
+                                   public TestBuffer<Vector3> Output;
                                }
 
                                [Shader]
@@ -67,6 +68,7 @@ public class StaticConstTests
         const string source = """
                                using System.Numerics;
                                using Rin.Shade;
+                               using Rin.Shade.Tests;
 
                                namespace StaticConstPruneCheck;
 
@@ -81,7 +83,7 @@ public class StaticConstTests
                                {
                                    public struct PrunePush
                                    {
-                                       public BufferRef<float> Output;
+                                       public TestBuffer<float> Output;
                                    }
 
                                    [Push] protected PrunePush Push;
@@ -102,7 +104,7 @@ public class StaticConstTests
         {
             Assert.That(slang, Does.Contain("static const float used = 2;"));
             Assert.That(slang, Does.Not.Contain("unused"));
-            Assert.That(slang, Does.Contain("push.output[0] = Table::used;"));
+            Assert.That(slang, Does.Contain("push.output.setItem(0, Table::used);"));
         });
     }
 
@@ -112,6 +114,7 @@ public class StaticConstTests
         const string source = """
                                using System.Numerics;
                                using Rin.Shade;
+                               using Rin.Shade.Tests;
 
                                namespace StaticConstCallCheck;
 
@@ -125,7 +128,7 @@ public class StaticConstTests
                                {
                                    public struct CallPush
                                    {
-                                       public BufferRef<Vector3> Output;
+                                       public TestBuffer<Vector3> Output;
                                    }
 
                                    [Push] protected CallPush Push;

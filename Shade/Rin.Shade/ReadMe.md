@@ -1,6 +1,6 @@
 # Rin.Shade
 
-The C# authoring API for shaders: the `Shader` base class, the attributes, the math builtins and intrinsics, swizzles, `BufferRef<T>`, the texture and sampler types, and the descriptor types the generated `Descriptor` instantiates. Most members are stubs or `[SlangExpression]` and `[SlangStatement]` bindings: they exist so shader C# compiles and the transpiler knows the Slang for them.
+The C# authoring API for shaders: the `Shader` base class, the attributes, the math builtins and intrinsics, swizzles, the texture, sampler and byte-address buffer types, and the descriptor types the generated `Descriptor` instantiates. Most members are stubs or `[SlangExpression]` and `[SlangStatement]` bindings: they exist so shader C# compiles and the transpiler knows the Slang for them.
 
 ```
 dotnet build Shade/Rin.Shade/Rin.Shade.csproj
@@ -16,7 +16,7 @@ dotnet build Shade/Rin.Shade/Rin.Shade.csproj
 | `[Push]` | field | The push-constant block, lowered to a uniform named `push`. |
 | `[BindingGroup]` | static field | A group of resources in one descriptor set (a Slang `ParameterBlock`). |
 | `[GroupShared]` | static field | Thread-group shared memory of a compute shader (a Slang `groupshared` declaration). |
-| `[BindlessBlock("name")]` | struct | An engine-owned resource table, such as the global bindless pool. |
+| `[BindlessBlock("name")]` | struct | An engine-owned resource table, such as the global bindless pool. Shaders read its static fields, which pulls the table in as a parameter block. |
 | `[SlangExpression("...")]`, `[SlangStatement("...")]` | method without a body | Binds a call to a Slang expression or statement, with `@0`, `@name`, `@T0` and `@this` placeholders. |
 | `[ShadeExport]` | class, struct or interface | Makes the type's source available to other assemblies' shaders. Export an interface whose members a downstream shader calls, so its signatures and the implementing struct name the same types. |
 | `[Position]`, `[VertexId]`, `[InstanceId]`, `[Target(n)]`, the thread ids, `[Semantic("...")]` | struct field | A Slang semantic on a stage input or output field. |

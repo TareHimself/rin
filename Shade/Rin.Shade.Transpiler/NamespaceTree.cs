@@ -18,7 +18,8 @@ internal sealed class NamespaceNode(string[] path)
 /// <summary>
 /// The merge step between deciding which namespace each declaration lives in and printing them. Takes the
 /// declarations in their final order, each with its full namespace path, and nests neighbouring runs that
-/// share a prefix under it (namespace Rin::Core { namespace Graphics { ... } }). It never reorders: Slang
+/// share a prefix under it, one segment per block (namespace Rin { namespace Core { ... } }), because Slang
+/// resolves a relative name only through the namespaces lexically open around it. It never reorders: Slang
 /// needs a type declared before it is used, so only declarations that are already adjacent get grouped.
 /// The result is a tree for the emitter to print - a declaration with no namespace sits at the root.
 /// </summary>
@@ -46,24 +47,14 @@ internal static class NamespaceTree
                 end++;
 
             var run = declarations.Skip(index).Take(end - index).ToList();
-            var shared = CommonPrefix(run);
 
-            var node = new NamespaceNode(declaration.Path[..shared]);
-            node.Entries.AddRange(Build(run.Select(d => (d.Path[shared..], d.Text)).ToList()));
+            var node = new NamespaceNode(declaration.Path[..1]);
+            node.Entries.AddRange(Build(run.Select(d => (d.Path[1..], d.Text)).ToList()));
             entries.Add((null, node));
 
             index = end;
         }
 
         return entries;
-    }
-
-    private static int CommonPrefix(List<(string[] Path, string Text)> run)
-    {
-        var length = run.Min(d => d.Path.Length);
-        for (var i = 0; i < length; i++)
-            if (run.Any(d => d.Path[i] != run[0].Path[i]))
-                return i;
-        return length;
     }
 }

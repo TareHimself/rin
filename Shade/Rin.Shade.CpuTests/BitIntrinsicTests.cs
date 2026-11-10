@@ -13,13 +13,14 @@ public class BitIntrinsicTests
 {
     private const string Source = """
         using Rin.Shade;
+        using Rin.Shade.Tests;
 
         namespace BitCpuCheck;
 
         public struct Push
         {
-            public BufferRef<uint> Input;
-            public BufferRef<uint> Output;
+            public TestBuffer<uint> Input;
+            public TestBuffer<uint> Output;
         }
 
         [Shader]
@@ -50,10 +51,10 @@ public class BitIntrinsicTests
     private static readonly uint[] Inputs = [0b1011_0000, 1u, 0x8000_0000, 0xFFFF_FFFF];
 
     [StructLayout(LayoutKind.Sequential)]
-    private unsafe struct Push
+    private struct Push
     {
-        public uint* Input;
-        public uint* Output;
+        public TestBuffer<uint> Input;
+        public TestBuffer<uint> Output;
     }
 
     private static string Emit(string shaderName)
@@ -63,18 +64,15 @@ public class BitIntrinsicTests
         return result.Shaders[shaderName];
     }
 
-    private static unsafe uint[] RunOnTheCpu(string shaderName)
+    private static uint[] RunOnTheCpu(string shaderName)
     {
         using var compiler = new HostComputeCompiler();
         using var shader = compiler.Compile(Emit(shaderName));
 
         var output = new uint[Inputs.Length];
-        fixed (uint* inputPointer = Inputs)
-        fixed (uint* outputPointer = output)
-        {
-            var push = new Push { Input = inputPointer, Output = outputPointer };
-            shader.Dispatch(1, 1, 1, ref push);
-        }
+        using var buffers = new PinnedBuffers();
+        var push = new Push { Input = buffers.Add(Inputs), Output = buffers.Add(output) };
+        shader.Dispatch(1, 1, 1, buffers.Heap, ref push);
 
         return output;
     }

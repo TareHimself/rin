@@ -26,6 +26,6 @@ public class InheritanceTests
         Assert.That(slang, Does.Contain("InheritancePushConstants, ScalarDataLayout> push;"));
 
         // The derived class's OWN override body is what gets used, not the base's.
-        Assert.That(slang, Does.Contain("push.output[0] = push.value + 1;"));
+        Assert.That(slang, Does.Contain("push.output.setItem(0, push.value + 1);"));
     }
 }

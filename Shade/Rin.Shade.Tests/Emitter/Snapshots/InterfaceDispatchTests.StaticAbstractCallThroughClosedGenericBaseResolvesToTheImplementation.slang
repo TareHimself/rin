@@ -1,9 +1,41 @@
+[__AttributeUsage(_AttributeTargets.Var)]
+struct BindlessBlockAttribute { string name; };
+
+namespace Rin
+{
+    namespace Shade
+    {
+        namespace Tests
+        {
+            struct TestBuffer_Gold
+            {
+                uint handle;
+                uint offset;
+            }
+
+            struct TestBuffer_Surface
+            {
+                uint handle;
+                uint offset;
+            }
+
+            struct TestHeap
+            {
+                RWByteAddressBuffer buffers[8];
+            }
+
+        }
+
+    }
+
+}
+
 namespace InterfaceDispatchCheck
 {
-    struct Gold
+    struct SurfacePush_Gold
     {
-        float3 tint;
-        float roughness;
+        Rin::Shade::Tests::TestBuffer_Gold materials;
+        Rin::Shade::Tests::TestBuffer_Surface output;
     }
 
     struct Surface
@@ -12,15 +44,35 @@ namespace InterfaceDispatchCheck
         float roughness;
     }
 
-    struct SurfacePush_Gold
+    struct Gold
     {
-        Gold* materials;
-        Surface* output;
+        float3 tint;
+        float roughness;
     }
 
 }
 
 using namespace InterfaceDispatchCheck;
+
+[BindlessBlock("test.heap")] ParameterBlock<Rin::Shade::Tests::TestHeap> rin_testHeap;
+
+extension Rin::Shade::Tests::TestBuffer_Surface
+{
+    uint byteOffset(uint index)
+    {
+        return this.offset + index * (uint)16;
+    }
+
+    void setItem(uint index, Surface value)
+    {
+        rin_testHeap.buffers[(int)this.handle].Store<Surface>(byteOffset(index), value);
+    }
+
+    void setItem(int index, Surface value)
+    {
+        setItem((uint)index, value);
+    }
+}
 
 extension InterfaceDispatchCheck::Gold
 {
@@ -33,11 +85,29 @@ extension InterfaceDispatchCheck::Gold
     }
 }
 
+extension Rin::Shade::Tests::TestBuffer_Gold
+{
+    uint byteOffset(uint index)
+    {
+        return this.offset + index * (uint)16;
+    }
+
+    Gold getItem(uint index)
+    {
+        return rin_testHeap.buffers[(int)this.handle].Load<Gold>(byteOffset(index));
+    }
+
+    Gold getItem(int index)
+    {
+        return getItem((uint)index);
+    }
+}
+
 [[vk::push_constant]] uniform ConstantBuffer<SurfacePush_Gold, ScalarDataLayout> push;
 
 [shader("compute")]
 [numthreads(1, 1, 1)]
 void compute()
 {
-    push.output[0] = Gold.evaluate(push.materials[0], float2(0.5));
+    push.output.setItem(0, Gold.evaluate(push.materials.getItem(0), float2(0.5)));
 }

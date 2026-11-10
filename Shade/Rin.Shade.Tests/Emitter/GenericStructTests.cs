@@ -10,6 +10,7 @@ public class GenericStructTests
         const string source = """
                                using System.Numerics;
                                using Rin.Shade;
+                               using Rin.Shade.Tests;
 
                                namespace GenericStructCheck;
 
@@ -34,7 +35,7 @@ public class GenericStructTests
                                    public Pair<float> Floats;
                                    public Pair<Vector3> Vectors;
                                    public int Flag;
-                                   public BufferRef<Vector3> Output;
+                                   public TestBuffer<Vector3> Output;
                                }
 
                                [Shader]
@@ -65,6 +66,7 @@ public class GenericStructTests
         const string source = """
                                using System.Numerics;
                                using Rin.Shade;
+                               using Rin.Shade.Tests;
 
                                namespace GenericStructInMethodCheck;
 
@@ -90,7 +92,7 @@ public class GenericStructTests
                                    {
                                        public float A;
                                        public Vector2 B;
-                                       public BufferRef<Vector2> Output;
+                                       public TestBuffer<Vector2> Output;
                                    }
 
                                    [Push] protected BoxPush Push;

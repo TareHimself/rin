@@ -138,10 +138,9 @@ public sealed class BindingGroupAttribute : Attribute;
 public sealed class GroupSharedAttribute : Attribute;
 
 /// <summary>
-/// Marks a struct as the shape of a named, engine-owned resource table such as the global bindless pool.
-/// A static field of this type lowers to its own parameter block, like a <see cref="BindingGroupAttribute"/>,
-/// and the name travels into reflection so the backend can bind its own registered descriptor set there
-/// instead of building one from the shader.
+/// Marks a struct as a named, engine-owned resource table such as the global bindless pool. Its static fields
+/// are the resources: reading one declares the table as a parameter block, and the name travels into reflection
+/// so the backend binds its own registered descriptor set there instead of building one from the shader.
 /// </summary>
 [AttributeUsage(AttributeTargets.Struct)]
 public sealed class BindlessBlockAttribute(string name) : Attribute

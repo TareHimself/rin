@@ -1,5 +1,6 @@
 using System.Numerics;
 using Rin.Shade;
+using Rin.Shade.Tests;
 
 namespace Rin.Shade.Tests.Fixtures;
 
@@ -12,9 +13,9 @@ public struct Bounds3D
 
 public struct CullingPushConstants
 {
-    public BufferRef<Bounds3D> Bounds;
+    public TestBuffer<Bounds3D> Bounds;
     public uint InvocationCount;
-    public BufferRef<uint> Output;
+    public TestBuffer<uint> Output;
 }
 
 public struct ComputeIn

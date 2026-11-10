@@ -31,15 +31,15 @@ public struct PbrMaterial : ISurfaceMaterial<PbrMaterial>
 
     public static IGraphicsDescriptor Shader => PbrShader.Descriptor;
 
-    public static Surface Evaluate(in PbrMaterial material, in SurfaceInput input, BindlessData textures)
+    public static Surface Evaluate(in PbrMaterial material, in SurfaceInput input)
     {
         Surface surface;
-        surface.BaseColor = textures.ColorOr(material.BaseColorTexture, input.Uv, material.BaseColor);
+        surface.BaseColor = SurfaceSampling.ColorOr(material.BaseColorTexture, input.Uv, material.BaseColor);
         surface.Normal = input.WorldNormal;
-        surface.Roughness = textures.ValueOr(material.RoughnessTexture, input.Uv, material.Roughness);
-        surface.Metallic = textures.ValueOr(material.MetallicTexture, input.Uv, material.Metallic);
-        surface.Specular = textures.ValueOr(material.SpecularTexture, input.Uv, material.Specular);
-        surface.Emissive = textures.ValueOr(material.EmissiveTexture, input.Uv, material.Emissive);
+        surface.Roughness = SurfaceSampling.ValueOr(material.RoughnessTexture, input.Uv, material.Roughness);
+        surface.Metallic = SurfaceSampling.ValueOr(material.MetallicTexture, input.Uv, material.Metallic);
+        surface.Specular = SurfaceSampling.ValueOr(material.SpecularTexture, input.Uv, material.Specular);
+        surface.Emissive = SurfaceSampling.ValueOr(material.EmissiveTexture, input.Uv, material.Emissive);
         return surface;
     }
 

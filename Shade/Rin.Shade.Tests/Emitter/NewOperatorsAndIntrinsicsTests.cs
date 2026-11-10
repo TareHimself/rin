@@ -12,6 +12,7 @@ public class NewOperatorsAndIntrinsicsTests
         const string source = """
                                using System.Numerics;
                                using Rin.Shade;
+                               using Rin.Shade.Tests;
 
                                namespace OperatorCheck;
 
@@ -20,7 +21,7 @@ public class NewOperatorsAndIntrinsicsTests
                                    public Vector3 Normal;
                                    public int Count;
                                    public bool Flag;
-                                   public BufferRef<float> Output;
+                                   public TestBuffer<float> Output;
                                }
 
                                [Shader]
@@ -58,6 +59,7 @@ public class NewOperatorsAndIntrinsicsTests
         const string source = """
                                using System.Numerics;
                                using Rin.Shade;
+                               using Rin.Shade.Tests;
 
                                namespace MathIntrinsicsCheck;
 
@@ -65,7 +67,7 @@ public class NewOperatorsAndIntrinsicsTests
                                {
                                    public Vector3 A;
                                    public Vector3 B;
-                                   public BufferRef<float> Output;
+                                   public TestBuffer<float> Output;
                                }
 
                                [Shader]

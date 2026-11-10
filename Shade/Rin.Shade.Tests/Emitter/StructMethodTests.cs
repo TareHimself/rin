@@ -10,6 +10,7 @@ public class StructMethodTests
         const string source = """
                                using System.Numerics;
                                using Rin.Shade;
+                               using Rin.Shade.Tests;
 
                                namespace StructMethodCheck;
 
@@ -24,7 +25,7 @@ public class StructMethodTests
                                public struct StructMethodPush
                                {
                                    public MeshData Mesh;
-                                   public BufferRef<float> Output;
+                                   public TestBuffer<float> Output;
                                }
 
                                [Shader]
@@ -53,7 +54,7 @@ public class StructMethodTests
         Assert.That(slang, Does.Contain("return this.colorAndTextureId.x;"));
 
         // The call site is unaffected either way - already worked before this fix.
-        Assert.That(slang, Does.Contain("push.output[0] = push.mesh.getRed();"));
+        Assert.That(slang, Does.Contain("push.output.setItem(0, push.mesh.getRed());"));
     }
 
     [Test]
@@ -61,6 +62,7 @@ public class StructMethodTests
     {
         const string source = """
                                using Rin.Shade;
+                               using Rin.Shade.Tests;
 
                                namespace ShadowCheck;
 
@@ -78,7 +80,7 @@ public class StructMethodTests
 
                                public struct RangePush
                                {
-                                   public BufferRef<uint> Output;
+                                   public TestBuffer<uint> Output;
                                }
 
                                [Shader]
@@ -108,6 +110,7 @@ public class StructMethodTests
     {
         const string source = """
                                using Rin.Shade;
+                               using Rin.Shade.Tests;
 
                                namespace StaticStructCheck;
 
@@ -128,7 +131,7 @@ public class StructMethodTests
                                public struct StaticPush
                                {
                                    public float Value;
-                                   public BufferRef<float> Output;
+                                   public TestBuffer<float> Output;
                                }
 
                                [Shader]

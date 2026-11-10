@@ -55,7 +55,7 @@ public partial class CustomShaderCommandHandler : ICommandHandler
 
                 myView.WriteSingle(data);
                 bindContext
-                    .Push(new PrettyShader.PushConstants { Data = new BufferRef<PrettyData>(myView.GetAddress()) })
+                    .Push(new PrettyShader.PushConstants { Data = myView.ToDeviceSpan<PrettyData>() })
                     .Draw(6);
             }
         }

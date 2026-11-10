@@ -57,8 +57,8 @@ internal static class Naming
     {
         var name = method.MethodKind switch
         {
-            MethodKind.PropertyGet => ToSlangIdentifier($"Get{method.AssociatedSymbol!.Name}"),
-            MethodKind.PropertySet => ToSlangIdentifier($"Set{method.AssociatedSymbol!.Name}"),
+            MethodKind.PropertyGet => ToSlangIdentifier($"Get{PropertyName(method)}"),
+            MethodKind.PropertySet => ToSlangIdentifier($"Set{PropertyName(method)}"),
             _ => ToSlangIdentifier(method.Name)
         };
 
@@ -73,14 +73,16 @@ internal static class Naming
             : name;
     }
 
+    // An indexer's C# name is "this[]".
+    private static string PropertyName(IMethodSymbol accessor) =>
+        accessor.AssociatedSymbol is IPropertySymbol { IsIndexer: true } ? "Item" : accessor.AssociatedSymbol!.Name;
+
     /// <summary>
     /// A type's spelling inside an identifier, independent of the name scope so a declaration and its call
-    /// sites agree: builtins by their Slang name, a BufferRef by its element plus Ptr, anything else by its name.
+    /// sites agree: builtins by their Slang name, anything else by its name.
     /// </summary>
     public static string TypeTag(ITypeSymbol type)
     {
-        if (type is INamedTypeSymbol { Name: "BufferRef", TypeArguments.Length: 1 } buffer)
-            return TypeTag(buffer.TypeArguments[0]) + "Ptr";
         if (type is INamedTypeSymbol { IsGenericType: true } generic) return TypeName(generic);
         return TypeMapping.IsBuiltIn(type) ? TypeMapping.MapType(type) : type.Name;
     }

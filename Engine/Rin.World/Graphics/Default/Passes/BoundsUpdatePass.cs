@@ -46,7 +46,7 @@ public partial class BoundsUpdatePass(DefaultSceneFrame sceneFrame) : IComputePa
                 skinnedMeshes[i] = new BoundsUpdateShader.SkinnedMesh
                 {
                     Index = mesh.AbsoluteMeshIndex,
-                    Vertices = new BufferRef<Vertex>(mesh.VertexBuffer.GetAddress()),
+                    Vertices = mesh.VertexBuffer.ToDeviceSpan<Vertex>(),
                     Count = (uint)mesh.Surface.VertexCount
                 };
             }
@@ -59,9 +59,9 @@ public partial class BoundsUpdatePass(DefaultSceneFrame sceneFrame) : IComputePa
         bindContext
             .Push(new BoundsUpdateShader.PushConstants
             {
-                SkinnedMeshes = new BufferRef<BoundsUpdateShader.SkinnedMesh>(skinnedMeshBuffer.GetAddress()),
+                SkinnedMeshes = skinnedMeshBuffer.ToDeviceSpan<BoundsUpdateShader.SkinnedMesh>(),
                 TotalInvocations = skinnedCount,
-                Output = new BufferRef<UpdatableBounds3D>(boundsBuffer.GetAddress())
+                Output = boundsBuffer.ToDeviceSpan<UpdatableBounds3D>()
             })
             .Invoke((uint)skinnedCount);
     }

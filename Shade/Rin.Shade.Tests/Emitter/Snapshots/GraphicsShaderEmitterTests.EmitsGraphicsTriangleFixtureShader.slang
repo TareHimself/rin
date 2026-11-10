@@ -1,24 +1,36 @@
-namespace Rin::Shade::Tests::Fixtures
+namespace Rin
 {
-    struct GraphicsPushConstants
+    namespace Shade
     {
-        float4 color;
-    }
+        namespace Tests
+        {
+            namespace Fixtures
+            {
+                struct GraphicsPushConstants
+                {
+                    float4 color;
+                }
 
-    struct VsIn
-    {
-        int vertexId : SV_VertexID;
-    }
+                struct VsIn
+                {
+                    int vertexId : SV_VertexID;
+                }
 
-    struct VsOut
-    {
-        float2 uv : UV;
-        float4 position : SV_Position;
-    }
+                struct VsOut
+                {
+                    float2 uv : UV;
+                    float4 position : SV_Position;
+                }
 
-    struct FsIn
-    {
-        float2 uv : UV;
+                struct FsIn
+                {
+                    float2 uv : UV;
+                }
+
+            }
+
+        }
+
     }
 
 }

@@ -51,10 +51,10 @@ public partial class LightGridPass(DefaultWorldViewData view) : IComputePass
         var wordCount = (uint)(Binner.PointLights.Length + 31) / 32;
         gridBuffer.WriteSingle(new LightGridInfo
         {
-            PointLights = new BufferRef<LightInfo>(pointLights.GetAddress()),
-            DirectionalLights = new BufferRef<LightInfo>(directionalLights.GetAddress()),
-            Bins = new BufferRef<uint>(bins.GetAddress()),
-            TileMasks = new BufferRef<uint>(tileMasks.GetAddress()),
+            PointLights = pointLights.ToDeviceSpan<LightInfo>(),
+            DirectionalLights = directionalLights.ToDeviceSpan<LightInfo>(),
+            Bins = bins.ToDeviceSpan<uint>(),
+            TileMasks = tileMasks.ToDeviceSpan<uint>(),
             View = view.View,
             PointLightCount = Binner.PointLights.Length,
             DirectionalLightCount = Binner.DirectionalLights.Length,
@@ -71,7 +71,7 @@ public partial class LightGridPass(DefaultWorldViewData view) : IComputePass
 
         if (wordCount == 0 || Shader.Bind(ctx) is not { } bindContext) return;
         bindContext
-            .Push(new TileLightsShader.PushConstants { Grid = new BufferRef<LightGridInfo>(gridBuffer.GetAddress()) })
+            .Push(new TileLightsShader.PushConstants { Grid = gridBuffer.ToDeviceSpan<LightGridInfo>() })
             .Invoke(TilesX * TilesY * wordCount);
     }
 }

@@ -34,7 +34,7 @@ public partial class VideoBatchShader : ViewShader<VideoBatchShader.FragmentIn>
     public struct PushConstants
     {
         public Matrix4x4 Projection;
-        public BufferRef<VideoItem> Items;
+        public DeviceSpan<VideoItem> Items;
     }
 
     public struct VertexIn
@@ -57,7 +57,6 @@ public partial class VideoBatchShader : ViewShader<VideoBatchShader.FragmentIn>
     }
 
     [Push] protected PushConstants Push;
-    protected static BindlessData Bindless;
 
     [Vertex]
     public VertexOut Vertex(VertexIn input)
@@ -82,8 +81,8 @@ public partial class VideoBatchShader : ViewShader<VideoBatchShader.FragmentIn>
     protected override Vector4 Color(FragmentIn input)
     {
         var item = Push.Items[input.Index];
-        var luma = Bindless.SampleTexture(item.Luma, input.Uv, ImageTiling.ClampEdge, ImageFilter.Linear).X;
-        var chroma = Bindless.SampleTexture(item.Chroma, input.Uv, ImageTiling.ClampEdge, ImageFilter.Linear).XY;
+        var luma = BindlessData.SampleTexture(item.Luma, input.Uv, ImageTiling.ClampEdge, ImageFilter.Linear).X;
+        var chroma = BindlessData.SampleTexture(item.Chroma, input.Uv, ImageTiling.ClampEdge, ImageFilter.Linear).XY;
 
         // Limited range: luma spans 16..235 and chroma 16..240 of 255, centred on 128.
         var y = (luma - 16f / 255f) * (255f / 219f);

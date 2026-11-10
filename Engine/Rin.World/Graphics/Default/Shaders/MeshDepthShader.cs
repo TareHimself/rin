@@ -1,4 +1,5 @@
 using System.Numerics;
+using Rin.Core.Graphics;
 using Rin.Shade;
 using Rin.World.Graphics.Surfaces;
 
@@ -9,8 +10,8 @@ public partial class MeshDepthShader : Shader
 {
     public struct PushConstants
     {
-        public BufferRef<DepthSceneInfo> Scene;
-        public BufferRef<MeshInstance> Instances;
+        public DeviceSpan<DepthSceneInfo> Scene;
+        public DeviceSpan<MeshInstance> Instances;
     }
 
     public struct VertexIn

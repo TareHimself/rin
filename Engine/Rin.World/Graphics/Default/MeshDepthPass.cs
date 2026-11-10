@@ -32,8 +32,8 @@ public sealed class MeshDepthPass : SimpleMaterialPass
     {
         return Shader.Bind(frame.ExecutionContext)?.Push(new MeshDepthShader.PushConstants
         {
-            Scene = new BufferRef<DepthSceneInfo>(frame.SceneInfo.GetAddress()),
-            Instances = new BufferRef<MeshInstance>(groupMaterialBuffer.GetAddress())
+            Scene = frame.SceneInfo.ToDeviceSpan<DepthSceneInfo>(),
+            Instances = groupMaterialBuffer.ToDeviceSpan<MeshInstance>()
         });
     }
 

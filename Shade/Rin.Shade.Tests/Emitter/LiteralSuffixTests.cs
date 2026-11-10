@@ -10,6 +10,7 @@ public class LiteralSuffixTests
 {
     private const string Source = """
         using Rin.Shade;
+        using Rin.Shade.Tests;
 
         namespace LiteralCheck;
 
@@ -21,8 +22,8 @@ public class LiteralSuffixTests
         public struct LiteralPush
         {
             public uint Shift;
-            public BufferRef<uint> Output;
-            public BufferRef<long> Wide;
+            public TestBuffer<uint> Output;
+            public TestBuffer<long> Wide;
         }
 
         [Shader]
@@ -51,7 +52,7 @@ public class LiteralSuffixTests
         Assert.Multiple(() =>
         {
             Assert.That(slang, Does.Contain("4294967295u >> (int)push.shift"));
-            Assert.That(slang, Does.Contain("push.output[1] = 4294967295u;"));
+            Assert.That(slang, Does.Contain("push.output.setItem(1, 4294967295u);"));
             Assert.That(slang, Does.Contain("7u + (uint)3"));
             Assert.That(slang, Does.Contain("5000000000ll"));
         });

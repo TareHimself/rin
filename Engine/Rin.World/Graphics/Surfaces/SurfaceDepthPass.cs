@@ -34,8 +34,8 @@ public sealed class SurfaceDepthPass<TMaterial> : SimpleMaterialPass
     {
         return Shader.Bind(frame.ExecutionContext)?.Push(new SurfaceDepthShader<TMaterial>.PushConstants
         {
-            Scene = new BufferRef<DepthSceneInfo>(frame.SceneInfo.GetAddress()),
-            Draws = new BufferRef<SurfaceDraw<TMaterial>>(groupMaterialBuffer.GetAddress())
+            Scene = frame.SceneInfo.ToDeviceSpan<DepthSceneInfo>(),
+            Draws = groupMaterialBuffer.ToDeviceSpan<SurfaceDraw<TMaterial>>()
         });
     }
 

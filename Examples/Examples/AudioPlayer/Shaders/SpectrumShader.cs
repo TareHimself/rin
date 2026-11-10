@@ -1,6 +1,7 @@
 using System.Numerics;
 using JetBrains.Annotations;
 using Rin.Core.Views.Graphics.Shaders;
+using Rin.Core.Graphics;
 using Rin.Shade;
 
 namespace Examples.AudioPlayer.Shaders;
@@ -71,8 +72,8 @@ public partial class SpectrumShader : ViewShader<SpectrumShader.FragmentIn>
 
     public struct PushConstants
     {
-        public BufferRef<SpectrumData> Data;
-        public BufferRef<Vector4> Bands;
+        public DeviceSpan<SpectrumData> Data;
+        public DeviceSpan<Vector4> Bands;
     }
 
     public struct VertexIn

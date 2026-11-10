@@ -69,7 +69,9 @@ internal static class FunctionLowering
                 .ToHashSet();
 
             writer.Origin = method.Locations.FirstOrDefault();
-            if (!isConstructor && WritesToImplicitThis(compilation, method)) writer.Line("[mutating]");
+            // A readonly member cannot write to `this`, even when it calls a setter on it.
+            if (!isConstructor && !IsReadOnlyMember(method) && WritesToImplicitThis(compilation, method))
+                writer.Line("[mutating]");
             WriteSignatureAndBody(compilation, method, diagnostics, writer, signature, fieldNames, withHelpers,
                 overrides);
             return new LoweredFunction(method.ContainingType, writer);
@@ -81,6 +83,10 @@ internal static class FunctionLowering
     }
 
     // An extension member joins the Slang `extension` block of its receiver type, where the receiver is `this`.
+    private static bool IsReadOnlyMember(IMethodSymbol method) =>
+        method.IsReadOnly || method.ContainingType.IsReadOnly ||
+        method.AssociatedSymbol is IPropertySymbol { IsReadOnly: true };
+
     // A by-value receiver the body writes to is copied into a local first, since a Slang [mutating] member
     // would write through to the caller's variable; a `ref` receiver is meant to, so it becomes [mutating].
     private static LoweredFunction LowerExtensionMember(Compilation compilation, IMethodSymbol method,
@@ -88,8 +94,7 @@ internal static class FunctionLowering
         IReadOnlyDictionary<string, WithHelperSpec>? withHelpers,
         IReadOnlyDictionary<IMethodSymbol, IMethodSymbol>? overrides)
     {
-        if (receiver.Type is not INamedTypeSymbol receiverType || !TypeMapping.IsLegalShaderType(receiverType) ||
-            receiverType is { Name: "BufferRef" })
+        if (receiver.Type is not INamedTypeSymbol receiverType || !TypeMapping.IsLegalShaderType(receiverType))
         {
             diagnostics.Add(Diagnostic.Create(Diagnostics.Emitter.ExtensionMethodNotSupported,
                 method.Locations.FirstOrDefault() ?? Location.None, method.Name, receiver.Type.ToDisplayString()));

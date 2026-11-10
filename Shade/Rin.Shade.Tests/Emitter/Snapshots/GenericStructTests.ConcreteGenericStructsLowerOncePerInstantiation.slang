@@ -1,3 +1,6 @@
+[__AttributeUsage(_AttributeTargets.Var)]
+struct BindlessBlockAttribute { string name; };
+
 namespace GenericStructCheck
 {
     struct Pair_float
@@ -12,17 +15,46 @@ namespace GenericStructCheck
         float3 second;
     }
 
+}
+
+namespace Rin
+{
+    namespace Shade
+    {
+        namespace Tests
+        {
+            struct TestBuffer_float3
+            {
+                uint handle;
+                uint offset;
+            }
+
+            struct TestHeap
+            {
+                RWByteAddressBuffer buffers[8];
+            }
+
+        }
+
+    }
+
+}
+
+namespace GenericStructCheck
+{
     struct GenericPush
     {
         Pair_float floats;
         Pair_float3 vectors;
         int flag;
-        float3* output;
+        Rin::Shade::Tests::TestBuffer_float3 output;
     }
 
 }
 
 using namespace GenericStructCheck;
+
+[BindlessBlock("test.heap")] ParameterBlock<Rin::Shade::Tests::TestHeap> rin_testHeap;
 
 extension GenericStructCheck::Pair_float
 {
@@ -37,6 +69,24 @@ extension GenericStructCheck::Pair_float
     float pick(bool first)
     {
         return first ? this.first : this.second;
+    }
+}
+
+extension Rin::Shade::Tests::TestBuffer_float3
+{
+    uint byteOffset(uint index)
+    {
+        return this.offset + index * (uint)12;
+    }
+
+    void setItem(uint index, float3 value)
+    {
+        rin_testHeap.buffers[(int)this.handle].Store<float3>(byteOffset(index), value);
+    }
+
+    void setItem(int index, float3 value)
+    {
+        setItem((uint)index, value);
     }
 }
 
@@ -56,5 +106,5 @@ void compute()
 {
     var first = push.flag != 0;
     var scale = Pair_float.of(push.floats.pick(first), 2);
-    push.output[0] = push.vectors.pick(first) * scale.pick(true);
+    push.output.setItem(0, push.vectors.pick(first) * scale.pick(true));
 }

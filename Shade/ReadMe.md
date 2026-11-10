@@ -22,7 +22,7 @@ flowchart LR
 
 | Project | What it is |
 | --- | --- |
-| [Rin.Shade](Rin.Shade/ReadMe.md) | The authoring API: `Shader` base class, attributes, intrinsics, `BufferRef<T>`, descriptors. |
+| [Rin.Shade](Rin.Shade/ReadMe.md) | The authoring API: `Shader` base class, attributes, intrinsics, resource types, descriptors. |
 | [Rin.Shade.Transpiler](Rin.Shade.Transpiler/ReadMe.md) | The Roslyn transpiler from C# shader classes to Slang text. |
 | [Rin.Shade.SourceGenerator](Rin.Shade.SourceGenerator/ReadMe.md) | Source generators: the `Descriptor` and the exported shader source. |
 | [Rin.Shade.MSBuild](Rin.Shade.MSBuild/ReadMe.md) | The `CompileRinShadeShaders` task behind `msbuild/RinShade.targets`. |
@@ -60,8 +60,8 @@ float4 fragment(FsIn input)
 
 | Area | Supported |
 | --- | --- |
-| Types | `float`, `int`, `uint`, vectors, `Matrix4x4`, `BufferRef<T>`, textures and samplers, structs, enums, inline arrays, explicit-layout unions |
-| Code | `if`, loops, `switch` with constant cases and simple patterns, local functions, `with`, properties, `const` |
+| Types | `float`, `int`, `uint`, vectors, `Matrix4x4`, textures, samplers and `RWByteAddressBuffer`, structs, enums, inline arrays, explicit-layout unions |
+| Code | `if`, loops, `switch` with constant cases and simple patterns, local functions, `with`, properties and indexers, `const`, `Unsafe.SizeOf<T>()` |
 | Generics | Generic structs, methods and base classes (one Slang copy per instantiation), interface calls through a constrained type parameter |
 | Builtins | Math on `Shader` (`Lerp`, `Max`, ...), swizzles, atomics, barriers, `[GroupShared]` |
 
@@ -69,7 +69,7 @@ Not supported: `double`, recursion, open generics, calls through an interface-ty
 
 - Buffers use scalar layout, matching C# sequential structs.
 - Matrices are row-major with `v * M`, like `System.Numerics`.
-- Resources are bindless (`BindlessData` in Rin.Core).
+- Resources are bindless. Shaders read the static members of `BindlessData` in Rin.Core, and buffers through `DeviceSpan<T>`.
 - A `[Shader]` class must be `partial` and top-level.
 - To use a base shader or helper from another assembly, mark it `[ShadeExport]`.
 

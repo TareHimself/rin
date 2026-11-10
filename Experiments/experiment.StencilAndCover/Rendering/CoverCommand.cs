@@ -116,7 +116,7 @@ public partial class CoverCommandHandler : ICommandHandler
                     boundaryBind.Push(new BoundaryAaShader.PushConstants
                         {
                             Projection = surfaceContext.ProjectionMatrix,
-                            Edges = new BufferRef<EdgeInstance>(edgeBuffer.GetAddress())
+                            Edges = edgeBuffer.ToDeviceSpan<EdgeInstance>()
                         })
                         .Draw(6, (uint)command.Edges.Count);
             }

@@ -130,7 +130,7 @@ internal partial class BlurFirstPassCommandHandler : ICommandHandler
                 bindContext
                     .Push(new BlurShader.PushConstants
                     {
-                        Data = new BufferRef<BlurData>(buffer.GetAddress()),
+                        Data = buffer.ToDeviceSpan<BlurData>(),
                         IsHorizontal = 1
                     })
                     .Draw(6);
@@ -204,11 +204,11 @@ internal partial class BlurSecondPassCommandHandler : ICommandHandler
                 bindContext
                     .Push(new BlurShader.PushConstants
                     {
-                        Data = new BufferRef<BlurData>(buffer.GetAddress()),
+                        Data = buffer.ToDeviceSpan<BlurData>(),
                         IsHorizontal = 0
                     })
                     .Draw(6);
             }
         }
     }
-}
+}

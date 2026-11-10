@@ -53,7 +53,7 @@ public partial class StencilWritePass : IPass
             bindContext.Push(new StencilBatchShader.PushConstants
                 {
                     Projection = _surfaceContext.ProjectionMatrix,
-                    Clips = new BufferRef<StencilClip>(clipsBuffer.GetAddress())
+                    Clips = clipsBuffer.ToDeviceSpan<StencilClip>()
                 })
                 .Draw(6, (uint)_clips.Length);
 

@@ -17,10 +17,12 @@ internal static class StructMembers
     /// <summary>
     /// A struct's instance data members - declared fields plus the backing field of each auto
     /// property, named after the property (the backing field itself has a compiler-generated name).
+    /// A bindless block's static fields count too, since they lower to members of its parameter block.
     /// </summary>
     public static IEnumerable<StructMember> Instance(INamedTypeSymbol type)
     {
-        foreach (var field in type.GetMembers().OfType<IFieldSymbol>().Where(f => !f.IsStatic))
+        foreach (var field in type.GetMembers().OfType<IFieldSymbol>()
+                     .Where(f => !f.IsStatic || BindingLowering.IsBindlessBlockMember(f)))
         {
             if (!field.IsImplicitlyDeclared)
                 yield return new StructMember(field.Name, field.Type, field);

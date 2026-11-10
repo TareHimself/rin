@@ -23,7 +23,7 @@ public partial class VulkanGraphicsModule
     private const uint MaxCubemaps = BindlessData.CubemapCount;
     private const uint MaxTextureArrays = BindlessData.TextureArrayCount;
     private const uint SamplerCount = BindlessData.SamplerCount;
-    private const uint MaxBuffers = 65536;
+    private const uint MaxBuffers = BindlessData.BufferCount;
     private const uint SamplersBinding = 0;
     private const uint TexturesBinding = 1;
     private const uint TextureArraysBinding = 2;

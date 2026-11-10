@@ -66,7 +66,7 @@ public class CrossAssemblyTests
 
         // The derived override's own body, calling both the base's helper and the stdlib directly.
         Assert.That(slang,
-            Does.Contain("push.output[0] = sdCircle(push.location, push.center, push.radius) + dot2(push.location);"));
+            Does.Contain("bindings.output.Store<float>(0u, sdCircle(push.location, push.center, push.radius) + dot2(push.location));"));
     }
 
     [Test]
@@ -80,6 +80,7 @@ public class CrossAssemblyTests
         const string localSource = """
                                     using System.Numerics;
                                     using Rin.Shade;
+                                    using Rin.Shade.Tests;
                                     using SampleStdlib;
 
                                     namespace NotEmbeddedCheck;
@@ -89,7 +90,7 @@ public class CrossAssemblyTests
                                         public Vector2 Location;
                                         public Vector2 Center;
                                         public float Radius;
-                                        public BufferRef<float> Output;
+                                        public TestBuffer<float> Output;
                                     }
 
                                     [Shader]

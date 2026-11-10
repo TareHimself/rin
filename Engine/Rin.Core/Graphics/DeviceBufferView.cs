@@ -151,4 +151,15 @@ public readonly record struct DeviceBufferView
         Debug.Assert(IsValid, "Buffer is not valid");
         return IGraphicsModule.Get().GetBufferAddress(Buffer) + Offset;
     }
+
+    /// <summary>
+    ///     A shader's view of this range: the buffer's bindless slot and the range's byte offset.
+    /// </summary>
+    public DeviceSpan<T> ToDeviceSpan<T>() where T : unmanaged
+    {
+        Debug.Assert(IsValid, "Buffer is not valid");
+        Debug.Assert(Offset % 4 == 0, "Shaders read buffers at 4-byte aligned offsets");
+        Debug.Assert(Offset <= uint.MaxValue, "A buffer offset must fit in 32 bits");
+        return new DeviceSpan<T>(Buffer.Id, (uint)Offset);
+    }
 }

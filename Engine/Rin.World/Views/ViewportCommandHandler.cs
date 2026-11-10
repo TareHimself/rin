@@ -85,7 +85,7 @@ internal partial class ViewportCommandHandler : ICommandHandlerWithPreAdd
                         OutputImage = outputImage
                     });
                 bindContext
-                    .Push(new ViewportShader.PushConstants { Data = new BufferRef<ViewportPushData>(pushBuffer.GetAddress()) })
+                    .Push(new ViewportShader.PushConstants { Data = pushBuffer.ToDeviceSpan<ViewportPushData>() })
                     .Draw(6);
             }
         }

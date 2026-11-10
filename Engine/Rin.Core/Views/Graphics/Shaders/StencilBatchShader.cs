@@ -1,4 +1,5 @@
 using System.Numerics;
+using Rin.Core.Graphics;
 using Rin.Shade;
 
 namespace Rin.Core.Views.Graphics.Shaders;
@@ -13,7 +14,7 @@ public partial class StencilBatchShader : Shader
     public struct PushConstants
     {
         public Matrix4x4 Projection;
-        public BufferRef<StencilClip> Clips;
+        public DeviceSpan<StencilClip> Clips;
     }
 
     public struct VertexIn

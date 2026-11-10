@@ -9,6 +9,7 @@ public class ShaderUnionTests
         using System.Numerics;
         using System.Runtime.InteropServices;
         using Rin.Shade;
+        using Rin.Shade.Tests;
 
         namespace UnionCheck;
 
@@ -49,7 +50,7 @@ public class ShaderUnionTests
         public struct UnionPush
         {
             public Quad Quad;
-            public BufferRef<float> Output;
+            public TestBuffer<float> Output;
         }
 
         [Shader]
@@ -109,26 +110,7 @@ public class ShaderUnionTests
     }
 
     private static string BufferShader(string body) => Shader(body).Replace(
-        "public Quad Quad;", "public BufferRef<Quad> Quads;");
-
-    [Test]
-    public void WritingThroughABufferElementVariantIsInPlace()
-    {
-        var result = ShadeEmitter.Emit(CompilationBuilder.Build(BufferShader("""
-            Push.Quads[0].Line.Thickness = 1f;
-            ref var quad = ref Push.Quads[1];
-            quad.Circle.Radius = 2f;
-            Push.Output[0] = Push.Quads[2].Extra.B.X;
-            """)));
-
-        Assert.That(result.Diagnostics, Is.Empty);
-        var slang = result.Shaders["UnionShader"];
-
-        Assert.That(slang, Does.Contain("((__Shade__Quad_Line*)(push.quads + 0))->payload.thickness = 1;"));
-        Assert.That(slang, Does.Contain("var quad = push.quads + 1;"));
-        Assert.That(slang, Does.Contain("((__Shade__Quad_Circle*)(quad))->payload.radius = 2;"));
-        Assert.That(slang, Does.Contain("((__Shade__Quad_Extra_B*)(push.quads + 2))->payload.payload.x"));
-    }
+        "public Quad Quad;", "public TestBuffer<Quad> Quads;");
 
     [Test]
     public void CopyingAnElementThenReadingUsesReinterpret()
@@ -169,6 +151,7 @@ public class ShaderUnionTests
             using System.Numerics;
             using System.Runtime.InteropServices;
             using Rin.Shade;
+            using Rin.Shade.Tests;
 
             namespace UnionCheck;
 
@@ -192,6 +175,7 @@ public class ShaderUnionTests
             using System.Numerics;
             using System.Runtime.InteropServices;
             using Rin.Shade;
+            using Rin.Shade.Tests;
 
             namespace UnionCheck;
 

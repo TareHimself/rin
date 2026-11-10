@@ -1,26 +1,96 @@
-namespace Rin::Shade::Tests::Fixtures
+[__AttributeUsage(_AttributeTargets.Var)]
+struct BindlessBlockAttribute { string name; };
+
+namespace Rin
 {
-    struct Bounds3D
+    namespace Shade
     {
-        float3 min;
-        float3 max;
-    }
+        namespace Tests
+        {
+            struct TestBuffer_Bounds3D
+            {
+                uint handle;
+                uint offset;
+            }
 
-    struct CullingPushConstants
-    {
-        Bounds3D* bounds;
-        uint invocationCount;
-        uint* output;
-    }
+            struct TestBuffer_uint
+            {
+                uint handle;
+                uint offset;
+            }
 
-    struct ComputeIn
-    {
-        uint threadId : SV_DispatchThreadID;
+            struct TestHeap
+            {
+                RWByteAddressBuffer buffers[8];
+            }
+
+            namespace Fixtures
+            {
+                struct CullingPushConstants
+                {
+                    TestBuffer_Bounds3D bounds;
+                    uint invocationCount;
+                    TestBuffer_uint output;
+                }
+
+                struct ComputeIn
+                {
+                    uint threadId : SV_DispatchThreadID;
+                }
+
+                struct Bounds3D
+                {
+                    float3 min;
+                    float3 max;
+                }
+
+            }
+
+        }
+
     }
 
 }
 
 using namespace Rin::Shade::Tests::Fixtures;
+
+[BindlessBlock("test.heap")] ParameterBlock<Rin::Shade::Tests::TestHeap> rin_testHeap;
+
+extension Rin::Shade::Tests::TestBuffer_Bounds3D
+{
+    uint byteOffset(uint index)
+    {
+        return this.offset + index * (uint)24;
+    }
+
+    Bounds3D getItem(uint index)
+    {
+        return rin_testHeap.buffers[(int)this.handle].Load<Bounds3D>(byteOffset(index));
+    }
+
+    Bounds3D getItem(int index)
+    {
+        return getItem((uint)index);
+    }
+}
+
+extension Rin::Shade::Tests::TestBuffer_uint
+{
+    uint byteOffset(uint index)
+    {
+        return this.offset + index * (uint)4;
+    }
+
+    void setItem(uint index, uint value)
+    {
+        rin_testHeap.buffers[(int)this.handle].Store<uint>(byteOffset(index), value);
+    }
+
+    void setItem(int index, uint value)
+    {
+        setItem((uint)index, value);
+    }
+}
 
 [[vk::push_constant]] uniform ConstantBuffer<CullingPushConstants, ScalarDataLayout> push;
 
@@ -32,6 +102,6 @@ void compute(ComputeIn input)
     {
         return;
     }
-    var bounds = push.bounds[(int)input.threadId];
-    push.output[(int)input.threadId] = 1;
+    var bounds = push.bounds.getItem((int)input.threadId);
+    push.output.setItem((int)input.threadId, 1);
 }

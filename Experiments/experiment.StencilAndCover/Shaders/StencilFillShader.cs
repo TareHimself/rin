@@ -1,4 +1,5 @@
 using System.Numerics;
+using Rin.Core.Graphics;
 using Rin.Shade;
 
 namespace experiment.StencilAndCover.Shaders;
@@ -14,7 +15,7 @@ public partial class StencilFillShader : Shader
     {
         public Matrix4x4 Projection;
         public Matrix4x4 Transform;
-        public BufferRef<Vector2> Vertices;
+        public DeviceSpan<Vector2> Vertices;
     }
 
     public struct VertexIn

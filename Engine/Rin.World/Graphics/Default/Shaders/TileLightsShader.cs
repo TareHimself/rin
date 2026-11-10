@@ -1,5 +1,6 @@
 using System.Numerics;
 using JetBrains.Annotations;
+using Rin.Core.Graphics;
 using Rin.Shade;
 
 namespace Rin.World.Graphics.Default.Shaders;
@@ -12,7 +13,7 @@ public partial class TileLightsShader : Shader
 {
     public struct PushConstants
     {
-        public BufferRef<LightGridInfo> Grid;
+        public DeviceSpan<LightGridInfo> Grid;
     }
 
     [Push] [UsedImplicitly] protected PushConstants Push;

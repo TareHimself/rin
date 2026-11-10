@@ -28,6 +28,15 @@ public struct BindlessCubemaps
     private TextureCube _element;
 }
 
+[InlineArray(BindlessData.BufferCount)]
+public struct BindlessBuffers
+{
+    private RWByteAddressBuffer _element;
+}
+
+/// <summary>
+///     The engine's bindless resources. Shaders reach them through the static members, by handle.
+/// </summary>
 [ShadeExport]
 [BindlessBlock(Name)]
 public struct BindlessData
@@ -39,31 +48,38 @@ public struct BindlessData
     public const int TextureCount = 2048;
     public const int TextureArrayCount = 512;
     public const int CubemapCount = 512;
+    public const int BufferCount = 65536;
 
-    public BindlessSamplers Samplers;
-    public BindlessTextures Textures;
-    public BindlessTextureArrays TextureArrays;
-    public BindlessCubemaps Cubemaps;
+    public static BindlessSamplers Samplers;
+    public static BindlessTextures Textures;
+    public static BindlessTextureArrays TextureArrays;
+    public static BindlessCubemaps Cubemaps;
+    public static BindlessBuffers Buffers;
 
-    public SamplerState GetSampler(ImageTiling tiling, ImageFilter filter)
+    public static SamplerState GetSampler(ImageTiling tiling, ImageFilter filter)
     {
         return Samplers[(int)filter * TilingCount + (int)tiling];
     }
 
-    public Vector2 GetTextureSize(DeviceHandle handle)
+    public static Vector2 GetTextureSize(DeviceHandle handle)
     {
         Textures[(int)Shader.NonUniformResourceIndex(handle.Id)].GetDimensions(0u, out var width, out var height, out var levels);
         return new Vector2(width, height);
     }
 
-    public Vector4 TexelLoad(DeviceHandle handle, int x, int y)
+    public static Vector4 TexelLoad(DeviceHandle handle, int x, int y)
     {
         return Textures[(int)Shader.NonUniformResourceIndex(handle.Id)].Load(x, y, 0);
     }
 
-    public Vector4 SampleTexture(DeviceHandle handle, Vector2 uv, ImageTiling tiling, ImageFilter filter)
+    public static Vector4 SampleTexture(DeviceHandle handle, Vector2 uv, ImageTiling tiling, ImageFilter filter)
     {
         var sampler = GetSampler(tiling, filter);
         return Textures[(int)Shader.NonUniformResourceIndex(handle.Id)].Sample(sampler, uv);
+    }
+
+    public static RWByteAddressBuffer GetBuffer(uint handle)
+    {
+        return Buffers[(int)Shader.NonUniformResourceIndex(handle)];
     }
 }

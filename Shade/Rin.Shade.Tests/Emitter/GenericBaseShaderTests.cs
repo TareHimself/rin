@@ -12,13 +12,14 @@ public class GenericBaseShaderTests
     {
         const string source = """
                                using Rin.Shade;
+                               using Rin.Shade.Tests;
 
                                namespace GenericBaseCheck;
 
                                public struct ConsumerPush
                                {
                                    public float Value;
-                                   public BufferRef<float> Output;
+                                   public TestBuffer<float> Output;
                                }
 
                                public abstract class GenericBaseShader<TData> : Shader

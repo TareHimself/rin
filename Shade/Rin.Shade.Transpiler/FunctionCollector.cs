@@ -89,9 +89,7 @@ internal sealed class FunctionCollector(
 
         // A property read needs its getter collected. An assignment target is excluded here (its setter
         // is picked up in Collect), so a getter that is never invoked is not kept alive.
-        if (root is IPropertyReferenceOperation property &&
-            !BodyLowering.IsBufferRefIndexer(property.Property) &&
-            !BodyLowering.IsSwizzle(property.Property))
+        if (root is IPropertyReferenceOperation property && !BodyLowering.IsSwizzle(property.Property))
             yield return root;
 
         if (root is ILocalFunctionOperation) yield break;
