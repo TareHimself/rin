@@ -6,13 +6,14 @@ public class SourceMapTests
 {
     private const string Source = """
         using Rin.Shade;
+        using Rin.Shade.Tests;
 
         namespace SourceMapCheck;
 
         public struct MapPush
         {
             public float A;
-            public BufferRef<float> Output;
+            public TestBuffer<float> Output;
         }
 
         [Shader]

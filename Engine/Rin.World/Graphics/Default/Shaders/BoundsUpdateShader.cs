@@ -1,5 +1,6 @@
 using System.Numerics;
 using JetBrains.Annotations;
+using Rin.Core.Graphics;
 using Rin.Shade;
 using Rin.World.Graphics.Mesh;
 
@@ -43,15 +44,15 @@ public partial class BoundsUpdateShader : Shader
     public struct SkinnedMesh
     {
         public int Index;
-        public BufferRef<Vertex> Vertices;
+        public DeviceSpan<Vertex> Vertices;
         public uint Count;
     }
 
     public struct PushConstants
     {
-        public BufferRef<SkinnedMesh> SkinnedMeshes;
+        public DeviceSpan<SkinnedMesh> SkinnedMeshes;
         public int TotalInvocations;
-        public BufferRef<UpdatableBounds3D> Output;
+        public DeviceSpan<UpdatableBounds3D> Output;
     }
 
     [Push] [UsedImplicitly] protected PushConstants Push;

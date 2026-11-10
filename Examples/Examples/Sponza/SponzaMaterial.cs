@@ -21,10 +21,10 @@ public struct SponzaMaterial : ISurfaceMaterial<SponzaMaterial>
 
     public static IGraphicsDescriptor Shader => SponzaShader.Descriptor;
 
-    public static Surface Evaluate(in SponzaMaterial material, in SurfaceInput input, BindlessData textures)
+    public static Surface Evaluate(in SponzaMaterial material, in SurfaceInput input)
     {
         Surface surface;
-        surface.BaseColor = textures.ColorOr(material.ColorTexture, input.Uv, material.Color.XYZ);
+        surface.BaseColor = SurfaceSampling.ColorOr(material.ColorTexture, input.Uv, material.Color.XYZ);
         surface.Normal = input.WorldNormal;
         surface.Roughness = 1f;
         surface.Metallic = 0f;
@@ -34,7 +34,7 @@ public struct SponzaMaterial : ISurfaceMaterial<SponzaMaterial>
         // glTF metallic-roughness convention: G is roughness, B is metallic.
         if (material.MetallicRoughnessTexture.Id > 0u)
         {
-            var metallicRoughness = textures.ColorOr(material.MetallicRoughnessTexture, input.Uv, new Vector3(0f));
+            var metallicRoughness = SurfaceSampling.ColorOr(material.MetallicRoughnessTexture, input.Uv, new Vector3(0f));
             surface.Roughness = metallicRoughness.Y;
             surface.Metallic = metallicRoughness.Z;
         }

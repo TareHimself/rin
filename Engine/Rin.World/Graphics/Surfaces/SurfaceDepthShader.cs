@@ -1,4 +1,5 @@
 using System.Numerics;
+using Rin.Core.Graphics;
 using Rin.Shade;
 
 namespace Rin.World.Graphics.Surfaces;
@@ -19,8 +20,8 @@ public abstract class SurfaceDepthShader<TMaterial> : Shader where TMaterial : u
 {
     public struct PushConstants
     {
-        public BufferRef<DepthSceneInfo> Scene;
-        public BufferRef<SurfaceDraw<TMaterial>> Draws;
+        public DeviceSpan<DepthSceneInfo> Scene;
+        public DeviceSpan<SurfaceDraw<TMaterial>> Draws;
     }
 
     [Push] protected PushConstants Push;

@@ -1,4 +1,5 @@
 using JetBrains.Annotations;
+using Rin.Core.Graphics;
 using Rin.Shade;
 
 namespace Rin.World.Graphics.Default.Shaders;
@@ -8,11 +9,11 @@ public partial class DrawIndirectShader : Shader
 {
     public struct PushConstants
     {
-        public BufferRef<uint> CullingResults;
-        public BufferRef<IndirectMeshRecord> Meshes;
+        public DeviceSpan<uint> CullingResults;
+        public DeviceSpan<IndirectMeshRecord> Meshes;
         public uint InvocationCount;
-        public BufferRef<DrawIndexedIndirectCommand> Output;
-        public BufferRef<uint> DrawCount;
+        public DeviceSpan<DrawIndexedIndirectCommand> Output;
+        public DeviceSpan<uint> DrawCount;
     }
 
     [Push] [UsedImplicitly] protected PushConstants Push;
@@ -27,8 +28,7 @@ public partial class DrawIndirectShader : Shader
         var wasCulled = Push.CullingResults[mesh.MeshIndex] == 0u;
         if (wasCulled) return;
 
-        uint drawIndex = 0u;
-        InterlockedAdd(ref Push.DrawCount[0], 1u, out drawIndex);
+        var drawIndex = Push.DrawCount.InterlockedAdd(0u, 1u);
         Push.Output[drawIndex] = ToCommand(mesh);
     }
 

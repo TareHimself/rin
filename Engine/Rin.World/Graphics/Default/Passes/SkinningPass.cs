@@ -80,8 +80,8 @@ public partial class SkinningPass(DefaultSceneFrame sceneFrame) : IComputePass
             }
         }
         
-        SkinnedMeshArrayBufferId = config.CreateBuffer<ulong>(UniqueSkinnedMeshes.Count, GraphBufferUsage.HostThenCompute);
-        PosePointerArrayBufferId = config.CreateBuffer<ulong>(SkinningPoseBufferIds.Count, GraphBufferUsage.HostThenCompute);
+        SkinnedMeshArrayBufferId = config.CreateBuffer<DeviceSpan<SkinnedVertex>>(UniqueSkinnedMeshes.Count, GraphBufferUsage.HostThenCompute);
+        PosePointerArrayBufferId = config.CreateBuffer<DeviceSpan<Matrix4x4>>(SkinningPoseBufferIds.Count, GraphBufferUsage.HostThenCompute);
         SkinningExecutionInfoBufferId =
             config.CreateBuffer<SkinningExecutionInfo>(ExecutionInfos.Count, GraphBufferUsage.HostThenCompute);
     }
@@ -99,14 +99,13 @@ public partial class SkinningPass(DefaultSceneFrame sceneFrame) : IComputePass
                 var pose = sceneFrame.SkinningMatrices[i];
                 var buffer = graph.GetBufferOrException(bufferId);
                 buffer.Write(pose);
-                var ptr = buffer.GetAddress();
-                offset += posePointerArray.WriteSingle(ptr, offset);
+                offset += posePointerArray.WriteSingle(buffer.ToDeviceSpan<Matrix4x4>(), offset);
             }
         }
         var executionInfos = graph.GetBuffer(SkinningExecutionInfoBufferId);
         executionInfos.Write(ExecutionInfos);
-        using var meshPointers = new PooledMemory<ulong>(UniqueSkinnedMeshes.Count);
-        for (var i = 0; i < UniqueSkinnedMeshes.Count; i++) meshPointers[i] = UniqueSkinnedMeshes[i].GetVertices().GetAddress();
+        using var meshPointers = new PooledMemory<DeviceSpan<SkinnedVertex>>(UniqueSkinnedMeshes.Count);
+        for (var i = 0; i < UniqueSkinnedMeshes.Count; i++) meshPointers[i] = UniqueSkinnedMeshes[i].GetVertices().ToDeviceSpan<SkinnedVertex>();
         meshPointersArray.Write(meshPointers);
 
         if (Shader.Bind(ctx) is { } bindContext)
@@ -115,10 +114,10 @@ public partial class SkinningPass(DefaultSceneFrame sceneFrame) : IComputePass
                 .Push(new SkinningShader.PushConstants
                 {
                     TotalInvocations = (int)TotalVerticesToSkin,
-                    Meshes = new BufferRef<BufferRef<SkinnedVertex>>(meshPointersArray.GetAddress()),
-                    Poses = new BufferRef<BufferRef<Matrix4x4>>(posePointerArray.GetAddress()),
-                    ExecutionInfo = new BufferRef<SkinningExecutionInfo>(executionInfos.GetAddress()),
-                    Output = new BufferRef<Vertex>(output.GetAddress())
+                    Meshes = meshPointersArray.ToDeviceSpan<DeviceSpan<SkinnedVertex>>(),
+                    Poses = posePointerArray.ToDeviceSpan<DeviceSpan<Matrix4x4>>(),
+                    ExecutionInfo = executionInfos.ToDeviceSpan<SkinningExecutionInfo>(),
+                    Output = output.ToDeviceSpan<Vertex>()
                 })
                 .Invoke(TotalVerticesToSkin);
             //cmd.BufferBarrier(output, MemoryBarrierOptions.ComputeToGraphics());

@@ -1,5 +1,6 @@
 using System.Numerics;
 using Rin.Shade;
+using Rin.Shade.Tests;
 
 namespace Rin.Shade.Tests.Fixtures;
 
@@ -8,7 +9,7 @@ public struct SdfPushConstants
     public Vector2 P;
     public Vector2 A;
     public Vector2 B;
-    public BufferRef<float> Output;
+    public TestBuffer<float> Output;
 }
 
 [Shader]

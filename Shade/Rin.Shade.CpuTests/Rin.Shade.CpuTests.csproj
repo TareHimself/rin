@@ -26,6 +26,7 @@
         <ProjectReference Include="..\Rin.Shade.Transpiler\Rin.Shade.Transpiler.csproj"/>
         <ProjectReference Include="..\..\Slang\Rin.Slang.Compiler\Rin.Slang.Compiler.csproj"/>
         <Compile Include="..\Rin.Shade.Tests\TestDoubles.cs" Link="TestDoubles.cs"/>
+        <Compile Include="..\Rin.Shade.Tests\TestBuffer.cs" Link="TestBuffer.cs"/>
     </ItemGroup>
 
 </Project>

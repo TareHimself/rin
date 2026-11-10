@@ -277,7 +277,6 @@ public class GraphBuilderTests
         public VkBuffer NativeBuffer => default;
         public IntPtr Allocation => IntPtr.Zero;
         public BufferGraphState? GraphState { get; set; }
-        public ulong GetAddress() => 0;
         public DeviceBufferView GetView(ulong offset, ulong size) => new(handle, offset, size);
         public void WriteRaw(in IntPtr src, ulong size, ulong offset = 0)
         {

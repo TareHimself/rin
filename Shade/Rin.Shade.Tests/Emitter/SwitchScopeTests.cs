@@ -6,6 +6,7 @@ public class SwitchScopeTests
 {
     private const string Source = """
         using Rin.Shade;
+        using Rin.Shade.Tests;
 
         namespace SwitchScopeCheck;
 
@@ -13,7 +14,7 @@ public class SwitchScopeTests
         {
             public int Mode;
             public float A;
-            public BufferRef<float> Output;
+            public TestBuffer<float> Output;
         }
 
         [Shader]

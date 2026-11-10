@@ -55,7 +55,7 @@ public class ForwardIndirectPass(DefaultWorldViewData view) : IPass
             ViewProjection = worldFrame.ViewProjection,
             CameraPosition = view.ViewTransform.Position,
             Time = view.Time,
-            Grid = new BufferRef<LightGridInfo>(graph.GetBufferOrException(view.LightGridBufferId).GetAddress()),
+            Grid = graph.GetBufferOrException(view.LightGridBufferId).ToDeviceSpan<LightGridInfo>(),
             Channel = view.Channel
         });
 

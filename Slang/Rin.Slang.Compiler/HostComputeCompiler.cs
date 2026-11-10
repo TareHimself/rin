@@ -5,8 +5,8 @@ namespace Rin.Slang.Compiler;
 /// <summary>
 ///     Compiles a self-contained compute shader to an in-process CPU function (Slang's host-callable
 ///     target, JIT compiled with LLVM), so the same Slang the GPU runs can be executed against ordinary
-///     managed memory. A buffer pointer in the shader is a real process pointer here, which is what lets
-///     a test pin a C# array, run the shader over it and compare with a CPU reference.
+///     managed memory. A byte-address buffer in the shader reads a real process pointer here, which is what
+///     lets a test pin a C# array, run the shader over it and compare with a CPU reference.
 /// </summary>
 public sealed class HostComputeCompiler : IDisposable
 {
@@ -72,20 +72,48 @@ public sealed unsafe class HostComputeShader : IDisposable
 
     /// <summary>
     ///     Runs the shader over the given thread-group counts. <paramref name="pushConstants" /> is the
-    ///     push-constant struct, laid out exactly as it is for the GPU (scalar layout): pointers are plain
-    ///     addresses of pinned managed memory.
+    ///     push-constant struct, laid out exactly as it is for the GPU (scalar layout).
     /// </summary>
     public void Dispatch<TPush>(uint groupsX, uint groupsY, uint groupsZ, ref TPush pushConstants)
         where TPush : unmanaged
     {
-        // ComputeVaryingInput { uint3 startGroupID; uint3 endGroupID (exclusive); }
-        var varying = stackalloc uint[6] { 0, 0, 0, groupsX, groupsY, groupsZ };
-
         fixed (TPush* push = &pushConstants)
         {
-            // The global parameters are one pointer to the push struct.
             var globalParams = stackalloc void*[1] { push };
-            ((delegate* unmanaged[Cdecl]<uint*, void*, void*, void>)_function)(varying, null, globalParams);
+            Run(groupsX, groupsY, groupsZ, globalParams);
         }
     }
+
+    /// <summary>
+    ///     Runs a shader whose only parameter block is a bindless block holding one fixed-size array of
+    ///     <c>RWByteAddressBuffer</c>: <paramref name="buffers" /> is that array, so it has exactly the array's length,
+    ///     and a buffer handle in <paramref name="pushConstants" /> is an index into it.
+    /// </summary>
+    public void Dispatch<TPush>(uint groupsX, uint groupsY, uint groupsZ, ReadOnlySpan<HostBuffer> buffers,
+        ref TPush pushConstants)
+        where TPush : unmanaged
+    {
+        fixed (HostBuffer* heap = buffers)
+        fixed (TPush* push = &pushConstants)
+        {
+            var globalParams = stackalloc void*[2] { heap, push };
+            Run(groupsX, groupsY, groupsZ, globalParams);
+        }
+    }
+
+    private void Run(uint groupsX, uint groupsY, uint groupsZ, void** globalParams)
+    {
+        // ComputeVaryingInput { uint3 startGroupID; uint3 endGroupID (exclusive); }
+        var varying = stackalloc uint[6] { 0, 0, 0, groupsX, groupsY, groupsZ };
+        ((delegate* unmanaged[Cdecl]<uint*, void*, void*, void>)_function)(varying, null, globalParams);
+    }
+}
+
+/// <summary>
+///     A buffer as a host-callable shader sees it (Slang's CPU <c>RWByteAddressBuffer</c>): pinned memory and its size.
+/// </summary>
+public unsafe struct HostBuffer(void* data, nuint sizeInBytes)
+{
+    public void* Data = data;
+    public nuint SizeInBytes = sizeInBytes;
 }

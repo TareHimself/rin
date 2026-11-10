@@ -34,6 +34,7 @@ public class FunctionLoweringTests
     {
         const string source = """
                                using Rin.Shade;
+                               using Rin.Shade.Tests;
 
                                namespace RecursionCheck;
 
@@ -65,13 +66,14 @@ public class FunctionLoweringTests
         const string source = """
                                using System.Numerics;
                                using Rin.Shade;
+                               using Rin.Shade.Tests;
 
                                namespace SwizzleCheck;
 
                                public struct SwizzlePush
                                {
                                    public Vector4 Color;
-                                   public BufferRef<float> Output;
+                                   public TestBuffer<float> Output;
                                }
 
                                [Shader]
@@ -100,13 +102,14 @@ public class FunctionLoweringTests
         const string source = """
                                using System.Numerics;
                                using Rin.Shade;
+                               using Rin.Shade.Tests;
 
                                namespace SwizzleCheck;
 
                                public struct SwizzlePush
                                {
                                    public Vector4 Color;
-                                   public BufferRef<float> Output;
+                                   public TestBuffer<float> Output;
                                }
 
                                [Shader]

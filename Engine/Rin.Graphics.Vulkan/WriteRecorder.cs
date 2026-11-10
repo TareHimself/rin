@@ -157,7 +157,7 @@ internal static class WriteRecorder
             VkAccessFlags2.VK_ACCESS_2_MEMORY_READ_BIT | VkAccessFlags2.VK_ACCESS_2_MEMORY_WRITE_BIT);
     }
 
-    // Brackets the copies with its own barriers since buffers are also read by device address outside the graph.
+    // Brackets the copies with its own barriers since buffers are also read through the bindless set outside the graph.
     public static void RecordBufferWrites(in VkCommandBuffer cmd, in ResourceHandle target, in DeviceBufferView staging,
         IReadOnlyList<PendingBufferWrite> writes)
     {

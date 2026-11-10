@@ -1,5 +1,6 @@
 using System.Numerics;
 using experiment.StencilAndCover.Rendering;
+using Rin.Core.Graphics;
 using Rin.Shade;
 
 namespace experiment.StencilAndCover.Shaders;
@@ -14,7 +15,7 @@ public partial class BoundaryAaShader : Shader
     public struct PushConstants
     {
         public Matrix4x4 Projection;
-        public BufferRef<EdgeInstance> Edges;
+        public DeviceSpan<EdgeInstance> Edges;
     }
 
     public struct VertexIn

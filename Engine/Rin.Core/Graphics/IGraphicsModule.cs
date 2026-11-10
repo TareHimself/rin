@@ -116,7 +116,6 @@ public interface  IGraphicsModule : IModule, IUpdatable, IProviderResolvable<IGr
     public void SetDebugName(in ResourceHandle handle, string name);
 
     public void WriteBuffer(in ResourceHandle handle, ReadOnlySpan<byte> data, ulong offset = 0);
-    public ulong GetBufferAddress(in ResourceHandle handle);
 
     public void Collect();
     public void Execute();

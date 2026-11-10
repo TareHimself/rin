@@ -16,17 +16,18 @@ public class MatrixConventionTests
     private const string Source = """
         using System.Numerics;
         using Rin.Shade;
+        using Rin.Shade.Tests;
 
         namespace CpuCheck;
 
         public struct ConventionPush
         {
-            public BufferRef<Matrix4x4> Models;
-            public BufferRef<Matrix4x4> Views;
-            public BufferRef<Matrix4x4> Projections;
-            public BufferRef<Vector4> Points;
-            public BufferRef<Vector4> Chained;
-            public BufferRef<Vector4> Combined;
+            public TestBuffer<Matrix4x4> Models;
+            public TestBuffer<Matrix4x4> Views;
+            public TestBuffer<Matrix4x4> Projections;
+            public TestBuffer<Vector4> Points;
+            public TestBuffer<Vector4> Chained;
+            public TestBuffer<Vector4> Combined;
             public uint Count;
         }
 
@@ -55,14 +56,14 @@ public class MatrixConventionTests
         """;
 
     [StructLayout(LayoutKind.Sequential)]
-    private unsafe struct Push
+    private struct Push
     {
-        public Matrix4x4* Models;
-        public Matrix4x4* Views;
-        public Matrix4x4* Projections;
-        public Vector4* Points;
-        public Vector4* Chained;
-        public Vector4* Combined;
+        public TestBuffer<Matrix4x4> Models;
+        public TestBuffer<Matrix4x4> Views;
+        public TestBuffer<Matrix4x4> Projections;
+        public TestBuffer<Vector4> Points;
+        public TestBuffer<Vector4> Chained;
+        public TestBuffer<Vector4> Combined;
         public uint Count;
     }
 
@@ -83,7 +84,7 @@ public class MatrixConventionTests
     }
 
     [Test]
-    public unsafe void TranspiledMatrixMathMatchesSystemNumerics()
+    public void TranspiledMatrixMathMatchesSystemNumerics()
     {
         Matrix4x4[] models =
         [
@@ -107,19 +108,15 @@ public class MatrixConventionTests
         using var compiler = new HostComputeCompiler();
         using var shader = compiler.Compile(Transpile());
 
-        fixed (Matrix4x4* m = models)
-        fixed (Matrix4x4* v = views)
-        fixed (Matrix4x4* p = projections)
-        fixed (Vector4* pts = points)
-        fixed (Vector4* outChained = chained)
-        fixed (Vector4* outCombined = combined)
+        using (var buffers = new PinnedBuffers())
         {
             var push = new Push
             {
-                Models = m, Views = v, Projections = p, Points = pts, Chained = outChained, Combined = outCombined,
+                Models = buffers.Add(models), Views = buffers.Add(views), Projections = buffers.Add(projections),
+                Points = buffers.Add(points), Chained = buffers.Add(chained), Combined = buffers.Add(combined),
                 Count = 2
             };
-            shader.Dispatch(1, 1, 1, ref push);
+            shader.Dispatch(1, 1, 1, buffers.Heap, ref push);
         }
 
         for (var i = 0; i < 2; i++)

@@ -12,7 +12,7 @@ public partial class QuadBatchShader : ViewShader<QuadBatchShader.FragmentIn>
     {
         public Matrix4x4 Projection;
         public Vector4 Viewport;
-        public BufferRef<Quad> Quads;
+        public DeviceSpan<Quad> Quads;
     }
 
     public struct VertexIn
@@ -36,7 +36,6 @@ public partial class QuadBatchShader : ViewShader<QuadBatchShader.FragmentIn>
     }
 
     [Push] protected PushConstants Push;
-    protected static BindlessData Bindless;
 
     [Vertex]
     public VertexOut Vertex(VertexIn input)
@@ -127,7 +126,7 @@ public partial class QuadBatchShader : ViewShader<QuadBatchShader.FragmentIn>
             {
                 var data = quad.TextureInfo;
                 var uv = AtlasUv(input.Uv, data.UV);
-                var color = Bindless.SampleTexture(data.ImageHandle, uv, ImageTiling.Repeat, ImageFilter.Linear) * data.Tint;
+                var color = BindlessData.SampleTexture(data.ImageHandle, uv, ImageTiling.Repeat, ImageFilter.Linear) * data.Tint;
                 return ViewShaderMath.ApplyBorderRadius(input.Coordinate, color, data.BorderRadius, quad.Size,
                     data.InverseTransform, 1f);
             }
@@ -136,8 +135,8 @@ public partial class QuadBatchShader : ViewShader<QuadBatchShader.FragmentIn>
             {
                 var data = quad.MtsdfInfo;
                 var uv = AtlasUv(input.Uv, data.UV);
-                var msd = Bindless.SampleTexture(data.ImageHandle, uv, ImageTiling.ClampEdge, ImageFilter.Linear).XYZ;
-                var textureSize = Bindless.GetTextureSize(data.ImageHandle);
+                var msd = BindlessData.SampleTexture(data.ImageHandle, uv, ImageTiling.ClampEdge, ImageFilter.Linear).XYZ;
+                var textureSize = BindlessData.GetTextureSize(data.ImageHandle);
                 var actualSize = textureSize * (data.UV.ZW - data.UV.XY);
 
                 var sd = ViewShaderMath.Median(msd.X, msd.Y, msd.Z);

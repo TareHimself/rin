@@ -1,4 +1,5 @@
 using JetBrains.Annotations;
+using Rin.Core.Graphics;
 using Rin.Shade;
 
 namespace Rin.World.Graphics.Default.Shaders;
@@ -8,9 +9,9 @@ public partial class CullingShader : Shader
 {
     public struct PushConstants
     {
-        public BufferRef<UpdatableBounds3D> Bounds;
+        public DeviceSpan<UpdatableBounds3D> Bounds;
         public uint InvocationCount;
-        public BufferRef<uint> Output;
+        public DeviceSpan<uint> Output;
     }
 
     [Push] [UsedImplicitly] protected PushConstants Push;

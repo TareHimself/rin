@@ -266,10 +266,8 @@ public class GraphConfig(GraphBuilder builder) : IGraphConfig
     /// <summary>
     ///     The Vulkan backend's own translation of graph-level buffer intent into creation flags - a Metal
     ///     (or other) backend would derive whatever it needs from the same <see cref="GraphBufferUsage" />
-    ///     instead. Buffers pooled by <see cref="ResourcePool" /> always also get
-    ///     <see cref="BufferCreateFlags.Storage" />/<see cref="BufferCreateFlags.DeviceAddress" /> from
-    ///     <see cref="BufferResourceDescriptor" />, so cases that are read/written purely by shaders (via a
-    ///     device address, not a dedicated Vulkan buffer-usage bit) don't need to add anything here.
+    ///     instead. Every buffer is a storage buffer, so cases that are read/written purely by shaders don't
+    ///     need to add anything here.
     /// </summary>
     private BufferCreateFlags GraphBufferUsageToDeviceUsageFlags(GraphBufferUsage usage)
     {

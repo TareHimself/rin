@@ -6,6 +6,7 @@ public class FunctionGroupingTests
 {
     private const string Source = """
         using Rin.Shade;
+        using Rin.Shade.Tests;
 
         namespace FunctionGroupingCheck;
 
@@ -20,7 +21,7 @@ public class FunctionGroupingTests
         public struct CounterPush
         {
             public Counter Counter;
-            public BufferRef<float> Output;
+            public TestBuffer<float> Output;
         }
 
         [Shader]
@@ -45,8 +46,9 @@ public class FunctionGroupingTests
 
         Assert.That(result.Diagnostics, Is.Empty);
         var slang = result.Shaders["CounterShader"];
-        Assert.That(slang.Split("extension ").Length - 1, Is.EqualTo(1));
-        var start = slang.IndexOf("extension ", System.StringComparison.Ordinal);
+        const string counterExtension = "extension FunctionGroupingCheck::Counter\n";
+        Assert.That(slang.Split(counterExtension).Length - 1, Is.EqualTo(1));
+        var start = slang.IndexOf(counterExtension, System.StringComparison.Ordinal);
         var end = slang.IndexOf("\n}\n", start, System.StringComparison.Ordinal);
         var block = slang[start..end];
         Assert.That(block, Does.Contain("float get()"));

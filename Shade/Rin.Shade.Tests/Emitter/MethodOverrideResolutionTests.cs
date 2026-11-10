@@ -12,13 +12,14 @@ public class MethodOverrideResolutionTests
     {
         const string source = """
                                using Rin.Shade;
+                               using Rin.Shade.Tests;
 
                                namespace OverrideResolutionCheck;
 
                                public struct ConsumerPush
                                {
                                    public float Value;
-                                   public BufferRef<float> Output;
+                                   public TestBuffer<float> Output;
                                }
 
                                public abstract class BaseShader : Shader
@@ -55,6 +56,7 @@ public class MethodOverrideResolutionTests
     {
         const string source = """
                                using Rin.Shade;
+                               using Rin.Shade.Tests;
 
                                namespace UnresolvedAbstractCheck;
 

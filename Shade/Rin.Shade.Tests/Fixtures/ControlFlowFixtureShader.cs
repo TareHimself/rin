@@ -1,5 +1,6 @@
 using System.Runtime.CompilerServices;
 using Rin.Shade;
+using Rin.Shade.Tests;
 
 namespace Rin.Shade.Tests.Fixtures;
 
@@ -18,7 +19,7 @@ public struct ControlFlowPushConstants
 {
     public Weights Weights;
     public uint Count;
-    public BufferRef<float> Output;
+    public TestBuffer<float> Output;
 }
 
 [Shader]

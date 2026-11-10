@@ -10,6 +10,7 @@ public class InterfaceDispatchTests
         const string source = """
                                using System.Numerics;
                                using Rin.Shade;
+                               using Rin.Shade.Tests;
 
                                namespace InterfaceDispatchCheck;
 
@@ -40,8 +41,8 @@ public class InterfaceDispatchTests
 
                                public struct SurfacePush<TMaterial> where TMaterial : unmanaged
                                {
-                                   public BufferRef<TMaterial> Materials;
-                                   public BufferRef<Surface> Output;
+                                   public TestBuffer<TMaterial> Materials;
+                                   public TestBuffer<Surface> Output;
                                }
 
                                public abstract class SurfaceShader<TMaterial> : Shader
@@ -73,6 +74,7 @@ public class InterfaceDispatchTests
         const string source = """
                                using System.Numerics;
                                using Rin.Shade;
+                               using Rin.Shade.Tests;
 
                                namespace InterfaceDispatchCheck;
 
@@ -103,8 +105,8 @@ public class InterfaceDispatchTests
 
                                public struct SurfacePush<TMaterial> where TMaterial : unmanaged
                                {
-                                   public BufferRef<TMaterial> Materials;
-                                   public BufferRef<Surface> Output;
+                                   public TestBuffer<TMaterial> Materials;
+                                   public TestBuffer<Surface> Output;
                                }
 
                                public abstract class SurfaceShader<TMaterial> : Shader
@@ -137,6 +139,7 @@ public class InterfaceDispatchTests
         const string source = """
                                using System.Numerics;
                                using Rin.Shade;
+                               using Rin.Shade.Tests;
 
                                namespace InterfaceDispatchCheck;
 
@@ -160,8 +163,8 @@ public class InterfaceDispatchTests
 
                                public struct OffsetPush<TMaterial> where TMaterial : unmanaged
                                {
-                                   public BufferRef<TMaterial> Materials;
-                                   public BufferRef<Vector3> Output;
+                                   public TestBuffer<TMaterial> Materials;
+                                   public TestBuffer<Vector3> Output;
                                }
 
                                public abstract class OffsetShader<TMaterial> : Shader
@@ -198,6 +201,7 @@ public class InterfaceDispatchTests
         const string source = """
                                using System.Numerics;
                                using Rin.Shade;
+                               using Rin.Shade.Tests;
 
                                namespace InterfaceDispatchCheck;
 
@@ -227,7 +231,7 @@ public class InterfaceDispatchTests
                                {
                                    public Half A;
                                    public Double B;
-                                   public BufferRef<float> Output;
+                                   public TestBuffer<float> Output;
                                }
 
                                [Shader]
@@ -255,6 +259,7 @@ public class InterfaceDispatchTests
     {
         const string source = """
                                using Rin.Shade;
+                               using Rin.Shade.Tests;
 
                                namespace InterfaceDispatchCheck;
 
@@ -272,7 +277,7 @@ public class InterfaceDispatchTests
                                public struct ScalePush
                                {
                                    public Half A;
-                                   public BufferRef<float> Output;
+                                   public TestBuffer<float> Output;
                                }
 
                                public static class Scaling

@@ -1,40 +1,111 @@
-namespace Rin::Shade::Tests::Fixtures
+[__AttributeUsage(_AttributeTargets.Var)]
+struct BindlessBlockAttribute { string name; };
+
+namespace Rin
 {
-    struct Vertex
+    namespace Shade
     {
-        float4 locationU;
-        float4 normalV;
-        float4 tangent;
-    }
+        namespace Tests
+        {
+            struct TestBuffer_SkinnedMesh
+            {
+                uint handle;
+                uint offset;
+            }
 
-    struct SkinnedMesh
-    {
-        int index;
-        Vertex* vertices;
-        uint count;
-    }
+            struct TestBuffer_UpdatableBounds3D
+            {
+                uint handle;
+                uint offset;
+            }
 
-    struct UpdatableBounds3D
-    {
-        float3 lower;
-        float3 upper;
-    }
+            struct TestBuffer_Vertex
+            {
+                uint handle;
+                uint offset;
+            }
 
-    struct BoundsUpdatePushConstants
-    {
-        SkinnedMesh* skinnedMeshes;
-        int totalInvocations;
-        UpdatableBounds3D* output;
-    }
+            struct TestHeap
+            {
+                RWByteAddressBuffer buffers[8];
+            }
 
-    struct ComputeIn
-    {
-        uint threadId : SV_DispatchThreadID;
+            namespace Fixtures
+            {
+                struct BoundsUpdatePushConstants
+                {
+                    TestBuffer_SkinnedMesh skinnedMeshes;
+                    int totalInvocations;
+                    TestBuffer_UpdatableBounds3D output;
+                }
+
+                struct ComputeIn
+                {
+                    uint threadId : SV_DispatchThreadID;
+                }
+
+                struct SkinnedMesh
+                {
+                    int index;
+                    TestBuffer_Vertex vertices;
+                    uint count;
+                }
+
+                struct Vertex
+                {
+                    float4 locationU;
+                    float4 normalV;
+                    float4 tangent;
+                }
+
+                struct UpdatableBounds3D
+                {
+                    float3 lower;
+                    float3 upper;
+                }
+
+            }
+
+        }
+
     }
 
 }
 
 using namespace Rin::Shade::Tests::Fixtures;
+
+[BindlessBlock("test.heap")] ParameterBlock<Rin::Shade::Tests::TestHeap> rin_testHeap;
+
+extension Rin::Shade::Tests::TestBuffer_SkinnedMesh
+{
+    uint byteOffset(uint index)
+    {
+        return this.offset + index * (uint)16;
+    }
+
+    SkinnedMesh getItem(uint index)
+    {
+        return rin_testHeap.buffers[(int)this.handle].Load<SkinnedMesh>(byteOffset(index));
+    }
+}
+
+extension Rin::Shade::Tests::TestBuffer_Vertex
+{
+    uint byteOffset(uint index)
+    {
+        return this.offset + index * (uint)48;
+    }
+
+    Vertex getItem(uint index)
+    {
+        return rin_testHeap.buffers[(int)this.handle].Load<Vertex>(byteOffset(index));
+    }
+
+    Vertex getItem(int index)
+    {
+        return getItem((uint)index);
+    }
+}
 
 extension Rin::Shade::Tests::Fixtures::UpdatableBounds3D
 {
@@ -60,6 +131,24 @@ extension Rin::Shade::Tests::Fixtures::Vertex
     }
 }
 
+extension Rin::Shade::Tests::TestBuffer_UpdatableBounds3D
+{
+    uint byteOffset(uint index)
+    {
+        return this.offset + index * (uint)24;
+    }
+
+    void setItem(uint index, UpdatableBounds3D value)
+    {
+        rin_testHeap.buffers[(int)this.handle].Store<UpdatableBounds3D>(byteOffset(index), value);
+    }
+
+    void setItem(int index, UpdatableBounds3D value)
+    {
+        setItem((uint)index, value);
+    }
+}
+
 [[vk::push_constant]] uniform ConstantBuffer<BoundsUpdatePushConstants, ScalarDataLayout> push;
 
 [shader("compute")]
@@ -71,14 +160,14 @@ void compute(ComputeIn input)
     {
         return;
     }
-    var mesh = push.skinnedMeshes[index];
-    var vertex = mesh.vertices[0];
+    var mesh = push.skinnedMeshes.getItem(index);
+    var vertex = mesh.vertices.getItem(0);
     var vertexCount = mesh.count;
     var bounds = UpdatableBounds3D(vertex.getLocation());
     for (var i = 1u; i < vertexCount; i++)
     {
-        vertex = mesh.vertices[i];
+        vertex = mesh.vertices.getItem(i);
         bounds.update(vertex.getLocation());
     }
-    push.output[mesh.index] = bounds;
+    push.output.setItem(mesh.index, bounds);
 }

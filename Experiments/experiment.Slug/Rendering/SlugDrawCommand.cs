@@ -58,7 +58,7 @@ public partial class SlugDrawHandler : ICommandHandler
 
             bind.Push(new SlugShader.PushConstants
                 {
-                    Instances = new BufferRef<SlugInstanceData>(buffer.GetAddress()),
+                    Instances = buffer.ToDeviceSpan<SlugInstanceData>(),
                     CurveTexture = command.Atlas.CurveHandle,
                     BandTexture = command.Atlas.BandHandle,
                     Projection = surfaceContext.ProjectionMatrix

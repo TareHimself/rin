@@ -1,9 +1,27 @@
+namespace Rin
+{
+    namespace Shade
+    {
+        namespace Tests
+        {
+            struct TestBuffer_float
+            {
+                uint handle;
+                uint offset;
+            }
+
+        }
+
+    }
+
+}
+
 namespace GenericBaseCheck
 {
     struct ConsumerPush
     {
         float value;
-        float* output;
+        Rin::Shade::Tests::TestBuffer_float output;
     }
 
 }

@@ -7,6 +7,7 @@ using Rin.Core.Shared.Buffers;
 using Rin.Graphics.Vulkan.Descriptors;
 using Rin.Graphics.Vulkan.Images;
 using TerraFX.Interop.Vulkan;
+using static TerraFX.Interop.Vulkan.Vulkan;
 using Rin.Graphics.Vulkan.Shaders;
 
 namespace Rin.Graphics.Vulkan;
@@ -22,17 +23,20 @@ public partial class VulkanGraphicsModule
     private const uint MaxCubemaps = BindlessData.CubemapCount;
     private const uint MaxTextureArrays = BindlessData.TextureArrayCount;
     private const uint SamplerCount = BindlessData.SamplerCount;
+    private const uint MaxBuffers = BindlessData.BufferCount;
     private const uint SamplersBinding = 0;
     private const uint TexturesBinding = 1;
     private const uint TextureArraysBinding = 2;
     private const uint CubemapsBinding = 3;
+    private const uint BuffersBinding = 4;
 
-    private const uint ResourceDescriptorTotal = MaxTextures + MaxCubemaps + MaxTextureArrays + SamplerCount;
+    private const uint ResourceDescriptorTotal =
+        MaxTextures + MaxCubemaps + MaxTextureArrays + SamplerCount + MaxBuffers;
 
     private readonly Lock _resourceSync = new();
 
     private const int BufferSlotChunkSize = 1024;
-    private const int MaxBufferSlotChunks = 1024;
+    private const int MaxBufferSlotChunks = (int)MaxBuffers / BufferSlotChunkSize;
 
     private readonly ResourceTable<BindlessTexture> _textures = new(ResourceType.Texture, (int)MaxTextures);
     private readonly ResourceTable<BindlessTextureArray> _textureArrays = new(ResourceType.TextureArray, (int)MaxTextureArrays);
@@ -50,16 +54,21 @@ public partial class VulkanGraphicsModule
     private IDisposableVulkanTexture _defaultTexture = null!;
     private IDisposableVulkanTextureArray _defaultTextureArray = null!;
     private IDisposableVulkanCubemap _defaultCubemap = null!;
+    private IVulkanDeviceBuffer _defaultBuffer = null!;
+    private ulong _maxStorageBufferRange;
 
     private void InitBindlessResources()
     {
+        _maxStorageBufferRange = CheckBindlessBufferLimits();
+
         const DescriptorBindingFlags flags = DescriptorBindingFlags.PartiallyBound |
                                              DescriptorBindingFlags.UpdateAfterBind;
 
         _resourceDescriptorAllocator = new DescriptorAllocator(ResourceDescriptorTotal, [
             new PoolSizeRatio(DescriptorType.SampledImage,
                 (float)(MaxTextures + MaxCubemaps + MaxTextureArrays) / ResourceDescriptorTotal),
-            new PoolSizeRatio(DescriptorType.Sampler, (float)SamplerCount / ResourceDescriptorTotal)
+            new PoolSizeRatio(DescriptorType.Sampler, (float)SamplerCount / ResourceDescriptorTotal),
+            new PoolSizeRatio(DescriptorType.StorageBuffer, (float)MaxBuffers / ResourceDescriptorTotal)
         ], VkDescriptorPoolCreateFlags.VK_DESCRIPTOR_POOL_CREATE_UPDATE_AFTER_BIND_BIT);
 
         _resourceDescriptorSetLayout = new DescriptorLayoutBuilder()
@@ -91,6 +100,7 @@ public partial class VulkanGraphicsModule
                 MaxCubemaps,
                 flags
             )
+            .AddBinding(BuffersBinding, DescriptorType.StorageBuffer, ShaderStage.All, MaxBuffers, flags)
             .Build();
 
         _resourceDescriptorSet = _resourceDescriptorAllocator.Allocate(_resourceDescriptorSetLayout);
@@ -112,6 +122,8 @@ public partial class VulkanGraphicsModule
             usage: ImageCreateFlags.Sampled | ImageCreateFlags.TransferDst);
         _defaultTextureArray = CreateVulkanTextureArray(extent, format, 1, usage: ImageCreateFlags.Sampled);
         _defaultCubemap = CreateVulkanCubemap(extent, format, usage: ImageCreateFlags.Sampled);
+        _defaultBuffer = NewBuffer(DefaultBufferSize, VkBufferUsageFlags.VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
+            VkMemoryPropertyFlags.VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, debugName: "Default Bindless Buffer");
 
         UploadDefaultCheckerboard();
 
@@ -126,10 +138,42 @@ public partial class VulkanGraphicsModule
         for (uint i = 0; i < MaxCubemaps; i++)
             _resourceDescriptorSet.WriteSampledCubemap(CubemapsBinding, _defaultCubemap, ImageLayout.ShaderReadOnly,
                 i);
+        for (uint i = 0; i < MaxBuffers; i++) WriteDefaultBufferDescriptor(i);
         _resourceDescriptorSet.Update();
     }
 
     private const uint DefaultTextureSize = 8;
+    private const ulong DefaultBufferSize = 256;
+
+    private unsafe ulong CheckBindlessBufferLimits()
+    {
+        var indexing = new VkPhysicalDeviceDescriptorIndexingProperties
+        {
+            sType = VkStructureType.VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_PROPERTIES
+        };
+        var properties = new VkPhysicalDeviceProperties2
+        {
+            sType = VkStructureType.VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2,
+            pNext = &indexing
+        };
+        vkGetPhysicalDeviceProperties2(_physicalDevice, &properties);
+
+        var supported = uint.Min(indexing.maxDescriptorSetUpdateAfterBindStorageBuffers,
+            indexing.maxPerStageDescriptorUpdateAfterBindStorageBuffers);
+        if (supported < MaxBuffers)
+            throw new NotSupportedException(
+                $"The GPU supports {supported} bindless storage buffers, Rin needs {MaxBuffers}");
+
+        return properties.properties.limits.maxStorageBufferRange;
+    }
+
+    private void WriteBufferDescriptor(uint slot, IVulkanDeviceBuffer buffer)
+    {
+        _resourceDescriptorSet.WriteStorageBuffer(BuffersBinding, buffer, ulong.Min(buffer.Size, _maxStorageBufferRange),
+            slot);
+    }
+
+    private void WriteDefaultBufferDescriptor(uint slot) => WriteBufferDescriptor(slot, _defaultBuffer);
 
     // Black/yellow checkerboard instead of whatever the freshly allocated image memory contains, so a
     // shader that ends up sampling an unbound bindless slot shows an obvious "missing texture" pattern.
@@ -233,6 +277,7 @@ public partial class VulkanGraphicsModule
         _defaultTexture.Dispose();
         _defaultCubemap.Dispose();
         _defaultTextureArray.Dispose();
+        _defaultBuffer.Dispose();
         _device.DestroyPipelineLayout(_resourcePipelineLayout);
     }
 
@@ -730,6 +775,8 @@ public partial class VulkanGraphicsModule
                     case ResourceType.Buffer:
                     {
                         if (_buffers.Free(handle) is not { } resource) break;
+                        WriteDefaultBufferDescriptor(handle.Id);
+                        touchedDescriptors = true;
                         if (resource.Source is { } buffer) disposes.Add(buffer.Dispose);
                         _pendingActions.Drop(handle);
                     }
@@ -815,11 +862,8 @@ public partial class VulkanGraphicsModule
             [_resourceDescriptorSet]);
     }
 
-    // Not bound at frame start (unlike the graphics bind point) because most compute passes never
-    // touch bindless resources, and binding this descriptor set to VK_PIPELINE_BIND_POINT_COMPUTE
-    // unconditionally reproduced a GPU-AV descriptor-indexing device-lost on every compute dispatch,
-    // regardless of what the dispatched shader actually did. A compute shader that genuinely needs
-    // bindless textures should call this itself, right before its own dispatch.
+    // Not bound at frame start because binding it at the compute bind point unconditionally once caused a GPU-AV
+    // device-lost, so CompiledComputeShader binds it only for shaders that declare the bindless block.
     public void BindBindlessComputeDescriptors(in VkCommandBuffer cmd)
     {
         cmd.BindDescriptorSets(VkPipelineBindPoint.VK_PIPELINE_BIND_POINT_COMPUTE, _resourcePipelineLayout,
@@ -861,8 +905,8 @@ public partial class VulkanGraphicsModule
     {
         ArgumentOutOfRangeException.ThrowIfZero(size);
         var hostVisible = flags.IsHostVisible();
-        var buffer = NewBuffer(size, flags.ToVkUsage(), flags.ToVkMemoryProperty(), sequentialWrite,
-            false, hostVisible, "Buffer");
+        var usage = flags.ToVkUsage() | VkBufferUsageFlags.VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
+        var buffer = NewBuffer(size, usage, flags.ToVkMemoryProperty(), sequentialWrite, false, hostVisible, "Buffer");
 
         lock (_resourceSync)
         {
@@ -880,6 +924,8 @@ public partial class VulkanGraphicsModule
             };
 
             _buffers.Set(id, resource);
+            WriteBufferDescriptor(id, buffer);
+            _resourceDescriptorSet.Update();
 
             return handle;
         }
@@ -935,12 +981,6 @@ public partial class VulkanGraphicsModule
                 buffer.WriteRaw(new IntPtr(pData), (ulong)data.Length, offset);
             }
         }
-    }
-
-    public ulong GetBufferAddress(in ResourceHandle handle)
-    {
-        var buffer = ResolveBuffer(handle) ?? throw new ArgumentException("Invalid buffer handle", nameof(handle));
-        return buffer.GetAddress();
     }
 
     public void SetDebugName(in ResourceHandle handle, string name)

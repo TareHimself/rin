@@ -2,6 +2,7 @@ using System.Numerics;
 using JetBrains.Annotations;
 using Rin.Core.Views;
 using Rin.Core.Views.Graphics.Shaders;
+using Rin.Core.Graphics;
 using Rin.Shade;
 
 namespace Examples.ImageStrip.Shaders;
@@ -22,7 +23,7 @@ public partial class PrettyShader : ViewShader<PrettyShader.FragmentIn>
 {
     public struct PushConstants
     {
-        public BufferRef<PrettyData> Data;
+        public DeviceSpan<PrettyData> Data;
     }
 
     public struct VertexIn

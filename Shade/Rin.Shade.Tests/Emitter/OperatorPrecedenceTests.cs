@@ -13,6 +13,7 @@ public class OperatorPrecedenceTests
         var source = $$"""
             using System.Numerics;
             using Rin.Shade;
+            using Rin.Shade.Tests;
 
             namespace PrecedenceCheck;
 
@@ -26,7 +27,7 @@ public class OperatorPrecedenceTests
                 public Vector4 W;
                 public Matrix4x4 M1;
                 public Matrix4x4 M2;
-                public BufferRef<float> Output;
+                public TestBuffer<float> Output;
             }
 
             [Shader]
@@ -47,27 +48,27 @@ public class OperatorPrecedenceTests
         return result.Shaders["PrecedenceShader"];
     }
 
-    [TestCase("Push.Output[0] = -(Push.A + Push.B);", "= -(push.a + push.b);")]
-    [TestCase("Push.Output[0] = Push.A - (Push.B - Push.C);", "= push.a - (push.b - push.c);")]
-    [TestCase("Push.Output[0] = (Push.A + Push.B) * Push.C;", "= (push.a + push.b) * push.c;")]
-    [TestCase("Push.Output[0] = 1f / (Push.A * Push.B + Push.C);", "= 1.0 / (push.a * push.b + push.c);")]
-    [TestCase("Push.Output[0] = 1f / 3f;", "= 1.0 / 3.0;")]
-    [TestCase("Push.Output[0] = 2f / 65536f * Push.A;", "= 2.0 / 65536.0 * push.a;")]
-    [TestCase("Push.Output[0] = Push.A / (Push.B * Push.C);", "= push.a / (push.b * push.c);")]
+    [TestCase("Push.Output[0] = -(Push.A + Push.B);", "setItem(0, -(push.a + push.b));")]
+    [TestCase("Push.Output[0] = Push.A - (Push.B - Push.C);", "setItem(0, push.a - (push.b - push.c));")]
+    [TestCase("Push.Output[0] = (Push.A + Push.B) * Push.C;", "setItem(0, (push.a + push.b) * push.c);")]
+    [TestCase("Push.Output[0] = 1f / (Push.A * Push.B + Push.C);", "setItem(0, 1.0 / (push.a * push.b + push.c));")]
+    [TestCase("Push.Output[0] = 1f / 3f;", "setItem(0, 1.0 / 3.0);")]
+    [TestCase("Push.Output[0] = 2f / 65536f * Push.A;", "setItem(0, 2.0 / 65536.0 * push.a);")]
+    [TestCase("Push.Output[0] = Push.A / (Push.B * Push.C);", "setItem(0, push.a / (push.b * push.c));")]
     [TestCase("Push.Output[0] = (Push.A > Push.B ? Push.A : Push.B) + Push.C;",
-        "= (push.a > push.b ? push.a : push.b) + push.c;")]
-    [TestCase("Push.Output[0] = (Push.V + Push.W).X;", "= (push.v + push.w).x;")]
-    [TestCase("Push.Output[0] = (float)(int)(Push.A + Push.B);", "= (float)(int)(push.a + push.b);")]
+        "setItem(0, (push.a > push.b ? push.a : push.b) + push.c);")]
+    [TestCase("Push.Output[0] = (Push.V + Push.W).X;", "setItem(0, (push.v + push.w).x);")]
+    [TestCase("Push.Output[0] = (float)(int)(Push.A + Push.B);", "setItem(0, (float)(int)(push.a + push.b));")]
     public void KeepsTheParenthesesTheMeaningNeeds(string body, string expected)
     {
         Assert.That(Emit(body), Does.Contain(expected));
     }
 
-    [TestCase("Push.Output[0] = (Push.M1 + Push.M2).Row(0).X;", "= (push.m1 + push.m2)[0].x;")]
-    [TestCase("Push.Output[0] = Push.M1.Row(1).X;", "= push.m1[1].x;")]
-    [TestCase("Push.Output[0] = Abs(Push.A + Push.B);", "= abs(push.a + push.b);")]
+    [TestCase("Push.Output[0] = (Push.M1 + Push.M2).Row(0).X;", "setItem(0, (push.m1 + push.m2)[0].x);")]
+    [TestCase("Push.Output[0] = Push.M1.Row(1).X;", "setItem(0, push.m1[1].x);")]
+    [TestCase("Push.Output[0] = Abs(Push.A + Push.B);", "setItem(0, abs(push.a + push.b));")]
     [TestCase("Push.Output[0] = Clamp(Push.A + 1f, Push.B, Push.C * Push.D);",
-        "= clamp(push.a + 1, push.b, push.c * push.d);")]
+        "setItem(0, clamp(push.a + 1, push.b, push.c * push.d));")]
     public void TemplateArgumentsAreGroupedOnlyWhereTheTemplateNeedsIt(string body, string expected)
     {
         Assert.That(Emit(body), Does.Contain(expected));
@@ -79,6 +80,7 @@ public class OperatorPrecedenceTests
         var source = """
             using System.Numerics;
             using Rin.Shade;
+            using Rin.Shade.Tests;
 
             namespace NamedCheck;
 
@@ -94,7 +96,7 @@ public class OperatorPrecedenceTests
                 public static Vector4 Bad(Matrix4x4 matrix, int index) => default;
             }
 
-            public struct NamedPush { public Matrix4x4 M; public BufferRef<float> Output; }
+            public struct NamedPush { public Matrix4x4 M; public TestBuffer<float> Output; }
 
             [Shader]
             public class NamedShader : Shader
@@ -117,10 +119,10 @@ public class OperatorPrecedenceTests
         Assert.That(result.Diagnostics.Select(d => d.Id), Is.EqualTo(new[] { "SHADE0020" }));
     }
 
-    [TestCase("Push.Output[0] = Push.A * Push.B + Push.C * Push.D;", "= push.a * push.b + push.c * push.d;")]
-    [TestCase("Push.Output[0] = Push.A + Push.B + Push.C;", "= push.a + push.b + push.c;")]
-    [TestCase("Push.Output[0] = -Push.A + Push.B;", "= -push.a + push.b;")]
-    [TestCase("Push.Output[0] = Push.A - Push.B * Push.C;", "= push.a - push.b * push.c;")]
+    [TestCase("Push.Output[0] = Push.A * Push.B + Push.C * Push.D;", "setItem(0, push.a * push.b + push.c * push.d);")]
+    [TestCase("Push.Output[0] = Push.A + Push.B + Push.C;", "setItem(0, push.a + push.b + push.c);")]
+    [TestCase("Push.Output[0] = -Push.A + Push.B;", "setItem(0, -push.a + push.b);")]
+    [TestCase("Push.Output[0] = Push.A - Push.B * Push.C;", "setItem(0, push.a - push.b * push.c);")]
     public void LeavesUnnecessaryParenthesesOut(string body, string expected)
     {
         Assert.That(Emit(body), Does.Contain(expected));

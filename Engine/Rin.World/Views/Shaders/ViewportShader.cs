@@ -20,7 +20,7 @@ public partial class ViewportShader : ViewShader<ViewportShader.FragmentIn>
 {
     public struct PushConstants
     {
-        public BufferRef<ViewportPushData> Data;
+        public DeviceSpan<ViewportPushData> Data;
     }
 
     public struct VertexIn
@@ -40,7 +40,6 @@ public partial class ViewportShader : ViewShader<ViewportShader.FragmentIn>
     }
 
     [Push] protected PushConstants Push;
-    protected static BindlessData Bindless;
 
     [Vertex]
     public VertexOut Vertex(VertexIn input)
@@ -64,6 +63,6 @@ public partial class ViewportShader : ViewShader<ViewportShader.FragmentIn>
     protected override Vector4 Color(FragmentIn input)
     {
         var data = Push.Data[0];
-        return Bindless.SampleTexture(data.OutputImage, input.Uv, ImageTiling.Repeat, ImageFilter.Linear);
+        return BindlessData.SampleTexture(data.OutputImage, input.Uv, ImageTiling.Repeat, ImageFilter.Linear);
     }
 }

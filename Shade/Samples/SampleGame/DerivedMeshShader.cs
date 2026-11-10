@@ -9,6 +9,6 @@ public class DerivedMeshShader : BaseMeshShader
 {
     public override void Compute()
     {
-        Push.Output[0] = Sd.SdCircle(Push.Location, Push.Center, Push.Radius) + Sd.Dot2(Push.Location);
+        Bindings.Output.Store(0u, Sd.SdCircle(Push.Location, Push.Center, Push.Radius) + Sd.Dot2(Push.Location));
     }
 }

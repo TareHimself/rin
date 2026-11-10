@@ -215,11 +215,6 @@ public sealed class NullGraphicsModule : IGraphicsModule
     {
     }
 
-    public ulong GetBufferAddress(in ResourceHandle handle)
-    {
-        return handle.Id;
-    }
-
     public void Collect()
     {
     }

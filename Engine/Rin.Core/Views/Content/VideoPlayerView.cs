@@ -145,7 +145,7 @@ internal partial class VideoCommandHandler : ICommandHandlerWithPreAdd
                 bindContext.Push(new VideoBatchShader.PushConstants
                 {
                     Projection = surfaceContext.ProjectionMatrix,
-                    Items = new BufferRef<VideoItem>(buffer.GetAddress() + offset)
+                    Items = buffer.GetView(offset, buffer.Size - offset).ToDeviceSpan<VideoItem>()
                 });
                 bindContext.Draw(6);
                 offset += itemSize;

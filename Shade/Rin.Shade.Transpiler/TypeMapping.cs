@@ -32,9 +32,6 @@ internal static class TypeMapping
             case "System.Numerics.Matrix4x4": return "float4x4";
         }
 
-        if (type is INamedTypeSymbol { Name: "BufferRef", TypeArguments.Length: 1 } named)
-            return $"{MapType(named.TypeArguments[0])}*";
-
         // Slang's builtin resource types are global, so the C# marker type's Rin::Shade namespace must not be applied.
         if (IsResourceType(type)) return type.Name;
 
@@ -75,9 +72,7 @@ internal static class TypeMapping
                 return true;
         }
 
-        if (IsResourceType(type)) return true;
-
-        return type is INamedTypeSymbol { Name: "BufferRef" };
+        return IsResourceType(type);
     }
 
     /// <summary>
@@ -91,7 +86,7 @@ internal static class TypeMapping
     public static bool IsResourceType(ITypeSymbol type) =>
         type.OriginalDefinition.ToDisplayString() is
             "Rin.Shade.Texture2D" or "Rin.Shade.Texture2DArray" or
-            "Rin.Shade.TextureCube" or "Rin.Shade.SamplerState";
+            "Rin.Shade.TextureCube" or "Rin.Shade.SamplerState" or "Rin.Shade.RWByteAddressBuffer";
 
     /// <summary>
     /// Whether the type is legal in a shader at all. Stricter than IsBuiltIn: it rejects strings, delegates

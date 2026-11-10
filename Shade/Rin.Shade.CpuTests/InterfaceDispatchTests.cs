@@ -15,6 +15,7 @@ public class InterfaceDispatchTests
     private const string Source = """
         using System.Numerics;
         using Rin.Shade;
+        using Rin.Shade.Tests;
 
         namespace DispatchCpuCheck;
 
@@ -69,8 +70,8 @@ public class InterfaceDispatchTests
 
         public struct SurfacePush<TMaterial> where TMaterial : unmanaged
         {
-            public BufferRef<TMaterial> Materials;
-            public BufferRef<float> Output;
+            public TestBuffer<TMaterial> Materials;
+            public TestBuffer<float> Output;
         }
 
         public abstract class SurfaceShader<TMaterial> : Shader
@@ -104,22 +105,22 @@ public class InterfaceDispatchTests
     }
 
     [StructLayout(LayoutKind.Sequential)]
-    private unsafe struct Push
+    private struct Push<TMaterial> where TMaterial : unmanaged
     {
-        public void* Materials;
-        public float* Output;
+        public TestBuffer<TMaterial> Materials;
+        public TestBuffer<float> Output;
     }
 
     [Test]
-    public unsafe void MaterialStructsDispatchThroughTheirInterfaceOnTheCpu()
+    public void MaterialStructsDispatchThroughTheirInterfaceOnTheCpu()
     {
         var result = ShadeEmitter.Emit(CompilationBuilder.Build(Source));
         Assert.That(result.Diagnostics, Is.Empty);
 
         var gold = new Gold { Tint = new Vector3(1f, 2f, 3f), Roughness = 0.5f };
         var plain = 4f;
-        var goldOutput = Run(result.Shaders["GoldShader"], &gold);
-        var plainOutput = Run(result.Shaders["PlainShader"], &plain);
+        var goldOutput = Run(result.Shaders["GoldShader"], gold);
+        var plainOutput = Run(result.Shaders["PlainShader"], plain);
 
         Assert.Multiple(() =>
         {
@@ -132,17 +133,15 @@ public class InterfaceDispatchTests
         });
     }
 
-    private static unsafe float[] Run(string slang, void* material)
+    private static float[] Run<TMaterial>(string slang, TMaterial material) where TMaterial : unmanaged
     {
         using var compiler = new HostComputeCompiler();
         using var shader = compiler.Compile(slang);
 
         var output = new float[3];
-        fixed (float* outputPointer = output)
-        {
-            var push = new Push { Materials = material, Output = outputPointer };
-            shader.Dispatch(1, 1, 1, ref push);
-        }
+        using var buffers = new PinnedBuffers();
+        var push = new Push<TMaterial> { Materials = buffers.Add(new[] { material }), Output = buffers.Add(output) };
+        shader.Dispatch(1, 1, 1, buffers.Heap, ref push);
 
         return output;
     }

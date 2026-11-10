@@ -134,8 +134,7 @@ internal sealed class TypeGraph
         if (InlineArrays.TryGet(type, out var inlineElement, out _)) return Visit(inlineElement);
         if (type is not INamedTypeSymbol named) return null;
 
-        if (TypeMapping.IsBuiltIn(named))
-            return named is { Name: "BufferRef", TypeArguments.Length: 1 } ? Visit(named.TypeArguments[0]) : null;
+        if (TypeMapping.IsBuiltIn(named)) return null;
 
         if (named.TypeKind is not (TypeKind.Struct or TypeKind.Enum)) return null;
         if (_nodes.TryGetValue(named, out var existing)) return existing;

@@ -9,13 +9,14 @@ public class IntrinsicsTests
     {
         const string source = """
                                using Rin.Shade;
+                               using Rin.Shade.Tests;
 
                                namespace DiscardCheck;
 
                                public struct DiscardPush
                                {
                                    public float Value;
-                                   public BufferRef<float> Output;
+                                   public TestBuffer<float> Output;
                                }
 
                                [Shader]
@@ -49,13 +50,14 @@ public class IntrinsicsTests
     {
         const string source = """
                                using Rin.Shade;
+                               using Rin.Shade.Tests;
 
                                namespace ReinterpretCheck;
 
                                public struct ReinterpretPush
                                {
                                    public float Value;
-                                   public BufferRef<int> Output;
+                                   public TestBuffer<int> Output;
                                }
 
                                [Shader]

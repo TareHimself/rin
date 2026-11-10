@@ -12,12 +12,13 @@ public class VectorConstructorTests
         const string source = """
                                using System.Numerics;
                                using Rin.Shade;
+                               using Rin.Shade.Tests;
 
                                namespace VectorConstructorCheck;
 
                                public struct VectorConstructorPush
                                {
-                                   public BufferRef<Vector3> Output;
+                                   public TestBuffer<Vector3> Output;
                                }
 
                                [Shader]

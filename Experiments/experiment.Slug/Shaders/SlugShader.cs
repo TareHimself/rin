@@ -14,7 +14,7 @@ public partial class SlugShader : Shader
 
     public struct PushConstants
     {
-        public BufferRef<SlugInstanceData> Instances;
+        public DeviceSpan<SlugInstanceData> Instances;
         public DeviceHandle CurveTexture;
         public DeviceHandle BandTexture;
         public Matrix4x4 Projection;
@@ -40,7 +40,6 @@ public partial class SlugShader : Shader
     }
 
     [Push] protected PushConstants Push;
-    protected static BindlessData Bindless;
 
     protected override BlendState BlendState => BlendState.Alpha;
 
@@ -124,19 +123,19 @@ public partial class SlugShader : Shader
         var xwgt = 0f;
 
         {
-            var header = Bindless.TexelLoad(bandTexture, shapeLocX + bandIndexY, shapeLocY).XY;
+            var header = BindlessData.TexelLoad(bandTexture, shapeLocX + bandIndexY, shapeLocY).XY;
             var count = (int)header.X;
             var listOffset = (int)header.Y;
 
             for (var i = 0; i < count; i++)
             {
-                var entry = Bindless.TexelLoad(bandTexture, BandLocX(shapeLocX, listOffset) + i,
+                var entry = BindlessData.TexelLoad(bandTexture, BandLocX(shapeLocX, listOffset) + i,
                     BandLocY(shapeLocX, shapeLocY, listOffset));
                 var curveX = (int)entry.X;
                 var curveY = (int)entry.Y;
 
-                var c01 = Bindless.TexelLoad(curveTexture, curveX, curveY) - emCoord4;
-                var p3 = Bindless.TexelLoad(curveTexture, curveX + 1, curveY).XY - emCoord;
+                var c01 = BindlessData.TexelLoad(curveTexture, curveX, curveY) - emCoord4;
+                var p3 = BindlessData.TexelLoad(curveTexture, curveX + 1, curveY).XY - emCoord;
                 var p1 = c01.XY;
                 var p2 = c01.ZW;
 
@@ -165,19 +164,19 @@ public partial class SlugShader : Shader
         var ywgt = 0f;
 
         {
-            var header = Bindless.TexelLoad(bandTexture, shapeLocX + bandMaxY + 1 + bandIndexX, shapeLocY).XY;
+            var header = BindlessData.TexelLoad(bandTexture, shapeLocX + bandMaxY + 1 + bandIndexX, shapeLocY).XY;
             var count = (int)header.X;
             var listOffset = (int)header.Y;
 
             for (var i = 0; i < count; i++)
             {
-                var entry = Bindless.TexelLoad(bandTexture, BandLocX(shapeLocX, listOffset) + i,
+                var entry = BindlessData.TexelLoad(bandTexture, BandLocX(shapeLocX, listOffset) + i,
                     BandLocY(shapeLocX, shapeLocY, listOffset));
                 var curveX = (int)entry.X;
                 var curveY = (int)entry.Y;
 
-                var c01 = Bindless.TexelLoad(curveTexture, curveX, curveY) - emCoord4;
-                var p3 = Bindless.TexelLoad(curveTexture, curveX + 1, curveY).XY - emCoord;
+                var c01 = BindlessData.TexelLoad(curveTexture, curveX, curveY) - emCoord4;
+                var p3 = BindlessData.TexelLoad(curveTexture, curveX + 1, curveY).XY - emCoord;
                 var p1 = c01.XY;
                 var p2 = c01.ZW;
 

@@ -1,5 +1,6 @@
 using System.Numerics;
 using Rin.Shade;
+using Rin.Shade.Tests;
 
 namespace Rin.Shade.Tests.Fixtures;
 
@@ -48,15 +49,15 @@ public struct Vertex
 public struct SkinnedMesh
 {
     public int Index;
-    public BufferRef<Vertex> Vertices;
+    public TestBuffer<Vertex> Vertices;
     public uint Count;
 }
 
 public struct BoundsUpdatePushConstants
 {
-    public BufferRef<SkinnedMesh> SkinnedMeshes;
+    public TestBuffer<SkinnedMesh> SkinnedMeshes;
     public int TotalInvocations;
-    public BufferRef<UpdatableBounds3D> Output;
+    public TestBuffer<UpdatableBounds3D> Output;
 }
 
 [Shader]

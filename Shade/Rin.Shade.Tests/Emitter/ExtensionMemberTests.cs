@@ -11,6 +11,7 @@ public class ExtensionMemberTests
         const string source = """
                                using System.Numerics;
                                using Rin.Shade;
+                               using Rin.Shade.Tests;
 
                                namespace ExtensionBlockCheck;
 
@@ -34,7 +35,7 @@ public class ExtensionMemberTests
                                public struct ExtensionPush
                                {
                                    public Vector4 Value;
-                                   public BufferRef<float> Output;
+                                   public TestBuffer<float> Output;
                                }
 
                                [Shader]
@@ -64,6 +65,7 @@ public class ExtensionMemberTests
         const string source = """
                                using System.Numerics;
                                using Rin.Shade;
+                               using Rin.Shade.Tests;
 
                                namespace ClassicExtensionCheck;
 
@@ -94,7 +96,7 @@ public class ExtensionMemberTests
                                public struct BoundsPush
                                {
                                    public Bounds Bounds;
-                                   public BufferRef<Vector3> Output;
+                                   public TestBuffer<Vector3> Output;
                                }
 
                                [Shader]
@@ -125,6 +127,7 @@ public class ExtensionMemberTests
     {
         const string source = """
                                using Rin.Shade;
+                               using Rin.Shade.Tests;
 
                                namespace ArrayExtensionCheck;
 
@@ -141,7 +144,7 @@ public class ExtensionMemberTests
                                {
                                    public struct ArrayPush
                                    {
-                                       public BufferRef<float> Output;
+                                       public TestBuffer<float> Output;
                                    }
 
                                    [Push] protected ArrayPush Push;

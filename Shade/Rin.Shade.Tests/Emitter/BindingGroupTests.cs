@@ -11,6 +11,7 @@ public class BindingGroupTests
         const string source = """
                                using System.Runtime.CompilerServices;
                                using Rin.Shade;
+                               using Rin.Shade.Tests;
 
                                namespace BindingGroupCheck;
 
@@ -36,7 +37,7 @@ public class BindingGroupTests
                                public struct BindingPush
                                {
                                    public int Index;
-                                   public BufferRef<float> Output;
+                                   public TestBuffer<float> Output;
                                }
 
                                [Shader]
@@ -68,6 +69,7 @@ public class BindingGroupTests
     {
         const string source = """
                                using Rin.Shade;
+                               using Rin.Shade.Tests;
 
                                namespace BadBindingGroupCheck;
 
@@ -95,6 +97,7 @@ public class BindingGroupTests
         const string source = """
                                using System.Runtime.CompilerServices;
                                using Rin.Shade;
+                               using Rin.Shade.Tests;
 
                                namespace InstanceBindingGroupCheck;
 

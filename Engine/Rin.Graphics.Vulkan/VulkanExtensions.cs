@@ -147,8 +147,6 @@ internal static class VulkanExtensions
         if (flags.HasFlag(BufferCreateFlags.Uniform)) result |= VkBufferUsageFlags.VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
         if (flags.HasFlag(BufferCreateFlags.Index)) result |= VkBufferUsageFlags.VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
         if (flags.HasFlag(BufferCreateFlags.Indirect)) result |= VkBufferUsageFlags.VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT;
-        if (flags.HasFlag(BufferCreateFlags.DeviceAddress))
-            result |= VkBufferUsageFlags.VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
 
         return result;
     }

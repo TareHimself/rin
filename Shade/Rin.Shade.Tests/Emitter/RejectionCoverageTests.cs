@@ -17,13 +17,14 @@ public class RejectionCoverageTests
     {
         const string source = """
                                using Rin.Shade;
+                               using Rin.Shade.Tests;
 
                                namespace StringFieldCheck;
 
                                public struct StringPush
                                {
                                    public string Name;
-                                   public BufferRef<float> Output;
+                                   public TestBuffer<float> Output;
                                }
 
                                [Shader]
@@ -50,6 +51,7 @@ public class RejectionCoverageTests
         const string source = """
                                using System;
                                using Rin.Shade;
+                               using Rin.Shade.Tests;
 
                                namespace LambdaCheck;
 
@@ -75,6 +77,7 @@ public class RejectionCoverageTests
         const string source = """
                                using System.Linq;
                                using Rin.Shade;
+                               using Rin.Shade.Tests;
 
                                namespace LinqCheck;
 
@@ -103,6 +106,7 @@ public class RejectionCoverageTests
     {
         const string source = """
                                using Rin.Shade;
+                               using Rin.Shade.Tests;
 
                                namespace RefReturnCheck;
 
@@ -133,6 +137,7 @@ public class RejectionCoverageTests
     {
         const string source = """
                                using Rin.Shade;
+                               using Rin.Shade.Tests;
 
                                namespace GenericShaderCheck;
 
@@ -156,6 +161,7 @@ public class RejectionCoverageTests
     {
         const string source = """
                                using Rin.Shade;
+                               using Rin.Shade.Tests;
 
                                namespace OperatorOverloadCheck;
 

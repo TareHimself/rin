@@ -1,3 +1,29 @@
+[__AttributeUsage(_AttributeTargets.Var)]
+struct BindlessBlockAttribute { string name; };
+
+namespace Rin
+{
+    namespace Shade
+    {
+        namespace Tests
+        {
+            struct TestBuffer_float
+            {
+                uint handle;
+                uint offset;
+            }
+
+            struct TestHeap
+            {
+                RWByteAddressBuffer buffers[8];
+            }
+
+        }
+
+    }
+
+}
+
 namespace OperatorCheck
 {
     struct OperatorPush
@@ -5,12 +31,32 @@ namespace OperatorCheck
         float3 normal;
         int count;
         bool flag;
-        float* output;
+        Rin::Shade::Tests::TestBuffer_float output;
     }
 
 }
 
 using namespace OperatorCheck;
+
+[BindlessBlock("test.heap")] ParameterBlock<Rin::Shade::Tests::TestHeap> rin_testHeap;
+
+extension Rin::Shade::Tests::TestBuffer_float
+{
+    uint byteOffset(uint index)
+    {
+        return this.offset + index * (uint)4;
+    }
+
+    void setItem(uint index, float value)
+    {
+        rin_testHeap.buffers[(int)this.handle].Store<float>(byteOffset(index), value);
+    }
+
+    void setItem(int index, float value)
+    {
+        setItem((uint)index, value);
+    }
+}
 
 [[vk::push_constant]] uniform ConstantBuffer<OperatorPush, ScalarDataLayout> push;
 
@@ -24,5 +70,5 @@ void compute()
     total += push.count;
     total -= 1;
     var chosen = push.flag ? 1.0 : 0.0;
-    push.output[0] = chosen;
+    push.output.setItem(0, chosen);
 }

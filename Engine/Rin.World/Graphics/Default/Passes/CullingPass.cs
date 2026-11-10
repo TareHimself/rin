@@ -40,9 +40,9 @@ public partial class CullingPass(DefaultWorldViewData collectedData) : IComputeP
         bindContext
             .Push(new CullingShader.PushConstants
             {
-                Bounds = new BufferRef<UpdatableBounds3D>(boundsBuffer.GetAddress()),
+                Bounds = boundsBuffer.ToDeviceSpan<UpdatableBounds3D>(),
                 InvocationCount = (uint)collectedData.SceneFrame.TotalMeshCount,
-                Output = new BufferRef<uint>(outputBuffer.GetAddress())
+                Output = outputBuffer.ToDeviceSpan<uint>()
             })
             .Invoke((uint)collectedData.SceneFrame.TotalMeshCount);
     }

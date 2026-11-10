@@ -10,7 +10,6 @@ namespace Rin.Graphics.Vulkan;
 public class VulkanDeviceBuffer : IVulkanDeviceBuffer
 {
     private readonly IntPtr _allocator;
-    private nuint? _address;
 
     /// <summary>
     ///     GPU Buffer
@@ -30,23 +29,6 @@ public class VulkanDeviceBuffer : IVulkanDeviceBuffer
     public VkBuffer NativeBuffer { get; set; }
     public IntPtr Allocation { get; }
     public BufferGraphState? GraphState { get; set; }
-
-    public ulong GetAddress()
-    {
-        if (_address.HasValue) return _address.Value;
-
-        var info = new VkBufferDeviceAddressInfo
-        {
-            sType = VkStructureType.VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO,
-            buffer = NativeBuffer
-        };
-        unsafe
-        {
-            _address = (nuint)vkGetBufferDeviceAddress(VulkanGraphicsModule.Get().GetDevice(), &info);
-        }
-
-        return _address.Value;
-    }
 
     public DeviceBufferView GetView(ulong offset, ulong size)
     {

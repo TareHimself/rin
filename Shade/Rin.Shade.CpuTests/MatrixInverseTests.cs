@@ -16,13 +16,14 @@ public class MatrixInverseTests
     private const string ShaderSource = """
         using System.Numerics;
         using Rin.Shade;
+        using Rin.Shade.Tests;
 
         namespace InverseCheck;
 
         public struct InversePush
         {
-            public BufferRef<Matrix4x4> Input;
-            public BufferRef<Matrix4x4> Output;
+            public TestBuffer<Matrix4x4> Input;
+            public TestBuffer<Matrix4x4> Output;
             public uint Count;
         }
 
@@ -51,10 +52,10 @@ public class MatrixInverseTests
     ];
 
     [StructLayout(LayoutKind.Sequential)]
-    private unsafe struct Push
+    private struct Push
     {
-        public Matrix4x4* Input;
-        public Matrix4x4* Output;
+        public TestBuffer<Matrix4x4> Input;
+        public TestBuffer<Matrix4x4> Output;
         public uint Count;
     }
 
@@ -69,7 +70,7 @@ public class MatrixInverseTests
     }
 
     [Test]
-    public unsafe void TranspiledInverseMatchesSystemNumerics()
+    public void TranspiledInverseMatchesSystemNumerics()
     {
         // The same path the build task takes: MatrixMath's source arrives from Rin.Shade's exported sources.
         var references = ((string)AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES")!)
@@ -77,7 +78,7 @@ public class MatrixInverseTests
             .Select(path => (MetadataReference)MetadataReference.CreateFromFile(path))
             .Append(MetadataReference.CreateFromFile(typeof(Shader).Assembly.Location))
             .ToList();
-        var scratch = ScratchCompilationBuilder.Build([ShaderSource], references, "InverseCheck");
+        var scratch = ScratchCompilationBuilder.Build([ShaderSource, CompilationBuilder.TestBufferSource], references, "InverseCheck");
         var result = ShadeEmitter.Emit(scratch.Compilation, scratch.LocalTrees);
         Assert.That(result.Diagnostics, Is.Empty);
 
@@ -85,11 +86,10 @@ public class MatrixInverseTests
         using var shader = compiler.Compile(result.Shaders["InverseShader"]);
 
         var outputs = new Matrix4x4[Inputs.Length];
-        fixed (Matrix4x4* input = Inputs)
-        fixed (Matrix4x4* output = outputs)
+        using (var buffers = new PinnedBuffers())
         {
-            var push = new Push { Input = input, Output = output, Count = (uint)Inputs.Length };
-            shader.Dispatch(1, 1, 1, ref push);
+            var push = new Push { Input = buffers.Add(Inputs), Output = buffers.Add(outputs), Count = (uint)Inputs.Length };
+            shader.Dispatch(1, 1, 1, buffers.Heap, ref push);
         }
 
         for (var i = 0; i < Inputs.Length; i++)

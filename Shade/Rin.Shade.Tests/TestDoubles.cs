@@ -27,10 +27,12 @@ internal static class CompilationBuilder
     public static Compilation Build(string source, string name = "RinShadeTests") =>
         Build([source], name);
 
+    public static readonly string TestBufferSource = FixtureSource.Read("TestBuffer.cs");
+
     public static Compilation Build(string[] sources, string name = "RinShadeTests")
     {
         return CSharpCompilation.Create(name,
-            sources.Select(s => CSharpSyntaxTree.ParseText(s)),
+            sources.Append(TestBufferSource).Select(s => CSharpSyntaxTree.ParseText(s)),
             References,
             new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
     }

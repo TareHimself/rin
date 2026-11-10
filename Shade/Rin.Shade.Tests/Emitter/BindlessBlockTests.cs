@@ -1,4 +1,3 @@
-using System.Linq;
 using Rin.Shade.Transpiler;
 
 namespace Rin.Shade.Tests.Emitter;
@@ -26,136 +25,107 @@ public class BindlessBlockTests
         [BindlessBlock("rin.global")]
         public struct BindlessData
         {
-            public ReadTextures Textures;
-            public GlobalSamplers Samplers;
+            public static ReadTextures Textures;
+            public static GlobalSamplers Samplers;
+
+            public static Texture2D GetTexture(uint handle)
+            {
+                return Textures[(int)Shader.NonUniformResourceIndex(handle)];
+            }
         }
 
-        public struct BindlessPush
+        public struct OutputBindings
         {
-            public BufferRef<float> Output;
+            public RWByteAddressBuffer Output;
         }
         """;
 
-    private static string Shader(string field) => Types + $$"""
+    private static string Shader(string body) => Types + $$"""
 
 
         [Shader]
         public class BindlessShader : Shader
         {
-            [Push] protected BindlessPush Push;
-            {{field}}
+            [BindingGroup] protected static OutputBindings Out;
 
             [Compute(1, 1, 1)]
             public void Compute()
             {
-                Push.Output[0] = 1f;
+                {{body}}
             }
         }
         """;
 
     [Test]
-    public void FieldOfABindlessBlockTypeLowersToANamedParameterBlock()
+    public void ReadingAStaticMemberDeclaresTheBlockAsANamedParameterBlock()
     {
-        var result = ShadeEmitter.Emit(CompilationBuilder.Build(Shader("protected static BindlessData Bindless;")));
+        var result = ShadeEmitter.Emit(CompilationBuilder.Build(Shader(
+            "Out.Output.Store(0u, BindlessData.Textures[1].Load(0, 0, 0).X);")));
 
         Assert.That(result.Diagnostics, Is.Empty);
         var slang = result.Shaders["BindlessShader"].Replace("\r\n", "\n");
 
         Assert.That(slang, Does.Contain("struct BindlessBlockAttribute { string name; };"));
         Assert.That(slang, Does.Contain(
-            "[BindlessBlock(\"rin.global\")] ParameterBlock<BindlessData> bindless;"));
+            "[BindlessBlock(\"rin.global\")] ParameterBlock<BindlessData> rin_bindlessData;"));
         Assert.That(slang, Does.Contain("Texture2D textures[16];"));
         Assert.That(slang, Does.Contain("SamplerState samplers[4];"));
+        Assert.That(slang, Does.Contain("rin_bindlessData.textures[1].Load(int3(0, 0, 0)).x"));
+    }
+
+    [Test]
+    public void StaticMethodsOfTheBlockReadItsMembers()
+    {
+        var result = ShadeEmitter.Emit(CompilationBuilder.Build(Shader(
+            "Out.Output.Store(0u, BindlessData.GetTexture(3u).Load(0, 0, 0).X);")));
+
+        Assert.That(result.Diagnostics, Is.Empty);
+        var slang = result.Shaders["BindlessShader"].Replace("\r\n", "\n");
+        Assert.That(slang, Does.Contain("return rin_bindlessData.textures[(int)NonUniformResourceIndex(handle)];"));
+        Assert.That(slang, Does.Contain("BindlessData.getTexture(3u).Load(int3(0, 0, 0)).x"));
     }
 
     [Test]
     public void ResourceMethodsMirrorTheSlangApiAndTakeANonUniformIndex()
     {
-        var source = Types + """
-
-
-            [Shader]
-            public class SampleShader : Shader
-            {
-                [Push] protected BindlessPush Push;
-                protected static BindlessData Bindless;
-
-                [Compute(1, 1, 1)]
-                public void Compute()
-                {
-                    var uv = new System.Numerics.Vector2(0.5f, 0.25f);
-                    var texture = Bindless.Textures[(int)NonUniformResourceIndex(3u)];
-                    Push.Output[0] = texture.Sample(Bindless.Samplers[1], uv).X;
-                    Push.Output[1] = texture.Load(2, 3, 0).Y;
+        var result = ShadeEmitter.Emit(CompilationBuilder.Build(Shader("""
+            var uv = new System.Numerics.Vector2(0.5f, 0.25f);
+                    var texture = BindlessData.Textures[(int)NonUniformResourceIndex(3u)];
+                    Out.Output.Store(0u, texture.Sample(BindlessData.Samplers[1], uv).X);
+                    Out.Output.Store(4u, texture.Load(2, 3, 0).Y);
                     uint width;
                     uint height;
                     uint levels;
                     texture.GetDimensions(0u, out width, out height, out levels);
-                    Push.Output[2] = width + height + levels;
-                }
-            }
-            """;
-
-        var result = ShadeEmitter.Emit(CompilationBuilder.Build(source));
+                    Out.Output.Store(8u, width + height + levels);
+            """)));
 
         Assert.That(result.Diagnostics, Is.Empty);
-        var slang = result.Shaders["SampleShader"].Replace("\r\n", "\n");
-        Assert.That(slang, Does.Contain("Sample(bindless.samplers[1], uv).x"));
+        var slang = result.Shaders["BindlessShader"].Replace("\r\n", "\n");
+        Assert.That(slang, Does.Contain("Sample(rin_bindlessData.samplers[1], uv).x"));
         Assert.That(slang, Does.Contain(".Load(int3(2, 3, 0)).y"));
         Assert.That(slang, Does.Contain("NonUniformResourceIndex(3u)"));
         Assert.That(slang, Does.Contain(".GetDimensions(0u, width, height, levels);"));
     }
 
     [Test]
-    public void ShaderWithoutABindlessBlockDeclaresNoAttribute()
+    public void ShaderThatReadsNoBlockDeclaresNoAttribute()
     {
-        var result = ShadeEmitter.Emit(CompilationBuilder.Build(Shader("")));
+        var result = ShadeEmitter.Emit(CompilationBuilder.Build(Shader("Out.Output.Store(0u, 1f);")));
 
         Assert.That(result.Diagnostics, Is.Empty);
         Assert.That(result.Shaders["BindlessShader"], Does.Not.Contain("BindlessBlock"));
     }
 
     [Test]
-    public void InstanceFieldOfABindlessBlockTypeIsRejected()
-    {
-        var result = ShadeEmitter.Emit(CompilationBuilder.Build(Shader("protected BindlessData Bindless;")));
-
-        Assert.That(result.Diagnostics.Any(d => d.Id == Diagnostics.Emitter.UnsupportedBindingField.Id), Is.True);
-    }
-
-    [Test]
     public void BindlessBlockIsDeclaredBeforeOtherParameterBlocksSoItLandsAtSetZero()
     {
-        const string material = """
-            public struct MaterialResources
-            {
-                public ReadTextures Maps;
-            }
-            """;
-
-        var source = Types + "\n" + material + """
-
-
-            [Shader]
-            public class OrderShader : Shader
-            {
-                [Push] protected BindlessPush Push;
-                [BindingGroup] protected static MaterialResources Material;
-                protected static BindlessData Bindless;
-
-                [Compute(1, 1, 1)]
-                public void Compute()
-                {
-                    Push.Output[0] = 1f;
-                }
-            }
-            """;
-
-        var result = ShadeEmitter.Emit(CompilationBuilder.Build(source));
+        var result = ShadeEmitter.Emit(CompilationBuilder.Build(Shader(
+            "Out.Output.Store(0u, BindlessData.Textures[0].Load(0, 0, 0).X);")));
 
         Assert.That(result.Diagnostics, Is.Empty);
-        var slang = result.Shaders["OrderShader"];
-        Assert.That(slang.IndexOf("ParameterBlock<BindlessData> bindless", System.StringComparison.Ordinal),
-            Is.LessThan(slang.IndexOf("ParameterBlock<MaterialResources> material", System.StringComparison.Ordinal)));
+        var slang = result.Shaders["BindlessShader"];
+        Assert.That(slang.IndexOf("ParameterBlock<BindlessData> rin_bindlessData", System.StringComparison.Ordinal),
+            Is.LessThan(slang.IndexOf("ParameterBlock<OutputBindings> out", System.StringComparison.Ordinal)));
     }
 }

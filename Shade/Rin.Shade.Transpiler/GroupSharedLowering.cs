@@ -32,7 +32,7 @@ internal static class GroupSharedLowering
             return null;
         }
 
-        if (!TypeMapping.IsLegalShaderType(field.Type) || field.Type is INamedTypeSymbol { Name: "BufferRef" })
+        if (!TypeMapping.IsLegalShaderType(field.Type) || TypeMapping.IsResourceType(field.Type))
         {
             Diagnose(diagnostics, field, location, $"'{field.Type.ToDisplayString()}' cannot live in group-shared memory");
             return null;

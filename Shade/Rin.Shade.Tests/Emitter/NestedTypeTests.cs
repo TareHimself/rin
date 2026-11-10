@@ -6,6 +6,7 @@ public class NestedTypeTests
 {
     private const string Source = """
         using Rin.Shade;
+        using Rin.Shade.Tests;
 
         namespace NestCheck;
 
@@ -38,7 +39,7 @@ public class NestedTypeTests
         {
             public Outer Outer;
             public Holder.Packed Packed;
-            public BufferRef<float> Output;
+            public TestBuffer<float> Output;
         }
 
         [Shader]

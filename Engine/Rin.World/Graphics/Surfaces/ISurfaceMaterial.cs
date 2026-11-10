@@ -14,7 +14,7 @@ namespace Rin.World.Graphics.Surfaces;
 [ShadeExport]
 public interface ISurfaceMaterial<TSelf> where TSelf : unmanaged, ISurfaceMaterial<TSelf>
 {
-    static abstract Surface Evaluate(in TSelf material, in SurfaceInput input, BindlessData textures);
+    static abstract Surface Evaluate(in TSelf material, in SurfaceInput input);
 
     static abstract IGraphicsDescriptor Shader { get; }
 

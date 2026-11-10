@@ -6,13 +6,14 @@ public class OutVarAndNamedArgumentTests
 {
     private const string Source = """
         using Rin.Shade;
+        using Rin.Shade.Tests;
 
         namespace OutVarCheck;
 
         public struct OutPush
         {
             public float A;
-            public BufferRef<float> Output;
+            public TestBuffer<float> Output;
         }
 
         [Shader]

@@ -1,6 +1,7 @@
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using Rin.Shade;
+using Rin.Shade.Tests;
 
 namespace Rin.Shade.Tests.Fixtures;
 
@@ -34,7 +35,7 @@ public struct CorrectnessPushConstants
     public MeshData Mesh;
     public Frustum Frustum;
     public BlendMode Mode;
-    public BufferRef<float> Output;
+    public TestBuffer<float> Output;
 }
 
 public static class CorrectnessHelpers

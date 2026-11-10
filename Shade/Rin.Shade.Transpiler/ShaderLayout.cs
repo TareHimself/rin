@@ -41,13 +41,6 @@ internal static class ShaderLayout
             case "System.Numerics.Matrix4x4": size = 64; return true;
         }
 
-        if (type is INamedTypeSymbol { Name: "BufferRef", TypeArguments.Length: 1 })
-        {
-            size = 8;
-            align = 8;
-            return true;
-        }
-
         if (InlineArrays.TryGet(type, out var element, out var length))
         {
             if (!TrySizeAndAlign(element, out var elementSize, out align)) return false;

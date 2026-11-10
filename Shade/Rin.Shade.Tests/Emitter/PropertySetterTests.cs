@@ -7,6 +7,7 @@ public class PropertySetterTests
     private const string Source = """
         using System.Numerics;
         using Rin.Shade;
+        using Rin.Shade.Tests;
 
         namespace SetterCheck;
 
@@ -31,7 +32,7 @@ public class PropertySetterTests
         public struct SetterPush
         {
             public Point Point;
-            public BufferRef<float> Output;
+            public TestBuffer<float> Output;
         }
 
         [Shader]

@@ -13,6 +13,7 @@ public class WithExpressionTests
     private const string Source = """
         using System.Numerics;
         using Rin.Shade;
+        using Rin.Shade.Tests;
 
         namespace WithCpuCheck;
 
@@ -41,8 +42,8 @@ public class WithExpressionTests
             public Bounds3D Bounds;
             public Sized Sized;
             public float NewArea;
-            public BufferRef<Bounds3D> Bounds3DOutput;
-            public BufferRef<Sized> SizedOutput;
+            public TestBuffer<Bounds3D> Bounds3DOutput;
+            public TestBuffer<Sized> SizedOutput;
         }
 
         [Shader]

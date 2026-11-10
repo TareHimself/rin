@@ -40,9 +40,6 @@ internal sealed class ShaderLowering(Compilation compilation, List<Diagnostic> d
             .Where(BindingLowering.HasBindingGroupAttribute)
             .GroupBy(f => f.Name)
             .Select(g => g.First())
-            // Slang numbers parameter blocks in declaration order, and the engine binds the global
-            // bindless set at set 0, so bindless blocks must be declared first.
-            .OrderBy(f => BindingLowering.BindlessBlockName(f) is null ? 1 : 0)
             .ToList();
 
         var groupSharedFields = chain.SelectMany(t => t.GetMembers().OfType<IFieldSymbol>())
@@ -157,9 +154,13 @@ internal sealed class ShaderLowering(Compilation compilation, List<Diagnostic> d
             .Where(spec => spec.Field.ContainingType.TypeKind != TypeKind.Struct)
             .ToList();
 
+        var bindlessBlocks = BindingLowering.FindBindlessBlocks(entryMethods.Concat(functionOrder)
+            .SelectMany(method => MethodSource.GetBodies(method, compilation)));
+        foreach (var block in bindlessBlocks) types.Add(block);
+
         var writer = new SlangWriter();
 
-        if (bindingFields.Any(f => BindingLowering.BindlessBlockName(f) is not null))
+        if (bindlessBlocks.Count > 0)
         {
             writer.Append(BindingLowering.BindlessAttributeDeclaration);
             writer.Line();
@@ -186,8 +187,11 @@ internal sealed class ShaderLowering(Compilation compilation, List<Diagnostic> d
 
         EmitNamespaceConsts(namespaceConsts, declared, writer);
 
-        if (bindingFields.Count > 0)
+        // Slang numbers parameter blocks in declaration order, and the engine binds the global bindless set at
+        // set 0, so bindless blocks are declared first.
+        if (bindlessBlocks.Count > 0 || bindingFields.Count > 0)
         {
+            foreach (var block in bindlessBlocks) writer.Line(BindingLowering.LowerBindlessBlock(block));
             foreach (var field in bindingFields)
             {
                 var declaration = BindingLowering.Lower(field, diagnostics);

@@ -17,6 +17,7 @@ public class MoreDiagnosticsTests
     {
         const string source = """
                                using Rin.Shade;
+                               using Rin.Shade.Tests;
 
                                namespace GenericStructCheck;
 
@@ -28,7 +29,7 @@ public class MoreDiagnosticsTests
                                public struct GenericPush
                                {
                                    public Wrapper<int> W;
-                                   public BufferRef<float> Output;
+                                   public TestBuffer<float> Output;
                                }
 
                                [Shader]
@@ -55,6 +56,7 @@ public class MoreDiagnosticsTests
     {
         const string source = """
                                using Rin.Shade;
+                               using Rin.Shade.Tests;
 
                                namespace EnumUnderlyingTypeCheck;
 
@@ -67,7 +69,7 @@ public class MoreDiagnosticsTests
                                public struct EnumPush
                                {
                                    public SmallMode Mode;
-                                   public BufferRef<float> Output;
+                                   public TestBuffer<float> Output;
                                }
 
                                [Shader]
@@ -93,12 +95,13 @@ public class MoreDiagnosticsTests
     {
         const string source = """
                                using Rin.Shade;
+                               using Rin.Shade.Tests;
 
                                namespace ArrayParameterCheck;
 
                                public struct ArrayParameterPush
                                {
-                                   public BufferRef<float> Output;
+                                   public TestBuffer<float> Output;
                                }
 
                                [Shader]
@@ -126,13 +129,14 @@ public class MoreDiagnosticsTests
     {
         const string source = """
                                using Rin.Shade;
+                               using Rin.Shade.Tests;
 
                                namespace PlainArrayCheck;
 
                                public struct GridPush
                                {
                                    public float[] Grid;
-                                   public BufferRef<float> Output;
+                                   public TestBuffer<float> Output;
                                }
 
                                [Shader]
@@ -158,6 +162,7 @@ public class MoreDiagnosticsTests
     {
         const string source = """
                                using Rin.Shade;
+                               using Rin.Shade.Tests;
 
                                namespace SwitchPatternCheck;
 
@@ -197,6 +202,7 @@ public class MoreDiagnosticsTests
         const string source = """
                                using System.Numerics;
                                using Rin.Shade;
+                               using Rin.Shade.Tests;
 
                                namespace BuiltinShadowCheck;
 
@@ -219,7 +225,7 @@ public class MoreDiagnosticsTests
                                public struct BuiltinShadowPush
                                {
                                    public ShadowingBounds Bounds;
-                                   public BufferRef<float> Output;
+                                   public TestBuffer<float> Output;
                                }
 
                                [Shader]

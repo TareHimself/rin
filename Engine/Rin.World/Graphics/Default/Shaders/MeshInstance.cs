@@ -1,5 +1,6 @@
 using System.Numerics;
 using JetBrains.Annotations;
+using Rin.Core.Graphics;
 using Rin.Shade;
 using Rin.World.Graphics.Mesh;
 
@@ -10,5 +11,5 @@ namespace Rin.World.Graphics.Default.Shaders;
 public struct MeshInstance
 {
     public Matrix4x4 Transform;
-    public BufferRef<Vertex> Vertices;
+    public DeviceSpan<Vertex> Vertices;
 }

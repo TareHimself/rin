@@ -11,17 +11,17 @@ namespace Rin.World.Graphics.Surfaces;
 [ShadeExport]
 public static class SurfaceSampling
 {
-    public static Vector3 ColorOr(this BindlessData textures, DeviceHandle handle, Vector2 uv, Vector3 fallback)
+    public static Vector3 ColorOr(DeviceHandle handle, Vector2 uv, Vector3 fallback)
     {
         return handle.Id > 0u
-            ? textures.SampleTexture(handle, uv, ImageTiling.Repeat, ImageFilter.Linear).XYZ
+            ? BindlessData.SampleTexture(handle, uv, ImageTiling.Repeat, ImageFilter.Linear).XYZ
             : fallback;
     }
 
-    public static float ValueOr(this BindlessData textures, DeviceHandle handle, Vector2 uv, float fallback)
+    public static float ValueOr(DeviceHandle handle, Vector2 uv, float fallback)
     {
         return handle.Id > 0u
-            ? textures.SampleTexture(handle, uv, ImageTiling.Repeat, ImageFilter.Linear).X
+            ? BindlessData.SampleTexture(handle, uv, ImageTiling.Repeat, ImageFilter.Linear).X
             : fallback;
     }
 }

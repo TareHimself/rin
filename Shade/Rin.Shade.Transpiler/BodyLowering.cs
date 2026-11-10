@@ -159,7 +159,8 @@ internal sealed class BodyLowering(
 
                     if (declarator.Symbol.RefKind == RefKind.Ref)
                     {
-                        LowerRefLocal(declarator, initializer, name);
+                        diagnostics.Add(Diagnostic.Create(Diagnostics.Emitter.UnsupportedConstruct,
+                            declarator.Syntax.GetLocation(), "ref local"));
                         continue;
                     }
 
@@ -245,22 +246,6 @@ internal sealed class BodyLowering(
             ? "{}"
             : $"{{ {string.Join(", ", elements.Select(LowerExpr))} }}";
         writer.Line($"{MapType(arrayType.ElementType)} {name}[{length}] = {initializerText};");
-    }
-
-    // `ref var q = ref buffer[i]` becomes a pointer local. Pointers into function-local storage are not
-    // trusted in the emitted SPIR-V, so only a buffer element (or another ref local) may be aliased.
-    private void LowerRefLocal(IVariableDeclaratorOperation declarator, IOperation? initializer, string name)
-    {
-        while (initializer is IConversionOperation { IsImplicit: true } conversion) initializer = conversion.Operand;
-
-        if (initializer is null || !TryGetAddress(initializer, out var address))
-        {
-            diagnostics.Add(Diagnostic.Create(Diagnostics.Emitter.UnsupportedConstruct,
-                declarator.Syntax.GetLocation(), "ref local (only a BufferRef element can be aliased)"));
-            return;
-        }
-
-        writer.Line($"var {name} = {address};");
     }
 
     private static bool IsZeroInitializer(IOperation initializer)
@@ -355,16 +340,14 @@ internal sealed class BodyLowering(
                 return "this";
             case IParameterReferenceOperation parameter:
                 return Naming.ToSlangIdentifier(parameter.Parameter.Name);
-            case ILocalReferenceOperation { Local.RefKind: RefKind.Ref } refLocal:
-                return $"(*{Naming.ToSlangIdentifier(refLocal.Local.Name)})";
             case ILocalReferenceOperation local:
                 return Naming.ToSlangIdentifier(local.Local.Name);
+            case IIncrementOrDecrementOperation { Target: IPropertyReferenceOperation computed } when IsComputed(computed):
+                return ReportComputedReadModifyWrite(op);
             case IIncrementOrDecrementOperation inc:
                 return $"{LowerExpr(inc.Target)}{(inc.Kind == OperationKind.Increment ? "++" : "--")}";
             case IFieldReferenceOperation field:
                 return LowerFieldReference(field);
-            case IPropertyReferenceOperation property when IsBufferRefIndexer(property.Property):
-                return $"{LowerAtLeast(property.Instance!, PostfixPrecedence)}[{LowerExpr(property.Arguments[0].Value)}]";
             case IArrayElementReferenceOperation { Indices: [var arrayIndex] } arrayElement:
                 return $"{LowerAtLeast(arrayElement.ArrayReference, PostfixPrecedence)}[{LowerExpr(arrayIndex)}]";
             case IInlineArrayAccessOperation inlineAccess:
@@ -430,10 +413,12 @@ internal sealed class BodyLowering(
                     compound.Syntax.GetLocation(),
                     $"user-defined operator overload '{compound.OperatorMethod!.Name}'"));
                 return "/* unsupported */";
+            case ICompoundAssignmentOperation { Target: IPropertyReferenceOperation computed } when IsComputed(computed):
+                return ReportComputedReadModifyWrite(op);
             case ICompoundAssignmentOperation compound when TryMapOperator(compound.OperatorKind, out var operatorText):
                 return $"{LowerExpr(compound.Target)} {operatorText}= {LowerExpr(compound.Value)}";
             case ISimpleAssignmentOperation { Target: IPropertyReferenceOperation property } assignment
-                when !IsBufferRefIndexer(property.Property) && !IsSwizzle(property.Property):
+                when !IsSwizzle(property.Property):
                 return LowerPropertySet(property, assignment.Value);
             case ISimpleAssignmentOperation assignment:
                 return $"{LowerExpr(assignment.Target)} = {LowerExpr(assignment.Value)}";
@@ -482,37 +467,13 @@ internal sealed class BodyLowering(
         var rootType = current.Field.ContainingType;
         var structName = UnionLowering.QualifiedPathName(rootType, chain);
 
-        // An addressable place is read and written in place through a pointer cast. For a value,
         // reinterpret<> yields a copy that cannot be assigned through.
-        if (TryGetAddress(current.Instance, out var address))
-        {
-            var payloads = string.Concat(Enumerable.Repeat(".payload", chain.Count - 1));
-            return $"(({structName}*)({address}))->payload{payloads}";
-        }
-
         if (IsWrittenThrough(field))
             diagnostics.Add(Diagnostic.Create(Diagnostics.Emitter.UnionVariantWrite, field.Syntax.GetLocation(),
                 field.Field.Name));
 
         var root = current.Instance is IInstanceReferenceOperation or null ? "this" : LowerExpr(current.Instance);
         return $"reinterpret<{structName}>({root}){string.Concat(Enumerable.Repeat(".payload", chain.Count))}";
-    }
-
-    // Addressable places are a BufferRef element (its ref indexer) and a ref local, which is a pointer to one.
-    private bool TryGetAddress(IOperation? operation, out string address)
-    {
-        switch (operation)
-        {
-            case IPropertyReferenceOperation { Instance: { } buffer } indexer when IsBufferRefIndexer(indexer.Property):
-                address = $"{LowerExpr(buffer)} + {LowerExpr(indexer.Arguments[0].Value)}";
-                return true;
-            case ILocalReferenceOperation { Local.RefKind: RefKind.Ref } refLocal:
-                address = Naming.ToSlangIdentifier(refLocal.Local.Name);
-                return true;
-            default:
-                address = "";
-                return false;
-        }
     }
 
     private static bool IsWrittenThrough(IOperation operation)
@@ -552,6 +513,9 @@ internal sealed class BodyLowering(
 
         if (field.Instance is null)
         {
+            if (BindingLowering.IsBindlessBlockMember(field.Field))
+                return $"{BindingLowering.BindlessBlockGlobal(field.Field.ContainingType)}.{name}";
+
             // A [BindingGroup] or [GroupShared] field is a module-scope declaration, referenced by bare name.
             if (BindingLowering.HasBindingGroupAttribute(field.Field)) return name;
             if (GroupSharedLowering.HasGroupSharedAttribute(field.Field)) return name;
@@ -594,6 +558,8 @@ internal sealed class BodyLowering(
         if (substitution is not null) method = substitution.Apply(method);
         method = InterfaceDispatch.Resolve(invocation, method, substitution);
         if (overrides is not null) method = OverrideResolution.Resolve(method, overrides);
+
+        if (IsUnsafeSizeOf(method)) return LowerSizeOf(invocation, method.TypeArguments[0]);
 
         if (IsVectorMatrixTransform(method))
         {
@@ -698,8 +664,35 @@ internal sealed class BodyLowering(
 
         var calleeName = Naming.ToSlangMethodName(setMethod);
         if (instance is null) CheckFieldShadowing(calleeName, property.Syntax.GetLocation());
-        var call = $"{calleeName}({LowerExpr(value)})";
+        var arguments = InParameterOrder(property.Arguments).Select(a => LowerExpr(a.Value)).Append(LowerExpr(value));
+        var call = $"{calleeName}({string.Join(", ", arguments)})";
         return instance is not null ? $"{instance}.{call}" : call;
+    }
+
+    internal static bool IsUnsafeSizeOf(IMethodSymbol method) =>
+        method is { Name: "SizeOf", TypeArguments.Length: 1 } &&
+        method.ContainingType.ToDisplayString() == "System.Runtime.CompilerServices.Unsafe";
+
+    // Folded to the scalar-layout size, which is also the C# size, so CPU and shader agree on strides.
+    private string LowerSizeOf(IInvocationOperation invocation, ITypeSymbol type)
+    {
+        if (ShaderLayout.TrySizeAndAlign(type, out var size, out _))
+            return size.ToString(CultureInfo.InvariantCulture);
+
+        diagnostics.Add(Diagnostic.Create(Diagnostics.Emitter.UnsupportedConstruct, invocation.Syntax.GetLocation(),
+            $"Unsafe.SizeOf of '{type.ToDisplayString()}', which has no known scalar layout"));
+        return "/* unsupported */";
+    }
+
+    private static bool IsComputed(IPropertyReferenceOperation property) =>
+        !StructMembers.IsAutoProperty(property.Property) && !IsSwizzle(property.Property);
+
+    // Its getter and setter are separate calls, so `x[i] += v` would need its arguments evaluated twice.
+    private string ReportComputedReadModifyWrite(IOperation operation)
+    {
+        diagnostics.Add(Diagnostic.Create(Diagnostics.Emitter.UnsupportedConstruct, operation.Syntax.GetLocation(),
+            "compound assignment or increment of a computed property (write 'x = x + y' instead)"));
+        return "/* unsupported */";
     }
 
     // A computed property has no Slang equivalent, so it is read by calling its getter as a zero-argument
@@ -713,7 +706,7 @@ internal sealed class BodyLowering(
         };
         var calleeName = Naming.ToSlangMethodName(getMethod);
         if (instance is null) CheckFieldShadowing(calleeName, property.Syntax.GetLocation());
-        var call = $"{calleeName}()";
+        var call = $"{calleeName}({string.Join(", ", InParameterOrder(property.Arguments).Select(a => LowerExpr(a.Value)))})";
         return instance is not null ? $"{instance}.{call}" : call;
     }
 
@@ -1043,9 +1036,6 @@ internal sealed class BodyLowering(
         };
         return text.Length > 0;
     }
-
-    internal static bool IsBufferRefIndexer(IPropertySymbol property) =>
-        property.IsIndexer && property.ContainingType is { Name: "BufferRef" };
 
     internal static bool IsSwizzle(IPropertySymbol property) =>
         property.ContainingType.TypeKind == TypeKind.Extension &&

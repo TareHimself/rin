@@ -35,7 +35,7 @@ public class ProcessedMesh
     public MeshInstance ToInstance() => new()
     {
         Transform = Transform,
-        Vertices = new BufferRef<Vertex>(VertexBuffer.GetAddress())
+        Vertices = VertexBuffer.ToDeviceSpan<Vertex>()
     };
     //
     // public class CompareByIndexAndMaterial : IEqualityComparer<ProcessedMesh>

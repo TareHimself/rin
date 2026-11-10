@@ -33,8 +33,8 @@ public sealed class SurfaceColorPass<TMaterial> : SimpleMaterialPass
     {
         return Shader.Bind(frame.ExecutionContext)?.Push(new SurfaceShader<TMaterial>.PushConstants
         {
-            Scene = new BufferRef<WorldInfo>(frame.SceneInfo.GetAddress()),
-            Draws = new BufferRef<SurfaceDraw<TMaterial>>(groupMaterialBuffer.GetAddress())
+            Scene = frame.SceneInfo.ToDeviceSpan<WorldInfo>(),
+            Draws = groupMaterialBuffer.ToDeviceSpan<SurfaceDraw<TMaterial>>()
         });
     }
 
