@@ -24,6 +24,20 @@ ARCHIVES = {
         "linux-aarch64",
         "77ce1197b00cbea6a58850a0fdb5de7e6db428ba95ded2a41bd426463feac347",
     ),
+    (Platform.Darwin, Architecture.X86_64): (
+        "macos-x86_64",
+        "4e37959372b34c572a9d695b76dfa3625aacd379afbe0b624811ce3739b26252",
+    ),
+    (Platform.Darwin, Architecture.ARM64): (
+        "macos-aarch64",
+        "ecbb75223cb30a41891f70508834eaf1db8fe2e4458bc7740b7f1322db9a1a1a",
+    ),
+}
+# The folder, file pattern and linked library name of the shared libraries on each system
+LIBRARIES = {
+    Platform.Windows: ("bin", "*.dll", "slang.dll"),
+    Platform.Linux: ("lib", "*.so", "libslang.so"),
+    Platform.Darwin: ("lib", "*.dylib", "libslang.dylib"),
 }
 
 
@@ -32,7 +46,7 @@ class Slang(SiloPackage):
 
     name = "slang"
     version = "2025.9.2"
-    platforms = (Platform.Windows, Platform.Linux)
+    platforms = (Platform.Windows, Platform.Linux, Platform.Darwin)
 
     @property
     def system(self) -> tuple[Platform, Architecture]:
@@ -54,12 +68,10 @@ class Slang(SiloPackage):
             release.extractall(self.install_dir, kept)
 
     def package(self):
-        windows = self.profile.settings.os is Platform.Windows
-        folder, pattern = ("bin", "*.dll") if windows else ("lib", "*.so")
+        folder, pattern, linked = LIBRARIES[self.profile.settings.os]
         compiler = Component("slang", headers=["include"], shared_libs=["slang"])
         # Loaded by slang when it runs, never linked. They only have to ship with it.
         runtime = Component("runtime")
-        linked = "slang.dll" if windows else "libslang.so"
         for library in sorted((self.install_dir / folder).glob(pattern)):
             if library.name != linked:
                 runtime.shared_libs.append(SharedLib(f"{folder}/{library.name}"))
