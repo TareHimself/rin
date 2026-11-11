@@ -29,6 +29,7 @@ cpp/
 .feed/*
 build-*
 .silo/
+CMakeUserPresets.json
 specs/
 .DS_Store
 *.sln.DotSettings.user
