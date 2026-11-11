@@ -18,5 +18,5 @@ See [../ReadMe.md](../ReadMe.md) for the packing flow and the `silo sync` and `s
 
 CI uses the stub package. `Engine/Rin.Graphics.Vulkan.Tests` uses the NativeAOT fake instead, see [../Fakes/ReadMe.md](../Fakes/ReadMe.md).
 
-- The build does not use the Vulkan SDK, and the package ships only `Rin.Graphics.Vulkan.Native.dll`: at run time it loads the machine's own `vulkan-1.dll`.
+- The build does not use the Vulkan SDK. On Windows and Linux the package ships only the module library, which loads the machine's own Vulkan loader at run time. macOS has no system loader, so there the package also ships silo's as `libvulkan.1.dylib`. It still needs a driver such as MoltenVK installed, which the loader finds through its ICD manifests.
 - An export that can fail returns a `GraphicsResult` from `src/result.hpp` and writes its value through an out parameter. The body runs inside `guarded`, which turns a `ResultError`, a `std::bad_alloc` or any other exception into a code, so nothing unwinds into the managed caller. `Native.GraphicsResult` in `Engine/Rin.Graphics.Vulkan/Native.cs` mirrors the enum, so a new value is added to both.
