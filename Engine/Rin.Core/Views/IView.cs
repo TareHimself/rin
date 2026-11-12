@@ -87,12 +87,10 @@ public interface IView : IDisposable, IAnimatable, IUpdatable
     public bool IsFocused => Surface?.FocusedView == this;
 
     public bool IsFocusable { get; }
-    // public Matrix4x4 GetLocalPaddingTransform();
 
     /// <summary>
     /// The offset of this view due to padding represented as a transformation
     /// </summary>
-    /// <returns></returns>
     public Matrix4x4 GetPaddingOffsetTransform();
     // Get the local transformation applied to content (i.e. padding, scroll, etc.)
     public Matrix4x4 GetLocalContentTransform();
@@ -100,18 +98,15 @@ public interface IView : IDisposable, IAnimatable, IUpdatable
     /// <summary>
     ///     Compute and set this views size based on the space available
     /// </summary>
-    /// <param name="availableSpace"></param>
     /// <param name="fill">
     ///     If true will set size to <see cref="availableSpace" /> irrespective of the space
     ///     taken by content
     /// </param>
-    /// <returns></returns>
     public Vector2 Layout(in Vector2 availableSpace, bool fill = false);
 
     /// <summary>
     ///     Computes the local transformation matrix for this view
     /// </summary>
-    /// <returns></returns>
     public Matrix4x4 GetLocalTransform();
 
     public Matrix4x4 ComputeAbsoluteContentTransform();
@@ -168,9 +163,6 @@ public interface IView : IDisposable, IAnimatable, IUpdatable
     /// <summary>
     ///     Collect draw commands from this view
     /// </summary>
-    /// <param name="transform"></param>
-    /// <param name="clip"></param>
-    /// <param name="commands"></param>
     public void Collect(in Matrix4x4 transform, in Rect2D clip, CommandList commands);
 
     public void PostLayout();

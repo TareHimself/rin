@@ -11,9 +11,6 @@ namespace Rin.World.Graphics;
 [NoReorder]
 public struct LightInfo
 {
-    // float4 locationRadius;
-    // float4 directionType;
-    // float4 colorRadiance;
     private Vector4 _locationRadius;
     private Vector4 _directionType;
     private Vector4 _colorRadiance;

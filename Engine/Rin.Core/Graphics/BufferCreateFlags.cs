@@ -5,10 +5,14 @@ public enum BufferCreateFlags
 {
     None = 0,
 
-    /// <summary>The host reads from this buffer (e.g. a readback/staging-for-readback buffer).</summary>
+    /// <summary>
+    ///     The host reads from this buffer (e.g. a readback/staging-for-readback buffer).
+    /// </summary>
     HostSrc = 1 << 0,
 
-    /// <summary>The host writes to this buffer (e.g. a staging/upload buffer, or a directly mapped one).</summary>
+    /// <summary>
+    ///     The host writes to this buffer (e.g. a staging/upload buffer, or a directly mapped one).
+    /// </summary>
     HostDst = 1 << 1,
     TransferSrc = 1 << 2,
     TransferDst = 1 << 3,

@@ -133,25 +133,4 @@ public static class TaskExtensions
     {
         return task.Dispatch(IApplication.Get().MainDispatcher, then, state);
     }
-
-    public static ConfiguredTaskAwaitable DispatchRender<T>(this Task<T> task, Action<T> then)
-    {
-        return task.Dispatch(IApplication.Get().RenderDispatcher, then);
-    }
-
-    public static ConfiguredTaskAwaitable DispatchRender(this Task task, Action then)
-    {
-        return task.Dispatch(IApplication.Get().RenderDispatcher, then);
-    }
-
-    public static ConfiguredTaskAwaitable DispatchRender<T, TState>(this Task<T> task, Action<T, TState> then,
-        TState state)
-    {
-        return task.Dispatch(IApplication.Get().RenderDispatcher, then, state);
-    }
-
-    public static ConfiguredTaskAwaitable DispatchRender<TState>(this Task task, Action<TState> then, TState state)
-    {
-        return task.Dispatch(IApplication.Get().RenderDispatcher, then, state);
-    }
 }

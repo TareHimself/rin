@@ -2,21 +2,33 @@
 
 public enum Visibility
 {
-    // visible and all hit tests
+    /// <summary>
+    ///     Visible, and the view and its children are hit tested.
+    /// </summary>
     Visible,
 
-    // will not hit test this view
+    /// <summary>
+    ///     Visible, but the view itself is not hit tested.
+    /// </summary>
     VisibleNoHitTestSelf,
 
-    // will not hit test this view's children
+    /// <summary>
+    ///     Visible, but the view's children are not hit tested.
+    /// </summary>
     VisibleNoHitTestChildren,
 
-    // will be visible but not hit testable
+    /// <summary>
+    ///     Visible, but neither the view nor its children are hit tested.
+    /// </summary>
     VisibleNoHitTestAll,
 
-    // will take up space but not be visible or hit testable
+    /// <summary>
+    ///     Takes up space but is not drawn or hit tested.
+    /// </summary>
     Hidden,
 
-    // Will not take up space
+    /// <summary>
+    ///     Takes up no space.
+    /// </summary>
     Collapsed
 }

@@ -54,44 +54,25 @@ public class ListLayout(Axis axis, ICompositeView container) : InfiniteChildrenL
     /// <summary>
     ///     Assumes the slot is at the start of the cross axis
     /// </summary>
-    /// <param name="slot"></param>
-    /// <param name="crossAxisSize"></param>
     /// <exception cref="ArgumentOutOfRangeException"></exception>
     protected virtual void HandleCrossAxisOffset(ListSlot slot, float crossAxisSize)
     {
         var view = slot.Child;
-        var size = view.GetSize();
-        switch (GetAxis())
+        var axis = GetAxis();
+        var crossSize = axis switch
         {
-            case Axis.Column:
-            {
-                var offset = view.Offset;
-                offset.X += slot.Align switch
-                {
-                    CrossAlign.Start => 0.0f,
-                    CrossAlign.Center => crossAxisSize / 2.0f - size.X / 2.0f,
-                    CrossAlign.End => crossAxisSize - size.X,
-                    _ => throw new ArgumentOutOfRangeException()
-                };
-                view.Offset = offset;
-            }
-                break;
-            case Axis.Row:
-            {
-                var offset = view.Offset;
-                offset.Y += slot.Align switch
-                {
-                    CrossAlign.Start => 0.0f,
-                    CrossAlign.Center => crossAxisSize / 2.0f - size.Y / 2.0f,
-                    CrossAlign.End => crossAxisSize - size.Y,
-                    _ => throw new ArgumentOutOfRangeException()
-                };
-                view.Offset = offset;
-            }
-                break;
-            default:
-                throw new ArgumentOutOfRangeException();
-        }
+            Axis.Column => view.GetSize().X,
+            Axis.Row => view.GetSize().Y,
+            _ => throw new ArgumentOutOfRangeException()
+        };
+        var crossOffset = slot.Align switch
+        {
+            CrossAlign.Start => 0.0f,
+            CrossAlign.Center => crossAxisSize / 2.0f - crossSize / 2.0f,
+            CrossAlign.End => crossAxisSize - crossSize,
+            _ => throw new ArgumentOutOfRangeException()
+        };
+        view.Offset += axis == Axis.Column ? new Vector2(crossOffset, 0.0f) : new Vector2(0.0f, crossOffset);
     }
 
     protected virtual Vector2 ArrangeContentRow(Vector2 availableSpace)
@@ -117,7 +98,6 @@ public class ListLayout(Axis axis, ICompositeView container) : InfiniteChildrenL
 
         crossAxisSize = float.IsFinite(space.Y) ? space.Y : crossAxisSize;
 
-        // Handle cross axis offsets (we could also handle main axis offsets here in the future)
         foreach (var slot in slots)
         {
             if (slot is not ListSlot asListContainerSlot) continue;
@@ -137,7 +117,6 @@ public class ListLayout(Axis axis, ICompositeView container) : InfiniteChildrenL
 
         var slots = GetSlots();
 
-        // Compute slot sizes and initial offsets
         foreach (var slot in slots)
         {
             var view = slot.Child;
@@ -152,7 +131,6 @@ public class ListLayout(Axis axis, ICompositeView container) : InfiniteChildrenL
 
         crossAxisSize = float.IsFinite(space.X) ? space.X : crossAxisSize;
 
-        // Handle cross axis offsets (we could also handle main axis offsets here in the future)
         foreach (var slot in slots)
         {
             if (slot is not ListSlot asListContainerSlot) continue;
@@ -161,7 +139,6 @@ public class ListLayout(Axis axis, ICompositeView container) : InfiniteChildrenL
 
         return new Vector2(crossAxisSize, mainAxisSize);
     }
-
 
     public override Vector2 Apply(in Vector2 availableSpace)
     {

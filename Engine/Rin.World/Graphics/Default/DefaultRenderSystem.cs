@@ -6,7 +6,7 @@ using Rin.World.Mesh.Skinning;
 namespace Rin.World.Graphics.Default;
 
 /// <summary>
-///     Proxy table fed by a command queue drained once per <see cref="Snapshot" /> — the render thread
+///     Proxy table fed by a command queue drained once per <see cref="Snapshot" />; the render thread
 ///     never touches the live table, only the frozen arrays each snapshot copies out.
 /// </summary>
 public class DefaultRenderSystem : IRenderSystem
@@ -71,7 +71,7 @@ public class DefaultRenderSystem : IRenderSystem
         var captured = worldTransform;
         _commands.Enqueue(() => Mutate(handle, row =>
         {
-            // Owners re-push every frame even when unchanged; only roll Previous forward on a real change.
+            // Only roll Previous forward on a real change.
             if (row.Transform != captured) row.PreviousTransform = row.Transform;
             row.Transform = captured;
             if (row.Kind == ProxyKind.StaticMesh) row.StaticDesc = row.StaticDesc with { Transform = captured };
@@ -98,16 +98,6 @@ public class DefaultRenderSystem : IRenderSystem
     public void SetTime(float seconds)
     {
         _time = seconds;
-    }
-
-    public void UpdateStaticMeshProxy(RenderProxyHandle handle, in StaticMeshProxyDesc desc)
-    {
-        var captured = desc;
-        _commands.Enqueue(() => Mutate(handle, row =>
-        {
-            row.StaticDesc = captured with { Transform = row.Transform };
-            return row;
-        }));
     }
 
     public void UpdateLightProxy(RenderProxyHandle handle, in LightInfo desc)
@@ -230,7 +220,9 @@ public class DefaultRenderSystem : IRenderSystem
         _freeIndices.Push(index);
     }
 
-    /// <summary>Fixed-timestep render smoothing: blends the last two committed physics poses by how far into the current step interval we are.</summary>
+    /// <summary>
+    ///     Blends the last two committed physics poses by how far into the current fixed step we are.
+    /// </summary>
     private static Matrix4x4 InterpolateTransform(in Matrix4x4 previous, in Matrix4x4 current, float alpha)
     {
         if (previous == current) return current;

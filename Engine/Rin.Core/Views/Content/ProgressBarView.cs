@@ -29,11 +29,6 @@ public class ProgressBarView(Func<float> getProgress, Action<float>? onClick = n
         commands.AddRect(transform,
             size * new Vector2(float.Clamp(_pendingProgress ?? getProgress(), 0.0f, 1.0f), 1.0f), ForegroundColor,
             BorderRadius);
-        // using var libvlc = new LibVLC(enableDebugLogs: true);
-        // using var media = new Media(libvlc, new Uri(@"C:\tmp\big_buck_bunny.mp4"));
-        // using var mediaplayer = new MediaPlayer(media);
-        //
-        // mediaplayer.Play();
     }
 
     public override void OnCursorDown(CursorDownSurfaceEvent e, in Matrix4x4 transform1)

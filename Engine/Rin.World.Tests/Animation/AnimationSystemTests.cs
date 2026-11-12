@@ -4,7 +4,6 @@ using Rin.World.Graphics;
 using Rin.World.Transforms;
 using Rin.World.Mesh.Skinning;
 using Rin.World.Mesh.Skinning.Animation;
-using Rin.World.Tests.Skinning.Animation;
 using SkinnedMesh = Rin.World.Graphics.SkinnedMesh;
 
 namespace Rin.World.Tests.Animation;

@@ -112,7 +112,6 @@ public class HostImage : IHostImage
 
     public static IHostImage Create(in Extent2D extent, ImageFormat format)
     {
-        //VipsImage.Black(width,height,).
         uint channels = 0;
         var bandFormat = Enums.BandFormat.Uchar;
         uint byteSize = 1;

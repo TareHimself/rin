@@ -71,16 +71,6 @@ public class MeshFactory : IMeshFactory
         return null;
     }
 
-    public Task? GetPendingMesh(int meshId)
-    {
-        lock (_sync)
-        {
-            if (_pendingMeshes.TryGetValue(meshId, out var src)) return src.Task;
-        }
-
-        return null;
-    }
-
     public void FreeMeshes(params ReadOnlySpan<int> meshIds)
     {
         lock (_sync)

@@ -14,9 +14,6 @@ public record struct Bounds3D : IAdditionOperators<Bounds3D, Bounds3D, Bounds3D>
     /// <summary>
     ///     Combines two bounds together
     /// </summary>
-    /// <param name="left"></param>
-    /// <param name="right"></param>
-    /// <returns></returns>
     public static Bounds3D operator +(Bounds3D left, Bounds3D right)
     {
         return new Bounds3D

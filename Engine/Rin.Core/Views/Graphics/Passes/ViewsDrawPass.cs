@@ -4,11 +4,10 @@ using Rin.Core.Views.Graphics.CommandHandlers;
 
 namespace Rin.Core.Views.Graphics.Passes;
 
-public class ViewsDrawPass : IPassWithPreAdd, IPassWithPostAdd
+public class ViewsDrawPass : IPassWithPreAdd
 {
     private readonly ICommandHandler[] _commandHandlers;
     private readonly IPassConfig _passConfig;
-    private readonly List<ICommandHandlerWithPostAdd> _postHandlers = [];
     private readonly List<ICommandHandlerWithPreAdd> _preHandlers = [];
     private readonly SurfaceContext _surfaceContext;
 
@@ -18,23 +17,11 @@ public class ViewsDrawPass : IPassWithPreAdd, IPassWithPostAdd
         _passConfig = passConfig;
         _commandHandlers = commandHandlers;
         foreach (var handler in commandHandlers)
-        {
-            {
-                if (handler is ICommandHandlerWithPreAdd casted) _preHandlers.Add(casted);
-            }
-            {
-                if (handler is ICommandHandlerWithPostAdd casted) _postHandlers.Add(casted);
-            }
-        }
-    }
-
-    public void PostAdd(IGraphBuilder builder)
-    {
-        foreach (var handler in _postHandlers) handler.PostAdd(builder);
+            if (handler is ICommandHandlerWithPreAdd preHandler)
+                _preHandlers.Add(preHandler);
     }
 
     public uint Id { get; set; }
-
 
     public void Configure(IGraphConfig config)
     {

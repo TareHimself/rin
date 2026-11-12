@@ -16,8 +16,6 @@ public class SurfaceContext(in Extent2D extent)
     /// </summary>
     public Matrix4x4 ProjectionMatrix = MathR.ViewportProjection(extent.Width, extent.Height, 0.0f, 1.0f);
 
-    public FrameStats Stats;
-
     /// <summary>
     ///     The id of the image that the surface was rendered to
     /// </summary>

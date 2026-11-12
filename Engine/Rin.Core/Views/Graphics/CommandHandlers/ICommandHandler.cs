@@ -14,18 +14,11 @@ public interface ICommandHandler
     /// <summary>
     ///     Configure resources for this handler
     /// </summary>
-    /// <param name="passConfig"></param>
-    /// <param name="surfaceContext"></param>
-    /// <param name="config"></param>
     public void Configure(IPassConfig passConfig, SurfaceContext surfaceContext, IGraphConfig config);
 
     /// <summary>
     ///     Execute the commands in this handler
     /// </summary>
-    /// <param name="passConfig"></param>
-    /// <param name="surfaceContext"></param>
-    /// <param name="graph"></param>
-    /// <param name="ctx"></param>
     public void Execute(IPassConfig passConfig, SurfaceContext surfaceContext, ICompiledGraph graph,
         IExecutionContext ctx);
 }

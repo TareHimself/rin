@@ -13,6 +13,7 @@ public record struct Padding
 
     public float Horizontal => Left + Right;
     public float Vertical => Top + Bottom;
+    public Vector2 Size => new(Horizontal, Vertical);
 
     public Padding()
     {

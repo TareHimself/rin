@@ -16,13 +16,11 @@ public interface IHostImage : IDisposable
     /// <summary>
     /// Saves the image as png
     /// </summary>
-    /// <param name="stream"></param>
     public void SaveRaw(Stream stream);
     
     /// <summary>
     /// Saves the image as png
     /// </summary>
-    /// <param name="stream"></param>
     public void SavePng(Stream stream);
 
     public IHostImage Mutate(Action<IMutationContext> mutator);

@@ -7,9 +7,6 @@ public static class AnimationExtensions
     /// <summary>
     ///     Stops all animations running on this <see cref="IAnimatable" />
     /// </summary>
-    /// <param name="target"></param>
-    /// <typeparam name="T"></typeparam>
-    /// <returns></returns>
     public static T StopAll<T>(this T target) where T : IAnimatable
     {
         target.AnimationRunner.StopAll();
@@ -19,9 +16,6 @@ public static class AnimationExtensions
     /// <summary>
     ///     Creates a new <see cref="AnimationSequence{T}" />
     /// </summary>
-    /// <param name="target"></param>
-    /// <typeparam name="T"></typeparam>
-    /// <returns></returns>
     public static AnimationSequence<T> Sequence<T>(this T target) where T : IAnimatable
     {
         var seq = new AnimationSequence<T>(target);
@@ -38,10 +32,6 @@ public static class AnimationExtensions
     /// <summary>
     ///     Will run the action as soon as possible
     /// </summary>
-    /// <param name="self"></param>
-    /// <param name="action"></param>
-    /// <typeparam name="T"></typeparam>
-    /// <returns></returns>
     public static AnimationSequence<T> Do<T>(this T self, Action action) where T : IAnimatable
     {
         return self.Sequence().Do(action);
@@ -50,10 +40,6 @@ public static class AnimationExtensions
     /// <summary>
     ///     Will run the action as soon as possible
     /// </summary>
-    /// <param name="self"></param>
-    /// <param name="action"></param>
-    /// <typeparam name="T"></typeparam>
-    /// <returns></returns>
     public static AnimationSequence<T> Do<T>(this AnimationSequence<T> self, Action action) where T : IAnimatable
     {
         self.Add(new ActionAnimation(action));
@@ -63,10 +49,6 @@ public static class AnimationExtensions
     /// <summary>
     ///     Delay for the specified duration, will add an <see cref="AnimationSequence{T}.After" /> before and after the delay
     /// </summary>
-    /// <param name="self"></param>
-    /// <param name="duration"></param>
-    /// <typeparam name="T"></typeparam>
-    /// <returns></returns>
     public static AnimationSequence<T> Delay<T>(this T self, float duration)
         where T : IAnimatable
     {
@@ -76,10 +58,6 @@ public static class AnimationExtensions
     /// <summary>
     ///     Delay for the specified duration, will add an <see cref="AnimationSequence{T}.After" /> before and after the delay
     /// </summary>
-    /// <param name="self"></param>
-    /// <param name="duration"></param>
-    /// <typeparam name="T"></typeparam>
-    /// <returns></returns>
     public static AnimationSequence<T> Delay<T>(this AnimationSequence<T> self, float duration)
         where T : IAnimatable
     {
@@ -90,9 +68,6 @@ public static class AnimationExtensions
     /// <summary>
     ///     Runs the <see cref="AnimationSequence{T}" /> after all the previous <see cref="IAnimation" />'s have completed
     /// </summary>
-    /// <param name="self"></param>
-    /// <typeparam name="T"></typeparam>
-    /// <returns></returns>
     public static AnimationSequence<T> After<T>(this T self) where T : IAnimatable
     {
         return self.AnimationRunner.After(self);

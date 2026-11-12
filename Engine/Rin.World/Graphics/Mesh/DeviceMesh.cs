@@ -30,11 +30,6 @@ public class DeviceMesh : IMesh, IDisposable
         IGraphicsModule.Get().FreeResourceHandles(VertexBuffer.Buffer, IndexBuffer.Buffer);
     }
 
-    public ulong GetVertexFormatSize()
-    {
-        return _formatSize;
-    }
-
     public MeshSurface[] GetSurfaces()
     {
         return Surfaces;
@@ -53,14 +48,7 @@ public class DeviceMesh : IMesh, IDisposable
     public DeviceBufferView GetVertices(int surfaceIndex)
     {
         var surface = Surfaces[surfaceIndex];
-        var formatSize = GetVertexFormatSize();
-        return VertexBuffer.GetView(surface.VertexStart * formatSize, surface.VertexCount * formatSize);
-    }
-
-    public uint GetVertexCount()
-    {
-        var vertices = GetVertices();
-        return (uint)(vertices.Size / _formatSize);
+        return VertexBuffer.GetView(surface.VertexStart * _formatSize, surface.VertexCount * _formatSize);
     }
 
     public uint GetVertexCount(int surfaceIndex)

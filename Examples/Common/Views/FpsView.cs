@@ -67,43 +67,4 @@ public class FpsView : TextBoxView
             return float.Round((float)(_stat * 1000.0), 2);
         }
     }
-
-//     private class GetStatsCommand(FpsView view) : UtilityCommand
-//     {
-//         public override CommandStage Stage => CommandStage.Before;
-//
-//         public override void BeforeAdd(IGraphBuilder builder)
-//         {
-//         }
-//
-//         public override void Configure(IGraphConfig config)
-//         {
-//         }
-//
-//         public override void Execute(ViewsFrame frame)
-//         {
-//             if (view.Surface is WindowSurface asWindowSurface &&
-//                 asWindowSurface.GetRenderer() is WindowRenderer asWindowRenderer)
-//                 view._dispatcher.Enqueue(() =>
-//                 {
-//                     view._averageCollectTime.Add(asWindowRenderer.LastCollectElapsedTime);
-//                     view._averageExecuteTime.Add(asWindowRenderer.LastExecuteElapsedTime);
-//                     var position = frame.Surface.GetCursorPosition();
-//                     view.Content = $"""
-//                                      STATS
-//                                      {new Vector2<int>((int)position.X, (int)position.Y)} Cursor Position
-//                                      {frame.Stats.InitialCommandCount} Initial Commands
-//                                      {frame.Stats.FinalCommandCount} Final Commands
-//                                      {frame.Stats.BatchedDrawCommandCount} Batches
-//                                      {frame.Stats.NonBatchedDrawCommandCount} Draws
-//                                      {frame.Stats.StencilWriteCount} Stencil Writes
-//                                      {frame.Stats.CustomCommandCount} Non Draws
-//                                      {frame.Stats.MemoryAllocatedBytes} Bytes Allocated
-//                                      {float.Round(1 / (float)view._averageFps * 1000.0f, 2)}ms Tick Time 
-//                                      {float.Round((float)view._averageExecuteTime * 1000.0f, 2)}ms Execute Time 
-//                                      {float.Round((float)view._averageCollectTime * 1000.0f, 2)}ms Collect Time 
-//                                      """;
-//                 });
-//         }
-//     }
 }

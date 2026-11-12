@@ -33,7 +33,6 @@ public sealed class SurfaceMaterial<TMaterial> : IMeshMaterial where TMaterial :
     /// </summary>
     public ResourceHandle[] Textures { get; private set; } = [];
 
-    public bool Translucent => false;
     public IMaterialPass ColorPass => SurfaceColorPass<TMaterial>.Shared;
     public IMaterialPass DepthPass =>
         TMaterial.DepthShader is null ? MeshDepthPass.Shared : SurfaceDepthPass<TMaterial>.Shared;

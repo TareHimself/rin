@@ -49,7 +49,9 @@ internal abstract class BepuBody
 
     public bool IsTrigger { get; set; }
 
-    /// <summary>Opt in to swept (continuous) collision — costly; only for small fast movers.</summary>
+    /// <summary>
+    ///     Opt in to swept (continuous) collision. Costly, so only for small fast movers.
+    /// </summary>
     public bool ContinuousCollision { get; set; }
 
     public Vector3 GetLinearVelocity()

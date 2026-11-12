@@ -1,7 +1,6 @@
 ﻿using System.Numerics;
 using System.Runtime.InteropServices;
 using Rin.Core.Graphics;
-using Rin.Core.Views.Sdf;
 
 namespace Rin.Core.Views.Mtsdf;
 
@@ -33,8 +32,6 @@ public class MtsdfBuilder : IDisposable
     /// <summary>
     ///     Ends the current contour, starts a new contour and moves the position of the cursor
     /// </summary>
-    /// <param name="point"></param>
-    /// <returns></returns>
     public MtsdfBuilder MoveTo(Vector2 point)
     {
         Native.sdfContextMoveTo(_context, ref point);
@@ -65,7 +62,6 @@ public class MtsdfBuilder : IDisposable
     /// <summary>
     ///     Stop drawing the vector
     /// </summary>
-    /// <returns></returns>
     public MtsdfBuilder Finish()
     {
         Native.sdfContextFinish(_context);

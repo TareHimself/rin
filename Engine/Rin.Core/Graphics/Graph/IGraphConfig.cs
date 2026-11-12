@@ -87,7 +87,5 @@ public interface IGraphConfig
     /// <summary>
     ///     Adds an explicit dependency to the specified pass ID (NOTE. this may not be what you need)
     /// </summary>
-    /// <param name="passId"></param>
-    /// <returns></returns>
     public uint DependOn(uint passId);
 }

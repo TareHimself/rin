@@ -1,27 +1,7 @@
-﻿using System.Diagnostics;
-using System.Runtime.CompilerServices;
-
-namespace Rin.Core;
+﻿namespace Rin.Core;
 
 public static class Utils
 {
-    public static void Measure(string name, Action func)
-    {
-        var watch = Stopwatch.StartNew();
-        func();
-        watch.Stop();
-        Console.WriteLine($"[Measure: {name}]: {watch.Elapsed.TotalMilliseconds}ms");
-    }
-
-    public static T Measure<T>(string name, Func<T> func)
-    {
-        var watch = Stopwatch.StartNew();
-        var r = func();
-        watch.Stop();
-        Console.WriteLine($"[Measure: {name}]: {watch.Elapsed.TotalMilliseconds}ms");
-        return r;
-    }
-
     public static ulong ByteSizeOf<T>() where T : unmanaged
     {
         unsafe
@@ -36,19 +16,5 @@ public static class Utils
         {
             return (ulong)sizeof(T) * (ulong)count;
         }
-    }
-
-    /// <summary>
-    ///     Performns no bounds checking, assumes sizeof(dest) >= sizeof(source)
-    /// </summary>
-    /// <param name="src"></param>
-    /// <typeparam name="TDest"></typeparam>
-    /// <typeparam name="TSource"></typeparam>
-    /// <returns></returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static unsafe TDest* Reinterpret<TDest, TSource>(TSource* src)
-        where TDest : unmanaged where TSource : unmanaged
-    {
-        return (TDest*)src;
     }
 }

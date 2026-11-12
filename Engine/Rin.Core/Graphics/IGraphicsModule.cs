@@ -1,4 +1,3 @@
-// using Rin.Core.Graphics.Meshes;
 using Rin.Core.Graphics.Shaders;
 using Rin.Core.Graphics.Windows;
 using Rin.Core.Shared.Buffers;
@@ -6,7 +5,7 @@ using Rin.Shade;
 
 namespace Rin.Core.Graphics;
 
-public interface  IGraphicsModule : IModule, IUpdatable, IProviderResolvable<IGraphicsModule>
+public interface IGraphicsModule : IModule, IUpdatable, IProviderResolvable<IGraphicsModule>
 {
     public event Action<IWindow>? OnWindowClosed;
     public event Action<IWindow>? OnWindowCreated;

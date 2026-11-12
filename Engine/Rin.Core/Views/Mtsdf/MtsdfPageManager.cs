@@ -5,21 +5,6 @@ using StbRectPackSharp;
 
 namespace Rin.Core.Views.Mtsdf;
 
-public enum MtsdfState
-{
-    None,
-    Assigned,
-    Ready
-}
-
-public struct MtsdfInfo
-{
-    public int Id;
-    public MtsdfState State;
-    public ResourceHandle Atlas;
-    public RectUint Rect;
-}
-
 public class MtsdfPageManager : IDisposable
 {
     private int _padding = 2;

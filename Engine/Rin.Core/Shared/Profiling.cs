@@ -1,14 +1,11 @@
-#define RIN_PROFILING
-
 using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 
 namespace Rin.Core.Shared;
 
-public abstract class Profiling : IStaticProfiler
+public abstract class Profiling
 {
-#if RIN_PROFILING
     private class ProfilingInfo
     {
         public readonly Stopwatch Watch = new();
@@ -81,42 +78,4 @@ public abstract class Profiling : IStaticProfiler
     {
         return ProfilingInfos.Keys.ToArray();
     }
-#else
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static void Begin(string id)
-    {
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static void End(string id)
-    {
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static void Measure(string id, Action? action)
-    {
-        action?.Invoke();
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static T Measure<T>(string id, Func<T> action)
-    {
-        return action();
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static TimeSpan GetElapsed(string id)
-    {
-        throw new NotImplementedException();
-    }
-    
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static TimeSpan GetElapsedOrZero(string id)
-    {
-        return TimeSpan.Zero;
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static string[] GetIds() => [];
-#endif
 }

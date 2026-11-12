@@ -11,8 +11,6 @@ public enum FitMode
     None
 }
 
-/// <summary>
-/// </summary>
 public class FitterView : SingleSlotCompositeView
 {
     private FitMode _fitFittingMode = FitMode.Fill;
@@ -74,7 +72,6 @@ public class FitterView : SingleSlotCompositeView
 
     private Vector2 FitContent(Vector2 drawSize)
     {
-        // If we have any content fit it 
         if (GetSlot() is { } slot)
         {
             var view = slot.Child;

@@ -33,97 +33,25 @@ public readonly record struct DeviceBufferView
 
     public unsafe ulong WriteRaw(in IntPtr src, ulong size, ulong offset = 0)
     {
-        if (size == 0) return 0; // pinning an empty array yields a null pointer - writing 0 bytes is a no-op either way
-        Debug.Assert(src != IntPtr.Zero);
-        Debug.Assert(IsValid, "Buffer is not valid");
-        IGraphicsModule.Get().WriteBuffer(Buffer, new ReadOnlySpan<byte>((void*)src, (int)size), Offset + offset);
-        return size;
+        return WriteBytes(new ReadOnlySpan<byte>((void*)src, (int)size), offset);
     }
 
-    public ulong Write<T>(T[] data, ulong offset = 0) where T : unmanaged
-    {
-        unsafe
-        {
-            fixed (T* pData = data)
-            {
-                return WriteRaw(new IntPtr(pData), Utils.ByteSizeOf<T>(data.Length), offset);
-            }
-        }
-    }
-    
-    public ulong Write<T>(PooledMemory<T> data, ulong offset = 0) where T : unmanaged
-    {
-        unsafe
-        {
-            fixed (T* pData = data.AsSpan())
-            {
-                 return WriteRaw(new IntPtr(pData), Utils.ByteSizeOf<T>(data.Count), offset);
-            }
-        }
-    }
-    
-    public ulong Write<T>(List<T> data, ulong offset = 0) where T : unmanaged
-    {
-        unsafe
-        {
-            fixed (T* pData = CollectionsMarshal.AsSpan(data))
-            {
-                return WriteRaw(new IntPtr(pData), Utils.ByteSizeOf<T>(data.Count), offset);
-            }
-        }
-    }
-    
-    // public void Write<T>(Span<T> data, ulong offset = 0) where T : unmanaged
-    // {
-    //     unsafe
-    //     {
-    //         fixed (T* pData = data)
-    //         {
-    //             WriteRaw(new IntPtr(pData), Utils.ByteSizeOf<T>(data.Length), offset);
-    //         }
-    //     }
-    // }
-    
-    public ulong Write<T>(Memory<T> data, ulong offset = 0) where T : unmanaged
-    {
-        unsafe
-        {
-            fixed (T* pData = data.Span)
-            {
-                return WriteRaw(new IntPtr(pData), Utils.ByteSizeOf<T>(data.Length), offset);
-            }
-        }
-    }
+    public ulong Write<T>(T[] data, ulong offset = 0) where T : unmanaged => Write(new ReadOnlySpan<T>(data), offset);
 
-    public ulong Write<T>(ReadOnlySpan<T> data, ulong offset = 0) where T : unmanaged
-    {
-        unsafe
-        {
-            fixed (T* pData = data)
-            {
-                return WriteRaw(new IntPtr(pData), Utils.ByteSizeOf<T>(data.Length), offset);
-            }
-        }
-    }
-    
-    public ulong Write<T>(ReadOnlyMemory<T> data, ulong offset = 0) where T : unmanaged
-    {
-        unsafe
-        {
-            fixed (T* pData = data.Span)
-            {
-               return WriteRaw(new IntPtr(pData), Utils.ByteSizeOf<T>(data.Length), offset);
-            }
-        }
-    }
-    
-    public ulong WriteSingle<T>(T src, ulong offset = 0) where T : unmanaged
-    {
-        unsafe
-        {
-            return WriteRaw(new IntPtr(&src), Utils.ByteSizeOf<T>(), offset);
-        }
-    }
+    public ulong Write<T>(PooledMemory<T> data, ulong offset = 0) where T : unmanaged => Write(data.AsSpan(), offset);
+
+    public ulong Write<T>(List<T> data, ulong offset = 0) where T : unmanaged =>
+        Write(CollectionsMarshal.AsSpan(data), offset);
+
+    public ulong Write<T>(Memory<T> data, ulong offset = 0) where T : unmanaged => Write(data.Span, offset);
+
+    public ulong Write<T>(ReadOnlyMemory<T> data, ulong offset = 0) where T : unmanaged => Write(data.Span, offset);
+
+    public ulong Write<T>(ReadOnlySpan<T> data, ulong offset = 0) where T : unmanaged =>
+        WriteBytes(MemoryMarshal.AsBytes(data), offset);
+
+    public ulong WriteSingle<T>(T src, ulong offset = 0) where T : unmanaged =>
+        Write(new ReadOnlySpan<T>(in src), offset);
 
     public ulong Write<T>(IReadOnlyBuffer<T> src, ulong offset = 0) where T : unmanaged
     {
@@ -132,10 +60,17 @@ public readonly record struct DeviceBufferView
         return WriteRaw(src.GetPtr(), src.ByteSize, offset);
     }
 
+    private ulong WriteBytes(ReadOnlySpan<byte> bytes, ulong offset)
+    {
+        if (bytes.IsEmpty) return 0;
+        Debug.Assert(IsValid, "Buffer is not valid");
+        IGraphicsModule.Get().WriteBuffer(Buffer, bytes, Offset + offset);
+        return (ulong)bytes.Length;
+    }
+
     public DeviceBufferView GetView(ulong offset, ulong size)
     {
         var newOffset = Offset + offset;
-        //Debug.Assert(IsValid,"Buffer is not valid");
         Debug.Assert(newOffset <= Offset + Size, "Offset out of range");
         Debug.Assert((newOffset + size) <= (Offset + Size), "Offset out of range");
         return new DeviceBufferView(Buffer, newOffset, size);

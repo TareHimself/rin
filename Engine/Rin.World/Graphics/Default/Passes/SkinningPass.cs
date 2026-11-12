@@ -14,9 +14,8 @@ using Rin.World.Graphics.Mesh;
 namespace Rin.World.Graphics.Default.Passes;
 
 /// <summary>
-///     Create this pass if we are going to do skinning
+///     Skins every skinned surface's vertices into one output buffer on the GPU.
 /// </summary>
-/// <param name="sceneFrame"></param>
 public partial class SkinningPass(DefaultSceneFrame sceneFrame) : IComputePass
 {
     [ComputeShader<SkinningShader>]
@@ -26,7 +25,6 @@ public partial class SkinningPass(DefaultSceneFrame sceneFrame) : IComputePass
 
     private uint TotalVerticesToSkin { get; set; }
 
-    //private SkinningExecutionInfo[] ExecutionInfos { get; set; }
     private uint SkinnedMeshArrayBufferId { get; set; }
     private uint SkinningExecutionInfoBufferId { get; set; }
     private List<uint> SkinningPoseBufferIds { get; set; } = new(sceneFrame.SkinnedGeometry.Length);
@@ -44,7 +42,6 @@ public partial class SkinningPass(DefaultSceneFrame sceneFrame) : IComputePass
         UniqueSkinnedMeshes.EnsureCapacity(sceneFrame.ProcessedSkinnedMeshCount);
         ExecutionInfos.EnsureCapacity(sceneFrame.SkinnedSurfaceCount);
         
-        // Buffers for skinning poses
         foreach (var skinnedPose in sceneFrame.SkinningMatrices)
         {
             SkinningPoseBufferIds.Add(config.CreateBuffer<Matrix4x4>(skinnedPose.Count, GraphBufferUsage.HostThenCompute));
@@ -75,7 +72,7 @@ public partial class SkinningPass(DefaultSceneFrame sceneFrame) : IComputePass
                 {
                     MeshIndex = uniqueMeshIndex,
                     PoseIndex = processedMesh.GeometryId, // poses are 1-1 with the skinned geometry array
-                    VertexIndex = (int)(processedMesh.Surface.VertexStart + vertexId) // Vertex index is buffer relative
+                    VertexIndex = (int)(processedMesh.Surface.VertexStart + vertexId)
                 });
             }
         }
@@ -120,7 +117,6 @@ public partial class SkinningPass(DefaultSceneFrame sceneFrame) : IComputePass
                     Output = output.ToDeviceSpan<Vertex>()
                 })
                 .Invoke(TotalVerticesToSkin);
-            //cmd.BufferBarrier(output, MemoryBarrierOptions.ComputeToGraphics());
             for (var i = sceneFrame.SkinnedMeshStartIndex; i < sceneFrame.ProcessedMeshes.Count; i++)
             {
                 var mesh = sceneFrame.ProcessedMeshes[i];

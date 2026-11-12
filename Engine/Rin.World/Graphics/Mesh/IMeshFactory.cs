@@ -9,7 +9,6 @@ public interface IMeshFactory : IDisposable, IProviderResolvable<IMeshFactory>
         MeshSurface[] surfaces) where TVertexFormat : unmanaged, IVertex;
 
     public Task CreateMesh(out int meshId, Buffer<Vertex> vertices, Buffer<uint> indices, MeshSurface[] surfaces);
-    public Task? GetPendingMesh(int meshId);
     public bool IsMeshReady(int meshId);
     public IMesh? GetMesh(int meshId);
     public void FreeMeshes(params ReadOnlySpan<int> meshIds);

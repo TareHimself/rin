@@ -100,11 +100,6 @@ public class PanelLayout(ICompositeView container) : InfiniteChildrenLayout
             var workingSize = asPanelSlot.SizeToContent && !areBothRelative
                 ? view.Layout(new Vector2(float.PositiveInfinity))
                 : asPanelSlot.Size;
-            // new Vector2
-            // {
-            //     X = asPanelSlot.SizeToContent && noOffsetX ? desiredSize.X : asPanelSlot.Count.X,
-            //     Y = asPanelSlot.SizeToContent && noOffsetY ? desiredSize.Y: asPanelSlot.Count.Y
-            // };
 
             var p1 = asPanelSlot.Offset;
             var p2 = p1 + workingSize;

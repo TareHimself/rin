@@ -3,22 +3,17 @@
 namespace Rin.World.Graphics;
 
 /// <summary>
-///     Interface for all Materials
+///     A material drawn on mesh surfaces.
 /// </summary>
 public interface IMeshMaterial
 {
     /// <summary>
-    ///     Is this material translucent ?
-    /// </summary>
-    public bool Translucent { get; }
-
-    /// <summary>
-    ///     Main rendering pass
+    ///     The pass used for the color pass.
     /// </summary>
     public IMaterialPass ColorPass { get; }
 
     /// <summary>
-    ///     The pass used for the depth pre-pass
+    ///     The pass used for the depth pre-pass.
     /// </summary>
     public IMaterialPass DepthPass { get; }
 

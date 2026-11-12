@@ -3,7 +3,6 @@ using System.Diagnostics;
 using System.Numerics;
 using Rin.Core.Graphics;
 using Rin.Core.Shared.Threading;
-using Rin.Core.Views.Sdf;
 using Rin.Core.Extensions;
 using Rin.Core.Views.Mtsdf;
 
@@ -56,13 +55,13 @@ public class HarfBuzzFontManager : IFontManager
     {
         if (font is HarfBuzzFont asFont)
         {
-            List<Pair<char, CacheKey>> toGenerate = [];
+            List<(char Character, CacheKey Key)> toGenerate = [];
 
             foreach (var character in characters)
             {
                 var key = new CacheKey(character, asFont.Name);
                 if (_atlases.ContainsKey(key)) continue;
-                toGenerate.Add(new Pair<char, CacheKey>(character, key));
+                toGenerate.Add((character, key));
             }
 
             if (toGenerate.Empty()) return Task.CompletedTask;
@@ -81,12 +80,12 @@ public class HarfBuzzFontManager : IFontManager
                 {
                     var initialResults = new SdfResult?[toGenerate.Count];
                     Parallel.For(0, toGenerate.Count,
-                        i => initialResults[i] = GenerateGlyph(toGenerate[i].First, asFont));
+                        i => initialResults[i] = GenerateGlyph(toGenerate[i].Character, asFont));
 
                     for (var index = 0; index < toGenerate.Count; index++)
                     {
                         var result = initialResults[index];
-                        var key = toGenerate[index].Second;
+                        var key = toGenerate[index].Key;
 
                         if (result is null)
                         {

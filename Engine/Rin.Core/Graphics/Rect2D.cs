@@ -23,9 +23,6 @@ public record struct Rect2D
     /// <summary>
     ///     Creates a rect that is the AABB of the transformed rect
     /// </summary>
-    /// <param name="offset"></param>
-    /// <param name="size"></param>
-    /// <param name="transform"></param>
     public Rect2D(in Vector2 offset, in Vector2 size, in Matrix4x4 transform)
     {
         var tl = offset;
@@ -92,9 +89,6 @@ public record struct Rect2D
     /// <summary>
     ///     Clamps a rect to the specified area
     /// </summary>
-    /// <param name="rect"></param>
-    /// <param name="area"></param>
-    /// <returns></returns>
     public static Rect2D Clamp(Rect2D rect, Rect2D area)
     {
         if (!IntersectsWith(rect, area)) return new Rect2D(area.Offset, new Vector2());
@@ -111,11 +105,6 @@ public record struct Rect2D
         return new Rect2D(offset, p2 - offset);
     }
 
-    public static implicit operator Pair<Vector2, Vector2>(Rect2D rect)
-    {
-        return new Pair<Vector2, Vector2>(rect.Offset, rect.Offset + rect.Size);
-    }
-
     public static bool PointWithin(in Vector2 size, in Matrix4x4 transform, in Vector2 point, bool useInverse = true)
     {
         var tl = Vector2.Zero;
@@ -129,9 +118,6 @@ public record struct Rect2D
 
             return transformedPoint.Within(Vector2.Zero, size);
         }
-        // var transformedPoint = point.ApplyTransformation(transform.Inverse());
-        //
-        // return transformedPoint.Within(Vector2.Zero, Count);
 
         tl = tl.Transform(transform);
         br = br.Transform(transform);
@@ -159,7 +145,6 @@ public record struct Rect2D
             )
         );
 
-        // Perform AABB test first
         if (!point.Within(p1, p2)) return false;
 
         var top = tr - tl;

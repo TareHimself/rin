@@ -52,8 +52,6 @@ public abstract class CompositeView : View, ICompositeView
     /// <summary>
     ///     Compute all the offsets applied to a child of this <see cref="CompositeView" />
     /// </summary>
-    /// <param name="child"></param>
-    /// <returns></returns>
     public virtual Matrix4x4 ComputeChildOffsets(IView child)
     {
         return GetLocalContentTransform().ChildOf(GetLocalTransform());
@@ -79,7 +77,7 @@ public abstract class CompositeView : View, ICompositeView
         InvalidateLayout();
     }
 
-    private readonly List<Pair<IView, Matrix4x4>> _toCollect = [];
+    private readonly List<(IView View, Matrix4x4 Transform)> _toCollect = [];
     public override void Collect(in Matrix4x4 transform, in Rect2D clip, CommandList commands)
     {
         if (Visibility is Visibility.Hidden or Visibility.Collapsed) return;
@@ -107,7 +105,7 @@ public abstract class CompositeView : View, ICompositeView
 
             if (!Rect2D.IntersectsWith(clipRect, aabb)) continue;
 
-            _toCollect.Add(new Pair<IView, Matrix4x4>(slot.Child, slotTransform));
+            _toCollect.Add((slot.Child, slotTransform));
         }
 
         foreach (var (view, mat) in _toCollect) view.Collect(mat, clipRect, commands);
@@ -177,8 +175,8 @@ public abstract class CompositeView : View, ICompositeView
     }
 
 
-    private readonly List<Pair<ISlot, Matrix4x4>> _computeHitTestableSlotsForEventScratch = [];
-    protected virtual Pair<ISlot, Matrix4x4>[] ComputeHitTestableSlotsForEvent(IPositionalEvent e, Matrix4x4 transform)
+    private readonly List<(ISlot Slot, Matrix4x4 Transform)> _computeHitTestableSlotsForEventScratch = [];
+    protected virtual (ISlot Slot, Matrix4x4 Transform)[] ComputeHitTestableSlotsForEvent(IPositionalEvent e, Matrix4x4 transform)
     {
         if (!IsChildrenHitTestable) return [];
         var slots = GetActiveSlots();
@@ -217,9 +215,6 @@ public abstract class CompositeView : View, ICompositeView
     /// <summary>
     ///     Compute extra offsets for this slot
     /// </summary>
-    /// <param name="slot"></param>
-    /// <param name="contentTransform"></param>
-    /// <returns></returns>
     protected virtual Matrix4x4 ComputeSlotTransform(ISlot slot, in Matrix4x4 contentTransform)
     {
         return slot.Child.GetLocalTransform().ChildOf(contentTransform);
@@ -228,7 +223,5 @@ public abstract class CompositeView : View, ICompositeView
     /// <summary>
     ///     Arranges content and returns their computed total size i.e. the combined length of all items in a list
     /// </summary>
-    /// <param name="availableSpace"></param>
-    /// <returns></returns>
     protected abstract Vector2 ArrangeContent(in Vector2 availableSpace);
 }

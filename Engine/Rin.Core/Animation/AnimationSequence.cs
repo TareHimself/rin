@@ -33,7 +33,6 @@ public class AnimationSequence<T> : IAnimation where T : IAnimatable
     /// <summary>
     ///     Run the next <see cref="IAnimation" />'s after all the previous ones
     /// </summary>
-    /// <returns></returns>
     public AnimationSequence<T> After()
     {
         _startTime = Duration;

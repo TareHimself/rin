@@ -3,7 +3,6 @@
 namespace Rin.Core.Shared.Math;
 
 public class Averaged<T>
-    // where T : IDivisionOperators<T, T, T>, IAdditionOperators<T, T, T>, ISubtractionOperators<T, T, T>
     where T : INumber<T>
 {
     private readonly LinkedList<T> _items = [];

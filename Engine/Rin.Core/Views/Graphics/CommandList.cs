@@ -44,7 +44,6 @@ public class CommandList
 
     [PublicAPI] public readonly List<ClipStackKey> ClipIds = [];
 
-    //private readonly SortedDictionary<int, List<RawCommand>> _commands = new SortedDictionary<int, List<RawCommand>>(Comparer<int>.Create((a,b) => b.CompareTo(a)));
     [PublicAPI] public readonly List<ICommand> Commands = [];
 
     private uint[]? _registeredClipIds;

@@ -171,7 +171,6 @@ public abstract class View : IView
     ///     Transformation to apply to all content. Includes anything subclasses shift content by (such as scroll),
     ///     so it must not be used to locate the view's own bounds or clip.
     /// </summary>
-    /// <returns></returns>
     public virtual Matrix4x4 GetLocalContentTransform()
     {
         return Matrix4x4.Identity.Translate(new Vector2(Padding.Left, Padding.Top));
@@ -199,12 +198,10 @@ public abstract class View : IView
     /// <summary>
     ///     Compute and set this views size based on the space available
     /// </summary>
-    /// <param name="availableSpace"></param>
     /// <param name="fill">
     ///     If true will set size to <see cref="availableSpace" /> irrespective of the space
     ///     taken by content
     /// </param>
-    /// <returns></returns>
     public virtual Vector2 Layout(in Vector2 availableSpace, bool fill = false)
     {
         if (Visibility == Visibility.Collapsed)
@@ -215,7 +212,7 @@ public abstract class View : IView
             return _size;
         }
 
-        var padding = new Vector2(Padding.Left + Padding.Right, Padding.Top + Padding.Bottom);
+        var padding = Padding.Size;
         var contentSize = LayoutContent(availableSpace - padding) + padding;
         var sizeResult = (fill ? availableSpace : contentSize).FiniteOr();
         _cachedRelativeTransform = null;
@@ -227,7 +224,6 @@ public abstract class View : IView
     /// <summary>
     ///     Computes the relative/local transformation matrix for this view
     /// </summary>
-    /// <returns></returns>
     public Matrix4x4 GetLocalTransform()
     {
         if (_cachedRelativeTransform is { } cached) return cached;
@@ -383,7 +379,7 @@ public abstract class View : IView
     [PublicAPI]
     public Vector2 GetContentSize()
     {
-        return GetSize() - new Vector2(Padding.Left + Padding.Right, Padding.Top + Padding.Bottom);
+        return GetSize() - Padding.Size;
     }
 
     [PublicAPI]
@@ -397,13 +393,12 @@ public abstract class View : IView
     [PublicAPI]
     public Vector2 GetDesiredContentSize()
     {
-        return Vector2.Clamp(GetDesiredSize() - new Vector2(Padding.Left + Padding.Right, Padding.Top + Padding.Bottom),Vector2.Zero, Vector2.PositiveInfinity);
+        return Vector2.Clamp(GetDesiredSize() - Padding.Size,Vector2.Zero, Vector2.PositiveInfinity);
     }
 
     /// <summary>
     ///     Compute the size this view would like to be displayed at, defaults to zero
     /// </summary>
-    /// <returns></returns>
     public virtual Vector2 ComputeDesiredContentSize()
     {
         return Vector2.Zero;
@@ -411,15 +406,12 @@ public abstract class View : IView
 
     public Vector2 ComputeDesiredSize()
     {
-        return ComputeDesiredContentSize() + new Vector2(Padding.Left + Padding.Right, Padding.Top + Padding.Bottom);
+        return ComputeDesiredContentSize() + Padding.Size;
     }
 
     /// <summary>
     ///     Collect draw commands from this view
     /// </summary>
-    /// <param name="transform"></param>
-    /// <param name="clip"></param>
-    /// <param name="commands"></param>
     public abstract void Collect(in Matrix4x4 transform, in Rect2D clip, CommandList commands);
 
 
@@ -502,8 +494,6 @@ public abstract class View : IView
     /// <summary>
     ///     Lay's out content in the available space and returns the size taken by the content
     /// </summary>
-    /// <param name="availableSpace"></param>
-    /// <returns></returns>
     protected abstract Vector2 LayoutContent(in Vector2 availableSpace);
 
     public Vector2 GetPaddingOffset()

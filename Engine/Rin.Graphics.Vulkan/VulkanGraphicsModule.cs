@@ -29,7 +29,7 @@ public partial class VulkanGraphicsModule : IGraphicsModule, IExternalResourceSo
 
     private readonly DescriptorLayoutFactory _descriptorLayoutFactory = new();
     private readonly int _maxEventsPerPeep = 64;
-    private readonly List<Pair<TaskCompletionSource, Action<IExecutionContext>>> _pendingGraphicsSubmits = [];
+    private readonly List<(TaskCompletionSource Completion, Action<IExecutionContext> Action)> _pendingGraphicsSubmits = [];
     private readonly FrameCollector _frames = new();
     private readonly Dictionary<ulong, RinWindow> _rinWindows = [];
 
@@ -486,7 +486,7 @@ public partial class VulkanGraphicsModule : IGraphicsModule, IExternalResourceSo
         lock (_pendingGraphicsSubmits)
         {
             var pending = new TaskCompletionSource();
-            _pendingGraphicsSubmits.Add(new Pair<TaskCompletionSource, Action<IExecutionContext>>(pending, action));
+            _pendingGraphicsSubmits.Add((pending, action));
             return pending.Task;
         }
     }
@@ -698,7 +698,7 @@ public partial class VulkanGraphicsModule : IGraphicsModule, IExternalResourceSo
 
     private void HandlePendingGraphicsSubmits()
     {
-        Pair<TaskCompletionSource, Action<IExecutionContext>>[] pending;
+        (TaskCompletionSource Completion, Action<IExecutionContext> Action)[] pending;
 
         lock (_pendingGraphicsSubmits)
         {
