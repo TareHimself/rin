@@ -21,4 +21,4 @@ CI passes `-p:RinShadeSkipCompile=true` for this project.
 | `Tasks/` | `GameTask` waits, combinators, resume order, cancellation, faults, what a snapshot restore cancels, and the zero-allocation check |
 | `Mesh/Skinning/` | Skeleton poses, animation clips and the animation graph nodes |
 
-References: Rin.World (Rin.Core comes through it), Rin.SourceGenerators as an analyzer, so the test components are registered too.
+References: Rin.World (Rin.Core comes through it), Rin.Graphics.Null for the tests that create GPU resources, Rin.SourceGenerators as an analyzer, so the test components are registered too.

@@ -69,7 +69,7 @@ public sealed class AssetViewerExample : Example
     private async void LoadAndSpawnModel(RenderFeature render, Entity camera)
     {
         var path = Path.Join(Global.Directory, ModelPath);
-        var mesh = await GltfMeshImporter.LoadSkinnedMesh(path);
+        var mesh = await Task.Run(() => GltfMeshImporter.LoadSkinnedMesh(path));
         if (mesh is null) return;
 
         var clips = GltfAnimationImporter.LoadAnimationClips(path);
@@ -80,9 +80,9 @@ public sealed class AssetViewerExample : Example
         IApplication.Get().MainDispatcher.Enqueue(() =>
         {
             if (_render != render) return;
-            var deviceMesh = IMeshFactory.Get().GetMesh(mesh.MeshId)!;
+            var deviceMesh = IMeshFactory.Get().GetMesh(mesh.Mesh)!;
             var model = render.World.Spawn();
-            render.World.Add(model, new SkinnedMesh { MeshId = mesh.MeshId, PoseSource = render.PoseSources.Add(graph) });
+            render.World.Add(model, new SkinnedMesh { Mesh = mesh.Mesh, PoseSource = render.PoseSources.Add(graph) });
 
             var bounds = deviceMesh.GetBounds();
             var center = (bounds.Min + bounds.Max) / 2f;

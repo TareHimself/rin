@@ -1,6 +1,0 @@
-namespace Rin.World.Mesh;
-
-public class StaticMesh
-{
-    public required int MeshId { get; init; }
-}

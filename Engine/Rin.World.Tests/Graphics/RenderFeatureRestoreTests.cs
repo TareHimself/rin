@@ -99,11 +99,26 @@ public class RenderFeatureRestoreTests
         Assert.That(resaved.Bytes.ToArray(), Is.EqualTo(_snapshot.Bytes.ToArray()));
     }
 
+    [Test]
+    public void AnEntityWhoseMeshWasFreedSinceTheSnapshotLosesItsProxy()
+    {
+        var handle = _meshes.Register(new FakeMesh());
+        var entity = _world.Spawn();
+        _world.Add(entity, new StaticMesh { Mesh = handle });
+        _world.SaveSnapshot(_snapshot);
+
+        _meshes.FreeMeshes(handle);
+        _world.RestoreSnapshot(_snapshot);
+
+        Assert.That(_world.Has<StaticMesh>(entity), Is.True);
+        Assert.That(_world.Has<RenderProxy>(entity), Is.False);
+    }
+
     private Entity SpawnMesh(Vector3 position)
     {
         var entity = _world.Spawn();
         _world.SetPosition(entity, position);
-        _world.Add(entity, new StaticMesh { MeshId = _meshes.Register(new FakeMesh()) });
+        _world.Add(entity, new StaticMesh { Mesh = _meshes.Register(new FakeMesh()) });
         return entity;
     }
 

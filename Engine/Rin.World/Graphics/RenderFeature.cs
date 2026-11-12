@@ -16,9 +16,9 @@ namespace Rin.World.Graphics;
 ///     <see cref="FramePhase.Extract" /> system added after transform propagation pushes the changes every frame.
 /// </summary>
 /// <remarks>
-///     An entity holds at most one of those components; use child entities for more. A mesh that is not ready in the
-///     mesh factory when its component is added gets no proxy. A snapshot restore destroys every proxy and recreates one,
-///     at the restored world pose, for each restored entity that had one.
+///     An entity holds at most one of those components; use child entities for more. Adding a mesh component whose
+///     handle is not a live mesh throws. A snapshot restore destroys every proxy and recreates one, at the restored
+///     world pose, for each restored entity whose mesh is still live.
 /// </remarks>
 public sealed class RenderFeature : IWorldRestoreListener
 {
@@ -116,8 +116,7 @@ public sealed class RenderFeature : IWorldRestoreListener
     {
         EnsureNoProxy(entity);
         var transform = CurrentWorldTransform(entity);
-        var handle = CreateStaticMeshHandle(staticMesh, transform.Matrix);
-        if (handle.IsValid) AddProxy(entity, handle, transform.Version);
+        AddMeshProxy(entity, CreateStaticMeshHandle(staticMesh, transform.Matrix), transform.Version);
     }
 
     private void CreateSkinnedMeshProxy(Entity entity, ref SkinnedMesh skinnedMesh)
@@ -127,8 +126,7 @@ public sealed class RenderFeature : IWorldRestoreListener
             throw new InvalidOperationException($"The {nameof(SkinnedMesh)} of {entity} needs a pose source.");
 
         var transform = CurrentWorldTransform(entity);
-        var handle = CreateSkinnedMeshHandle(skinnedMesh, transform.Matrix);
-        if (handle.IsValid) AddProxy(entity, handle, transform.Version);
+        AddMeshProxy(entity, CreateSkinnedMeshHandle(skinnedMesh, transform.Matrix), transform.Version);
     }
 
     private void CreatePointLightProxy(Entity entity, ref PointLight light)
@@ -147,7 +145,7 @@ public sealed class RenderFeature : IWorldRestoreListener
 
     private RenderProxyHandle CreateStaticMeshHandle(in StaticMesh staticMesh, in Matrix4x4 transform)
     {
-        if (_meshFactory.GetMesh(staticMesh.MeshId) is not { } mesh) return default;
+        if (_meshFactory.GetMesh(staticMesh.Mesh) is not { } mesh) return default;
 
         var (surfaceIndices, materials) = ResolveSurfaceMaterials(mesh, Materials.Get(staticMesh.Materials));
         return RenderSystem.CreateStaticMeshProxy(new StaticMeshProxyDesc
@@ -161,7 +159,7 @@ public sealed class RenderFeature : IWorldRestoreListener
 
     private RenderProxyHandle CreateSkinnedMeshHandle(in SkinnedMesh skinnedMesh, in Matrix4x4 transform)
     {
-        if (_meshFactory.GetMesh(skinnedMesh.MeshId) is not { } mesh) return default;
+        if (_meshFactory.GetMesh(skinnedMesh.Mesh) is not { } mesh) return default;
 
         var poseSource = PoseSources.Get(skinnedMesh.PoseSource);
         var (surfaceIndices, materials) = ResolveSurfaceMaterials(mesh, Materials.Get(skinnedMesh.Materials));
@@ -199,6 +197,14 @@ public sealed class RenderFeature : IWorldRestoreListener
     {
         if (World.Has<RenderProxy>(entity))
             throw new InvalidOperationException($"{entity} already has a render proxy. Put each mesh or light on its own entity.");
+    }
+
+    private void AddMeshProxy(Entity entity, RenderProxyHandle handle, uint transformVersion)
+    {
+        if (!handle.IsValid)
+            throw new InvalidOperationException($"The mesh of {entity} is not a live mesh of the mesh factory.");
+
+        AddProxy(entity, handle, transformVersion);
     }
 
     private void AddProxy(Entity entity, RenderProxyHandle handle, uint transformVersion) =>

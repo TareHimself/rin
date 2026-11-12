@@ -33,27 +33,24 @@ internal sealed class FakeMeshMaterial : IMeshMaterial
 
 internal sealed class FakeMeshFactory : IMeshFactory
 {
-    private readonly Dictionary<int, IMesh> _meshes = [];
+    private readonly Dictionary<MeshHandle, IMesh> _meshes = [];
+    private uint _nextIndex;
 
-    public int Register(IMesh mesh)
+    public MeshHandle Register(IMesh mesh)
     {
-        var id = _meshes.Count + 1;
-        _meshes.Add(id, mesh);
-        return id;
+        var handle = new MeshHandle(_nextIndex++, 1);
+        _meshes.Add(handle, mesh);
+        return handle;
     }
 
-    public IMesh? GetMesh(int meshId) => _meshes.GetValueOrDefault(meshId);
+    public IMesh? GetMesh(MeshHandle mesh) => _meshes.GetValueOrDefault(mesh);
 
-    public bool IsMeshReady(int meshId) => _meshes.ContainsKey(meshId);
-
-    public Task CreateMesh<TVertexFormat>(out int meshId, Buffer<TVertexFormat> vertices, Buffer<uint> indices,
+    public MeshHandle CreateMesh<TVertexFormat>(ReadOnlySpan<TVertexFormat> vertices, ReadOnlySpan<uint> indices,
         MeshSurface[] surfaces) where TVertexFormat : unmanaged, IVertex => throw new NotSupportedException();
 
-    public Task CreateMesh(out int meshId, Buffer<Vertex> vertices, Buffer<uint> indices, MeshSurface[] surfaces) =>
-        throw new NotSupportedException();
-
-    public void FreeMeshes(params ReadOnlySpan<int> meshIds)
+    public void FreeMeshes(params ReadOnlySpan<MeshHandle> meshes)
     {
+        foreach (var mesh in meshes) _meshes.Remove(mesh);
     }
 
     public void Dispose()

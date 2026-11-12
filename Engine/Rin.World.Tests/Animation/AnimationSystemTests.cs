@@ -161,7 +161,7 @@ public class AnimationSystemTests
     {
         var entity = _world.Spawn();
         _world.SetPosition(entity, Vector3.Zero);
-        _world.Add(entity, new SkinnedMesh { MeshId = _meshes.Register(new FakeMesh()), PoseSource = handle });
+        _world.Add(entity, new SkinnedMesh { Mesh = _meshes.Register(new FakeMesh()), PoseSource = handle });
         return entity;
     }
 
