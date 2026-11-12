@@ -23,11 +23,12 @@
     <UsingTask TaskName="Rin.Shade.MSBuild.CompileRinShadeShaders" AssemblyFile="$(RinShadeMSBuildAssembly)" TaskFactory="TaskHostFactory" />
 
     <!--
-        Brings the task up to date before every use, so a transpiler change takes effect on the next build.
+        Brings the task and its references up to date before every use, so a transpiler change takes effect on the
+        next build even when the outer build skips project references (as IDE builds do).
         The output properties are removed so a build with -o still puts the task where RinShadeMSBuildAssembly points.
     -->
     <Target Name="BuildRinShadeMSBuildTask" Condition="'$(RinShadeSkipCompile)' != 'true'">
-        <MSBuild Projects="$(RinShadeMSBuildProject)" Targets="Build" Properties="Configuration=Release"
+        <MSBuild Projects="$(RinShadeMSBuildProject)" Targets="Build" Properties="Configuration=Release;BuildProjectReferences=true"
                  RemoveProperties="OutputPath;OutDir;_CommandLineDefinedOutputPath;TargetFramework;RuntimeIdentifier" />
     </Target>
 
