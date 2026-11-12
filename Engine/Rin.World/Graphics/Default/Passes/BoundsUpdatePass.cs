@@ -12,7 +12,6 @@ namespace Rin.World.Graphics.Default.Passes;
 ///     Recomputes the bounds of skinned surfaces from their skinned vertices, replacing the rest-pose bounds that
 ///     <see cref="InitSceneResourcesPass" /> wrote. Runs after <see cref="SkinningPass" />.
 /// </summary>
-/// <param name="sceneFrame"></param>
 public partial class BoundsUpdatePass(DefaultSceneFrame sceneFrame) : IComputePass
 {
     [ComputeShader<BoundsUpdateShader>]

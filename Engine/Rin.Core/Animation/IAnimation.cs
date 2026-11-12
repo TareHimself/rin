@@ -8,7 +8,6 @@ public interface IAnimation
     /// <summary>
     ///     Process This animation
     /// </summary>
-    /// <param name="elapsed"></param>
     /// <returns>The time remaining i.e. float.PositiveInfinity for non finite animations</returns>
     public void Update(float elapsed);
 }

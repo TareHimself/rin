@@ -38,7 +38,7 @@ public class ThenOrderingTests
         textureReady.SetResult(42);
         await Task.Delay(50);
         Assert.That(log, Is.EqualTo(new[] { "outer-start:42" }),
-            "outer continuation should have run once TextureHandleTask completed, inner should still be pending");
+            "outer continuation should have run once its antecedent completed, inner should still be pending");
 
         uploadReady.SetResult();
         await Task.Delay(50);
@@ -52,15 +52,9 @@ public class ThenOrderingTests
     }
 
     /// <summary>
-    ///     Regression guard for a real bug: VulkanGraphicsModule.Resources.cs's pending-resource sweep calls
-    ///     <c>TaskCompletionSource.SetResult</c> and only afterwards flips the resource's state to Ready
-    ///     (Resources.cs:605 then :609). If Then ever runs its continuation with
-    ///     <see cref="TaskContinuationOptions.ExecuteSynchronously" />, the continuation executes inline as part of
-    ///     the SetResult call - i.e. it can observe the resource still mid-transition, before the "state = Ready"
-    ///     line runs - which is exactly what produced an "IsValid ... still Uploading" assertion failure in
-    ///     MtsdfPageManager. <paramref name="resource" /> here is a mutable reference read live inside the
-    ///     continuation (like the real <c>resource.State</c> field), not captured by value, so this actually
-    ///     distinguishes inline-synchronous execution from deferred execution.
+    ///     Then must not run its continuation inline during <c>SetResult</c>, or the continuation sees state the
+    ///     producer updates right after completing the task. The continuation reads <c>resource</c> live so the test
+    ///     can tell inline execution from deferred execution.
     /// </summary>
     [Test]
     public void ThenDoesNotObserveBookkeepingThatRunsAfterSetResult()
@@ -73,7 +67,7 @@ public class ThenOrderingTests
             (resource, observed));
 
         completionSource.SetResult(0);
-        resource.Value = "Ready"; // mirrors VulkanGraphicsModule.Resources.cs:609, right after SetResult at :605
+        resource.Value = "Ready"; // the producer's bookkeeping after SetResult
 
         continuation.Wait();
 

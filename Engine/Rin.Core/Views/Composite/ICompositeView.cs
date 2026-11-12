@@ -11,14 +11,14 @@ public interface ICompositeView : IView
     /// <summary>
     ///     Compute all the offsets applied to a child of this <see cref="CompositeView" />
     /// </summary>
-    /// <param name="child"></param>
-    /// <returns></returns>
     public Matrix4x4 ComputeChildOffsets(IView child);
 
     [PublicAPI]
     public ISlot[] GetSlots();
 
-    /// <summary>The slots participating in the current frame (layout, draw, hit-test).</summary>
+    /// <summary>
+    ///     The slots participating in the current frame (layout, draw, hit-test).
+    /// </summary>
     [PublicAPI]
     public ISlot[] GetActiveSlots() => GetSlots();
 

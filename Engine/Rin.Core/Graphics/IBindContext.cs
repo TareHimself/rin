@@ -5,7 +5,6 @@
 /// </summary>
 public interface IBindContext
 {
-    //public IBindContext WriteImage(string name, IDeviceImage image);
 }
 
 public interface IBindContext<out TInterface> : IBindContext where TInterface : IBindContext

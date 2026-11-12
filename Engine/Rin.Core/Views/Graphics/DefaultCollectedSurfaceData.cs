@@ -111,16 +111,13 @@ public class DefaultCollectedSurfaceData : ICollectedSurfaceData
             // NoOpCommand's are like breaks so we break any batching that can happen here
             if (cmd is NoOpCommand && currentCommands.NotEmpty())
             {
-                if (currentCommands.Count > 0)
-                    currentHandlers.Add(currentCommands.First().CreateHandler(currentCommands.ToArray()));
+                currentHandlers.Add(currentCommands.First().CreateHandler(currentCommands.ToArray()));
 
                 passes.Add(new ViewsDrawPass(context, currentCommands.First().CreateConfig(context),
                     currentHandlers.ToArray()));
 
                 currentCommands.Clear();
                 currentHandlers.Clear();
-                //passes.Add(new ViewsDrawPass(currentCommands.First().CreateConfig(context),currentHandlers.ToArray()));
-                //passes.Add(currentCommands.First().CreatePass(new PassCreateInfo(context, currentCommands.ToArray())));
                 continue;
             }
 

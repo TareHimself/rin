@@ -42,4 +42,4 @@ A `View` is a node in a tree on a `Surface`. Each frame the surface lays the tre
 
 The UI shaders are C# under `Views/Graphics/Shaders/`, compiled by [Shade](../../Shade/ReadMe.md).
 
-References: Rin.SourceGenerators, Rin.Shade. Packages: NetVips, StbRectPackSharp, HarfBuzzSharp, TareHimself.Rin.Native.
+References: Rin.SourceGenerators, Rin.Shade. Packages: NetVips, StbRectPackSharp, HarfBuzzSharp native assets (called through raw P/Invoke), TareHimself.Rin.Native.

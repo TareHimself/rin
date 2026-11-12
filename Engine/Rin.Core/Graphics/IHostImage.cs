@@ -9,20 +9,19 @@ public interface IHostImage : IDisposable
 
     public HostImageFormat Format { get; }
 
-    public Task<ResourceHandle> CreateTexture(out ResourceHandle handle, ImageFilter filter = ImageFilter.Linear,
-        ImageTiling tiling = ImageTiling.Repeat,
-        bool mips = false, string? debugName = null, IGraphicsModule? graphicsModule = null);
+    /// <summary>
+    ///     Creates a sampled texture and queues this image as its contents.
+    /// </summary>
+    public ResourceHandle CreateTexture(bool mips = false, IGraphicsModule? graphicsModule = null);
     
     /// <summary>
     /// Saves the image as png
     /// </summary>
-    /// <param name="stream"></param>
     public void SaveRaw(Stream stream);
     
     /// <summary>
     /// Saves the image as png
     /// </summary>
-    /// <param name="stream"></param>
     public void SavePng(Stream stream);
 
     public IHostImage Mutate(Action<IMutationContext> mutator);

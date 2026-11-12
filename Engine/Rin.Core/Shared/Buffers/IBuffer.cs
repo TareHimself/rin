@@ -3,7 +3,6 @@
 /// <summary>
 ///     Represents a contiguous array of <see cref="T" />
 /// </summary>
-/// <typeparam name="T"></typeparam>
 public interface IBuffer<T> : IReadOnlyBuffer<T>, IDisposable
     where T : unmanaged
 {

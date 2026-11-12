@@ -80,7 +80,6 @@ public class FlexLayout : ListLayout
 
         {
             var offset = 0.0f;
-            // Compute slot sizes and initial offsets
             foreach (var slot in slots)
             {
                 var view = slot.Child;
@@ -155,7 +154,6 @@ public class FlexLayout : ListLayout
             crossAxisSize = float.IsFinite(crossAxisAvailableSpace) ? crossAxisAvailableSpace : crossAxisSize;
         }
 
-        // Handle cross axis offsets (we could also handle main axis offsets here in the future)
         foreach (var slot in slots)
         {
             if (slot is not ListSlot asListContainerSlot) continue;

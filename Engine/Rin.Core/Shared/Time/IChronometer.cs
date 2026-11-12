@@ -39,6 +39,5 @@ public interface IChronometer
     /// <summary>
     ///     Set the <see cref="TotalSeconds" /> to a specific time
     /// </summary>
-    /// <param name="seconds"></param>
     public void SetTime(double seconds);
 }

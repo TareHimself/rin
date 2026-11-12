@@ -365,64 +365,41 @@ public partial class VulkanGraphicsModule
         }
     }
 
-    public Task<ResourceHandle> CreateTexture(out ResourceHandle handle, ReadOnlySpan<byte> data, in Extent2D size,
-        ImageFormat format, bool mips = false, ImageCreateFlags usage = ImageCreateFlags.None)
-    {
-        Debug.Assert(size.Width * size.Height * format.PixelByteSize() == (ulong)data.Length,
-            "Unexpected image buffer size");
-        var image = CreateVulkanTexture(size, format, mips,
-            usage | ImageCreateFlags.Sampled | ImageCreateFlags.TransferDst);
-
-        lock (_resourceSync)
-        {
-            var (id, generation) = _textures.Reserve();
-            handle = new ResourceHandle(ResourceType.Texture, id, true, generation);
-            if (image is VulkanTexture concreteImage) concreteImage.Handle = handle;
-            var resource = new BindlessTexture
-            {
-                Handle = handle,
-                Source = image,
-                State = BindlessResourceState.Ready,
-                Generation = generation,
-                DescriptorPending = true
-            };
-
-            _textures.Set(id, resource);
-        }
-
-        _pendingActions.EnqueueTexture(handle,
-            new PendingTextureWrite(PooledMemory<byte>.CopyFrom(data), default, size, size));
-        return Task.FromResult(handle);
-    }
-
-    public Task<ResourceHandle> CreateTextureArray(out ResourceHandle handle, ReadOnlySpan<byte> data,
-        in Extent2D size,
-        ImageFormat format, uint count, bool mips = false, ImageCreateFlags usage = ImageCreateFlags.None)
-    {
-        throw new NotImplementedException();
-    }
-
-    public Task<ResourceHandle> CreateCubemap(out ResourceHandle handle, ReadOnlySpan<byte> data, in Extent2D size,
-        ImageFormat format, bool mips = false, ImageCreateFlags usage = ImageCreateFlags.None)
-    {
-        throw new NotImplementedException();
-    }
-
     public Task QueueTextureUpload(ResourceHandle handle, ReadOnlyMemory<byte> data, Extent2D extent,
-        Offset2D offset = default)
+        Offset2D offset = default, int mipLevel = -1)
     {
         Debug.Assert(handle.IsValid(), "Handle is invalid");
         var texture = GetTexture(handle) ?? throw new ArgumentException("Invalid or unresolvable texture handle",
             nameof(handle));
         Debug.Assert(extent.Width * extent.Height * texture.Format.PixelByteSize() == (ulong)data.Length,
             "Unexpected image buffer size");
+        var levelCount = texture.Mips ? texture.Extent.FullMipLevels : 1;
+        ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(mipLevel, (int)levelCount);
 
         var completion = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        var write = new PendingTextureWrite(PooledMemory<byte>.CopyFrom(data.Span), offset, extent,
-            texture.Extent);
+        var levelExtent = texture.Extent.MipExtent((uint)int.Max(mipLevel, 0));
+        var write = new PendingTextureWrite(PooledMemory<byte>.CopyFrom(data.Span), offset, extent, levelExtent,
+            mipLevel);
         write.Tasks.Add(completion);
+        ShowDefaultUntilFirstUpload(handle);
         _pendingActions.EnqueueTexture(handle, write);
         return completion.Task;
+    }
+
+    // BindPendingTexture binds the real image once the first write is recorded.
+    private void ShowDefaultUntilFirstUpload(in ResourceHandle handle)
+    {
+        if (!handle.IsBindless) return;
+
+        lock (_resourceSync)
+        {
+            if (FindResource(handle) is not BindlessTexture { HasUpload: false } resource) return;
+            resource.HasUpload = true;
+            resource.DescriptorPending = true;
+            _resourceDescriptorSet.WriteSampledImage(TexturesBinding, _defaultTexture, ImageLayout.ShaderReadOnly,
+                handle.Id);
+            _resourceDescriptorSet.Update();
+        }
     }
 
     internal UploadLanes PendingActions => _pendingActions;

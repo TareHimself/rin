@@ -144,37 +144,6 @@ public abstract class Surface : ISurface
         _rootView.HandleEvent(e, _rootView.GetLocalTransform());
         _lastHovered.AddRange(e.Over);
         _lastCursorDownEvent?.Target?.OnCursorMove(e, _lastCursorDownEvent.Target.ComputeAbsoluteContentTransform());
-        // if (_lastCursorDownEvent?.Target is { } target && !e.Over.Contains(target))
-        // {
-        //     
-        // }
-
-        // Maybe leave this to the event handler in the future
-        // if (_lastCursorDownEvent is { } lastEvent)
-        // {
-        //     if(_lastCursorDownEvent.Target == e.Target) return;
-        //     
-        //     var dist = lastEvent.Position.DistanceTo(e.Position);
-        //     if (dist > 5.0)
-        //     {
-        //         var newEvent = new CursorDownSurfaceEvent(this, lastEvent.Button, e.Position);
-        //         var parent = lastEvent.Target?.Parent;
-        //         while (parent != null)
-        //         {
-        //             newEvent.Target = parent;
-        //             if (parent.OnCursorDown(newEvent))
-        //             {
-        //                 lastEvent.Target = parent;
-        //                 lastEvent.Position = newEvent.Position;
-        //                 break;
-        //             }
-        //
-        //             parent = parent.Parent;
-        //         }
-        //
-        //         _lastCursorDownEvent.Position = e.Position;
-        //     }
-        // }
     }
 
     public virtual void ReceiveScroll(ScrollSurfaceEvent e)

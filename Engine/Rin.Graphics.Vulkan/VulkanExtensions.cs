@@ -405,7 +405,7 @@ internal static class VulkanExtensions
 
     public static VkPipeline CreateGraphicsPipeline(this in VkDevice device, in VkPipelineLayout layout,
         ReadOnlySpan<ImageFormat> attachmentFormats, BlendState blendState,
-        ReadOnlySpan<Pair<VkShaderModule, ShaderStage>> stages, bool useDepth, bool useStencil)
+        ReadOnlySpan<(VkShaderModule Module, ShaderStage Stage)> stages, bool useDepth, bool useStencil)
     {
         unsafe
         {

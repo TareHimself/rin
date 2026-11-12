@@ -148,9 +148,6 @@ public static class MathR
     /// <summary>
     ///     If <see cref="val" /> is finite returns <see cref="val" /> else <see cref="other" /> which is zero by default
     /// </summary>
-    /// <param name="val"></param>
-    /// <param name="other"></param>
-    /// <returns></returns>
     [Pure]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static float FiniteOr(this in float val, in float other = 0.0f)
@@ -197,23 +194,8 @@ public static class MathR
 
         [Pure]
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public float Distance(in Vector2 b)
-        {
-            return Vector2.Distance(val, b);
-        }
-
-        [Pure]
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool Within(in Vector2 p1, in Vector2 p2)
         {
-            return p1.X <= val.X && val.X <= p2.X && p1.Y <= val.Y && val.Y <= p2.Y;
-        }
-
-        [Pure]
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool Within(Pair<Vector2, Vector2> bounds)
-        {
-            var (p1, p2) = bounds;
             return p1.X <= val.X && val.X <= p2.X && p1.Y <= val.Y && val.Y <= p2.Y;
         }
 
@@ -226,30 +208,13 @@ public static class MathR
 
         [Pure]
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public float Length()
-        {
-            return float.Sqrt(val.X * val.X + val.Y * val.Y);
-        }
-
-        [Pure]
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public float Acos(in Vector2 other)
         {
             var dot = val.Dot(other);
 
             var mul = val.Length() * other.Length();
-            // Calculate the cosine of the angle between the vectors
             var cosine = mul == 0 ? 0 : dot / mul;
-
-            // Calculate the angle in radians using arccosine
             return float.Acos(cosine);
-        }
-
-        [Pure]
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public float Acosd(in Vector2 other)
-        {
-            return val.Acos(other) * float.Pi / 180.0f;
         }
 
         [Pure]
@@ -265,13 +230,6 @@ public static class MathR
         public Vector2 Clamp(in Vector2 min, in Vector2 max)
         {
             return Vector2.Clamp(val, min, max);
-        }
-
-        [Pure]
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public float DistanceTo(in Vector2 other)
-        {
-            return Vector2.Distance(val, other);
         }
 
         [Pure]
@@ -362,13 +320,6 @@ public static class MathR
 
     extension(in Matrix4x4 matrix)
     {
-        [Pure]
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public Matrix4x4 RotateDegrees(in float angle, in Vector3 axis)
-        {
-            return matrix.Rotate(Quaternion.CreateFromAxisAngle(axis, float.DegreesToRadians(angle)));
-        }
-
         [Pure]
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public Matrix4x4 Rotate2D(in float angle)
@@ -481,13 +432,6 @@ public static class MathR
         public Quaternion AddPitch(in float delta)
         {
             return self.Add(Right, delta);
-        }
-
-        [Pure]
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public Quaternion AddRoll(in float delta)
-        {
-            return self.Add(Forward, delta);
         }
 
         [Pure]

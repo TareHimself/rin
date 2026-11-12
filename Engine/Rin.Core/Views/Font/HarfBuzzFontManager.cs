@@ -3,7 +3,6 @@ using System.Diagnostics;
 using System.Numerics;
 using Rin.Core.Graphics;
 using Rin.Core.Shared.Threading;
-using Rin.Core.Views.Sdf;
 using Rin.Core.Extensions;
 using Rin.Core.Views.Mtsdf;
 
@@ -56,13 +55,13 @@ public class HarfBuzzFontManager : IFontManager
     {
         if (font is HarfBuzzFont asFont)
         {
-            List<Pair<char, CacheKey>> toGenerate = [];
+            List<(char Character, CacheKey Key)> toGenerate = [];
 
             foreach (var character in characters)
             {
                 var key = new CacheKey(character, asFont.Name);
                 if (_atlases.ContainsKey(key)) continue;
-                toGenerate.Add(new Pair<char, CacheKey>(character, key));
+                toGenerate.Add((character, key));
             }
 
             if (toGenerate.Empty()) return Task.CompletedTask;
@@ -81,12 +80,12 @@ public class HarfBuzzFontManager : IFontManager
                 {
                     var initialResults = new SdfResult?[toGenerate.Count];
                     Parallel.For(0, toGenerate.Count,
-                        i => initialResults[i] = GenerateGlyph(toGenerate[i].First, asFont));
+                        i => initialResults[i] = GenerateGlyph(toGenerate[i].Character, asFont));
 
                     for (var index = 0; index < toGenerate.Count; index++)
                     {
                         var result = initialResults[index];
-                        var key = toGenerate[index].Second;
+                        var key = toGenerate[index].Key;
 
                         if (result is null)
                         {
@@ -98,36 +97,20 @@ public class HarfBuzzFontManager : IFontManager
                         }
 
                         using var data = result.Image;
-                        var size = new Vector2((float)result.Width, (float)result.Height);
-                        var glyph = new LiveGlyphInfo
-                        {
-                            AtlasHandle = ResourceHandle.InvalidTexture,
-                            State = LiveGlyphState.Pending,
-                            Size = size,
-                            Coordinate = new Vector4(0.0f, 0.0f, size.X,
-                                size.Y) // Coordinate will be updated later
-                        };
-
                         using var dataStream = new MemoryStream();
                         data.SaveRaw(dataStream);
+                        var info = _pageManager.AddMtsdf(data.Extent,
+                            new ReadOnlyMemory<byte>(dataStream.GetBuffer(), 0, (int)dataStream.Length));
+                        var pt1 = new Vector2(info.Rect.Offset.X, info.Rect.Offset.Y);
+                        var pt2 = pt1 + new Vector2(info.Rect.Extent.Width, info.Rect.Extent.Height);
+                        var glyph = new LiveGlyphInfo
+                        {
+                            AtlasHandle = info.Atlas,
+                            State = LiveGlyphState.Ready,
+                            Size = new Vector2((float)result.Width, (float)result.Height),
+                            Coordinate = new Vector4(pt1 / AtlasSize, pt2.X / AtlasSize, pt2.Y / AtlasSize)
+                        };
                         _atlases.AddOrUpdate(key, static (_, g) => g, static (_, _, g) => g, glyph);
-                        var dataStreamBuffer = dataStream.GetBuffer();
-                        _pageManager.AddMtsdf(data.Extent,
-                            new ReadOnlyMemory<byte>(dataStreamBuffer, 0, (int)dataStream.Length)).Then(
-                            static (info, state) =>
-                            {
-                                var (owner, key) = state;
-                                if (!owner._atlases.TryGetValue(key, out var val)) return;
-                                var pt1 = new Vector2(info.Rect.Offset.X, info.Rect.Offset.Y);
-                                var pt2 = pt1 + new Vector2(info.Rect.Extent.Width, info.Rect.Extent.Height);
-                                val = val with
-                                {
-                                    State = LiveGlyphState.Ready,
-                                    AtlasHandle = info.Atlas,
-                                    Coordinate = new Vector4(pt1 / AtlasSize, pt2.X / AtlasSize, pt2.Y / AtlasSize)
-                                };
-                                owner._atlases.AddOrUpdate(key, static (_, v) => v, static (_, _, v) => v, val);
-                            }, (this, key));
                     }
                 }
                 catch

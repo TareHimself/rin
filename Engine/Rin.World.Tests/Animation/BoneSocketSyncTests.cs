@@ -27,7 +27,11 @@ public class BoneSocketSyncTests
         _source = new FakePoseSource { Skeleton = TestSkeletons.WithSocket(new Vector3(2, 0, 0)), Pose = new SkeletalPose(2) };
         _parent = _world.Spawn();
         _world.SetPosition(_parent, new Vector3(10, 0, 0));
-        _world.Add(_parent, new SkinnedMesh { PoseSource = _feature.PoseSources.Add(_source) });
+        _world.Add(_parent, new SkinnedMesh
+        {
+            Mesh = _meshes.Register(new FakeMesh()),
+            PoseSource = _feature.PoseSources.Add(_source)
+        });
     }
 
     [TearDown]

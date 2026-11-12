@@ -7,7 +7,7 @@ namespace Rin.World.Graphics.Default.Passes;
 
 /// <summary>
 ///     Uploads the per-mesh data every view draws from: material data for the color and depth passes, and the
-///     mesh records the indirect-draw compute reads. Runs after skinning so skinned vertex addresses are final.
+///     mesh records the indirect-draw compute reads. Runs after skinning so skinned vertex buffer views are final.
 /// </summary>
 public class SceneDataPass(DefaultSceneFrame sceneFrame) : IPass
 {

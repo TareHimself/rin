@@ -8,10 +8,8 @@ using Rin.World.Graphics.Default.Shaders;
 namespace Rin.World.Graphics.Default.Passes;
 
 /// <summary>
-///     Culls all meshes based on the main view (Will be updated to support a view index in the future)
-///     writes results to <see cref="CullingPass.OutputBufferId" />
+///     Culls all meshes against the main view and writes the results to <see cref="CullingPass.OutputBufferId" />
 /// </summary>
-/// <param name="collectedData"></param>
 public partial class CullingPass(DefaultWorldViewData collectedData) : IComputePass
 {
     [ComputeShader<CullingShader>]

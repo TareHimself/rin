@@ -5,8 +5,6 @@ public interface IFontManager : IDisposable
     /// <summary>
     ///     Begin loading the textures for these characters
     /// </summary>
-    /// <param name="font"></param>
-    /// <param name="characters"></param>
     public Task Prepare(IFont font, IEnumerable<char> characters);
 
     /// <summary>
@@ -19,7 +17,6 @@ public interface IFontManager : IDisposable
     /// </summary>
     /// <param name="font">The font</param>
     /// <param name="character">The character to get the glyph of</param>
-    /// <returns></returns>
     public LiveGlyphInfo GetGlyph(IFont font, char character);
 
     public IFont? GetFont(string name);

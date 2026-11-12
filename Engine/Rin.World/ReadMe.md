@@ -76,7 +76,7 @@ The `scripting` example has one small script per pattern (patrol, sequenced door
 
 | Component | What it does |
 | --- | --- |
-| `StaticMesh`, `SkinnedMesh` | Mesh id plus a `MaterialSet` from `RenderFeature.Materials`. Skinned meshes also need a pose source |
+| `StaticMesh`, `SkinnedMesh` | A `MeshHandle` from `IMeshFactory.CreateMesh` plus a `MaterialSet` from `RenderFeature.Materials`. The mesh is drawable as soon as `CreateMesh` returns. Skinned meshes also need a pose source |
 | `PointLight`, `DirectionalLight` | Color, radiance, radius |
 | `Camera` | `world.GetCameraView(entity)` for a `Viewport` |
 

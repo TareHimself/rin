@@ -74,7 +74,7 @@ public partial class FillIndirectBuffersPass(CullingPass cullingPass, DefaultWor
 
             var invokeCount = (uint)group.Count;
             bindContext
-                .Reset() // We have to reset because we write shader data
+                .Reset()
                 .Push(new DrawIndirectShader.PushConstants
                 {
                     CullingResults = cullingResults,

@@ -107,12 +107,6 @@ internal static partial class HarfBuzzNative
     internal static partial void hb_blob_destroy(IntPtr blob);
 
     [LibraryImport(Lib)]
-    internal static unsafe partial byte* hb_blob_get_data(IntPtr blob, out uint length);
-
-    [LibraryImport(Lib)]
-    internal static partial uint hb_blob_get_length(IntPtr blob);
-
-    [LibraryImport(Lib)]
     internal static partial IntPtr hb_face_create(IntPtr blob, uint index);
 
     [LibraryImport(Lib)]
@@ -120,9 +114,6 @@ internal static partial class HarfBuzzNative
 
     [LibraryImport(Lib)]
     internal static partial uint hb_face_get_upem(IntPtr face);
-
-    [LibraryImport(Lib)]
-    internal static partial IntPtr hb_face_reference_table(IntPtr face, uint tag);
 
     [LibraryImport(Lib)]
     internal static partial IntPtr hb_font_create(IntPtr face);
@@ -201,9 +192,6 @@ internal static partial class HarfBuzzNative
 
     [LibraryImport(Lib)]
     internal static partial void hb_face_collect_unicodes(IntPtr face, IntPtr set);
-
-    [LibraryImport(Lib)]
-    internal static partial uint hb_set_get_population(IntPtr set);
 
     [LibraryImport(Lib)]
     internal static partial uint hb_set_next(IntPtr set, uint codepoint);

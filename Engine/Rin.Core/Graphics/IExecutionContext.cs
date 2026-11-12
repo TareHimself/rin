@@ -41,8 +41,6 @@ public interface IExecutionContext
     public IExecutionContext SetStencilWriteValue(uint value);
     public IExecutionContext SetStencilCompareMask(uint mask);
 
-    //public IExecutionContext
-
     public IExecutionContext ClearColorImages(in Vector4 clearColor,
         ReadOnlySpan<ResourceHandle> images);
 

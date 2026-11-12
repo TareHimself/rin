@@ -4,7 +4,6 @@ using Rin.Core.Extensions;
 using Rin.Core.Graphics;
 using Rin.Core.Shared.Math;
 using Rin.World.Graphics.Mesh;
-using Rin.World.Mesh;
 using Rin.World.Mesh.Skinning;
 using SharpGLTF.Schema2;
 
@@ -12,7 +11,7 @@ namespace Rin.GLTF;
 
 public static class GltfMeshImporter
 {
-    public static async Task<StaticMesh?> LoadStaticMesh(string filename)
+    public static MeshHandle? LoadStaticMesh(string filename)
     {
         var model = ModelRoot.Load(filename);
 
@@ -65,16 +64,11 @@ public static class GltfMeshImporter
             surfaces.Add(newSurface);
         }
 
-        var task = IMeshFactory.Get()
-            .CreateMesh(out var id, vertices.ToBuffer(), indices.ToBuffer(), surfaces.ToArray());
-        await task;
-        return new StaticMesh
-        {
-            MeshId = id
-        };
+        return IMeshFactory.Get().CreateMesh<Vertex>(CollectionsMarshal.AsSpan(vertices),
+            CollectionsMarshal.AsSpan(indices), surfaces.ToArray());
     }
 
-    public static async Task<SkinnedMesh?> LoadSkinnedMesh(string filename)
+    public static SkinnedMesh? LoadSkinnedMesh(string filename)
     {
         var model = ModelRoot.Load(filename);
 
@@ -169,13 +163,11 @@ public static class GltfMeshImporter
             surfaces.Add(newSurface);
         }
 
-        var task = IMeshFactory.Get()
-            .CreateMesh(out var id, vertices.ToBuffer(), indices.ToBuffer(), surfaces.ToArray());
-        await task;
         return new SkinnedMesh
         {
             Skeleton = skeleton,
-            MeshId = id
+            Mesh = IMeshFactory.Get().CreateMesh<SkinnedVertex>(CollectionsMarshal.AsSpan(vertices),
+                CollectionsMarshal.AsSpan(indices), surfaces.ToArray())
         };
     }
 

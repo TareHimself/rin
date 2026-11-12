@@ -28,8 +28,5 @@ public interface IChannel : IDisposable
     ///     Sets the position of this channel in seconds
     /// </summary>
     /// <param name="position">The new position</param>
-    /// <returns></returns>
     public bool SetPosition(double position);
-
-    //public event Action? OnStart;
 }

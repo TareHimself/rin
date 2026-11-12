@@ -19,7 +19,7 @@ public class CompiledGraphicsShader : IGraphicsShader, IVulkanShader
     private readonly Dictionary<uint, VkDescriptorSetLayout> _descriptorLayouts = [];
 
     private readonly IGraphicsDescriptor _descriptor;
-    private readonly List<Pair<VkShaderModule, ShaderStage>> _shaders = [];
+    private readonly List<(VkShaderModule Module, ShaderStage Stage)> _shaders = [];
     private VkPipeline _pipeline;
     private VkPipelineLayout _pipelineLayout;
     private VkShaderStageFlags _shaderStageFlags = 0;
@@ -68,7 +68,7 @@ public class CompiledGraphicsShader : IGraphicsShader, IVulkanShader
         var resources = new Dictionary<string, Resource>();
         var pushConstants = new Dictionary<string, PushConstant>();
         var bindlessBlocks = new Dictionary<string, uint>();
-        List<Pair<ShaderStage, byte[]>> code = [];
+        List<(ShaderStage Stage, byte[] Spirv)> code = [];
 
         AttachmentFormats = _descriptor.AttachmentFormats.Select(format => format.ToImageFormat()).ToArray();
         BlendState = _descriptor.BlendState;
@@ -78,7 +78,7 @@ public class CompiledGraphicsShader : IGraphicsShader, IVulkanShader
         foreach (var stage in compiledShader.Stages)
         {
             var entryPointStage = stage.Stage == "vertex" ? ShaderStage.Vertex : ShaderStage.Fragment;
-            code.Add(new Pair<ShaderStage, byte[]>(entryPointStage, stage.Spirv));
+            code.Add((entryPointStage, stage.Spirv));
 
             if (_descriptor is null && stage.Reflection.EntryPoints.FirstOrDefault() is { } reflectionEntryPoint)
             {
@@ -146,8 +146,7 @@ public class CompiledGraphicsShader : IGraphicsShader, IVulkanShader
             foreach (var (stage, spirv) in code)
             {
                 var shaderModule = device.CreateShaderModule(spirv);
-                _shaders.Add(new Pair<VkShaderModule, ShaderStage>(shaderModule,
-                    stage));
+                _shaders.Add((shaderModule, stage));
                 _shaderStageFlags |= stage.ToVk();
             }
 

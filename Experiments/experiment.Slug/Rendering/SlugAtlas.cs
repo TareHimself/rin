@@ -164,9 +164,8 @@ public sealed class SlugAtlas : IDisposable
         var floatSpan = CollectionsMarshal.AsSpan(data)[..needed];
         var byteSpan = MemoryMarshal.AsBytes(floatSpan);
 
-        using var buffer = new Buffer<byte>(byteSpan);
-        IGraphicsModule.Get()
-            .CreateTexture(out handle, buffer, extent, format)
-            .GetAwaiter().GetResult();
+        var graphics = IGraphicsModule.Get();
+        handle = graphics.CreateTexture(extent, format, flags: ImageCreateFlags.Sampled | ImageCreateFlags.TransferDst);
+        graphics.QueueTextureUpload(handle, byteSpan.ToArray(), extent);
     }
 }

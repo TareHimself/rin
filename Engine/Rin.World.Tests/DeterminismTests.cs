@@ -1,6 +1,7 @@
 using Rin.Core.Shared.Math;
 using System.Numerics;
 using Rin.World.Graphics;
+using Rin.World.Graphics.Mesh;
 using Rin.World.Physics;
 using Rin.World.Physics.Bepu;
 using Rin.World.Scheduling;
@@ -77,7 +78,7 @@ public class DeterminismTests
         {
             World.Random.Seed(1234);
             var meshes = new FakeMeshFactory();
-            var meshId = meshes.Register(new FakeMesh());
+            var mesh = meshes.Register(new FakeMesh());
             _ = new RenderFeature(World, new FakeRenderSystem(), meshes);
             var scripts = new ScriptFeature(World);
             if (physics)
@@ -89,7 +90,7 @@ public class DeterminismTests
                 World.Add(floor, new RigidBody { Shape = ColliderShape.Box(new Vector3(100, 1, 100)), State = PhysicsState.Static });
             }
 
-            World.AddSystem(TickPhase.Input, new InputPlayback(meshId, physics));
+            World.AddSystem(TickPhase.Input, new InputPlayback(mesh, physics));
             World.AddSystem(TickPhase.Gameplay, new Wander());
             if (_physics is not null) World.AddSystem(TickPhase.Gameplay, new ContactCounter(_physics, this));
 
@@ -130,7 +131,7 @@ public class DeterminismTests
     private readonly record struct Ping(int Value);
 
     // The scripted input log: what a player or the network would feed in, keyed only by tick.
-    private sealed class InputPlayback(int meshId, bool physics) : TickSystem
+    private sealed class InputPlayback(MeshHandle mesh, bool physics) : TickSystem
     {
         public override void Tick(in TickContext context)
         {
@@ -147,7 +148,7 @@ public class DeterminismTests
             world.Commands.Add(entity, new WorldTransform());
             world.Commands.Add(entity, new Speed(random.NextFloat(0.5f, 2f)));
             world.Commands.AddTag<Wanderer>(entity);
-            world.Commands.Add(entity, new StaticMesh { MeshId = meshId });
+            world.Commands.Add(entity, new StaticMesh { Mesh = mesh });
             if (physics) world.Commands.Add(entity, new RigidBody { Shape = ColliderShape.Sphere(0.3f), State = PhysicsState.Simulated });
         }
 

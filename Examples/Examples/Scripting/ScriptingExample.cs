@@ -77,7 +77,7 @@ public sealed class ScriptingExample : Example
         LoadAssets(context.Application.Textures).DispatchMain(assets =>
         {
             if (_render != render) return;
-            BuildArena(new Arena(render, scripts, assets.CubeMeshId, assets.Gold));
+            BuildArena(new Arena(render, scripts, assets.CubeMesh, assets.Gold));
         });
 
         context.OnKey(e => OnKey(e, world, scripts));
@@ -177,14 +177,14 @@ public sealed class ScriptingExample : Example
         };
     }
 
-    private static async Task<(int CubeMeshId, SurfaceMaterial<PbrMaterial> Gold)> LoadAssets(TextureCache textures)
+    private static async Task<(MeshHandle CubeMesh, SurfaceMaterial<PbrMaterial> Gold)> LoadAssets(TextureCache textures)
     {
-        // Both loads start here on the main thread before either is awaited.
-        var cube = GltfMeshImporter.LoadStaticMesh(Path.Join(Global.Directory, "assets", "models", "cube.glb"));
+        var cubePath = Path.Join(Global.Directory, "assets", "models", "cube.glb");
+        var cube = Task.Run(() => GltfMeshImporter.LoadStaticMesh(cubePath));
         var gold = LoadGoldMaterial(textures);
         await Task.WhenAll(cube, gold);
         var mesh = cube.Result ?? throw new InvalidOperationException("cube.glb did not load.");
-        return (mesh.MeshId, gold.Result);
+        return (mesh, gold.Result);
     }
 
     private static async Task<SurfaceMaterial<PbrMaterial>> LoadGoldMaterial(TextureCache textures)

@@ -41,42 +41,39 @@ public sealed class SponzaExample : Example
     {
         _meshFactory = Global.Provider.AddSingle<IMeshFactory>(new MeshFactory());
 
-        Task.Run(() =>
-        {
-            LoadSponza(Path.Join(Global.Directory, "assets", "models", "sponza.glb"))
-                .DispatchMain(loaded =>
+        Task.Run(() => LoadSponza(Path.Join(Global.Directory, "assets", "models", "sponza.glb")))
+            .DispatchMain(loaded =>
+            {
+                var render = loaded.Render;
+                if (!context.IsActive)
                 {
-                    var render = loaded.Render;
-                    if (!context.IsActive)
-                    {
-                        render.RenderSystem.Dispose();
-                        IGraphicsModule.Get().FreeResourceHandles(loaded.Textures);
-                        return;
-                    }
+                    render.RenderSystem.Dispose();
+                    IGraphicsModule.Get().FreeResourceHandles(loaded.Textures);
+                    return;
+                }
 
-                    _render = render;
-                    _textures = loaded.Textures;
-                    var world = render.World;
-                    var camera = SpawnCamera(world);
+                _render = render;
+                _textures = loaded.Textures;
+                var world = render.World;
+                var camera = SpawnCamera(world);
 
-                    context.Add(new TestViewport(render, camera));
-                    context.Add(new PanelView
-                    {
-                        InitSlots =
-                        [
-                            new PanelSlot
-                            {
-                                Child = new FpsView(),
-                                MinAnchor = new Vector2(1f, 0f),
-                                MaxAnchor = new Vector2(1f, 0f),
-                                Alignment = new Vector2(1f, 0f),
-                                SizeToContent = true
-                            }
-                        ]
-                    });
-                    context.OnUpdate(world.Update);
+                context.Add(new TestViewport(render, camera));
+                context.Add(new PanelView
+                {
+                    InitSlots =
+                    [
+                        new PanelSlot
+                        {
+                            Child = new FpsView(),
+                            MinAnchor = new Vector2(1f, 0f),
+                            MaxAnchor = new Vector2(1f, 0f),
+                            Alignment = new Vector2(1f, 0f),
+                            SizeToContent = true
+                        }
+                    ]
                 });
-        });
+                context.OnUpdate(world.Update);
+            });
     }
 
     public override void Stop()
@@ -121,13 +118,7 @@ public sealed class SponzaExample : Example
 
             {
                 using var image = HostImage.Create(new MemoryStream(tex.Content.Content.ToArray()));
-                var handle = image.CreateTexture(out var newHandle, sampler.MagFilter switch
-                {
-                    TextureInterpolationFilter.NEAREST => ImageFilter.Nearest,
-                    TextureInterpolationFilter.LINEAR => ImageFilter.Linear,
-                    TextureInterpolationFilter.DEFAULT => ImageFilter.Linear,
-                    _ => throw new ArgumentOutOfRangeException()
-                }, mips: true).GetAwaiter().GetResult();
+                var newHandle = image.CreateTexture(mips: true);
                 cache.Add(id, newHandle);
                 return newHandle;
             }
@@ -136,7 +127,7 @@ public sealed class SponzaExample : Example
 
     private sealed record LoadedScene(RenderFeature Render, ResourceHandle[] Textures);
 
-    private async Task<LoadedScene> LoadSponza(string filename)
+    private LoadedScene LoadSponza(string filename)
     {
         var model = ModelRoot.Load(filename);
         var mesh = model?.LogicalMeshes?.FirstOrDefault() ?? throw new NullReferenceException();
@@ -210,12 +201,12 @@ public sealed class SponzaExample : Example
         var sceneBounds = CollectionsMarshal.AsSpan(vertices).ComputeBounds();
 
         var meshFactory = IMeshFactory.Get();
-        var task = meshFactory.CreateMesh(out var id, vertices.ToBuffer(), indices.ToBuffer(), surfaces.ToArray());
-        await task;
+        var sponza = meshFactory.CreateMesh<Vertex>(CollectionsMarshal.AsSpan(vertices),
+            CollectionsMarshal.AsSpan(indices), surfaces.ToArray());
 
         var world = new World();
         var render = new RenderFeature(world, new DefaultRenderSystem(), meshFactory);
-        world.Add(world.Spawn(), new StaticMesh { MeshId = id, Materials = render.Materials.Add(materials) });
+        world.Add(world.Spawn(), new StaticMesh { Mesh = sponza, Materials = render.Materials.Add(materials) });
 
         var sceneCenter = (sceneBounds.Min + sceneBounds.Max) / 2f;
         var sceneHeight = sceneBounds.Max.Y - sceneBounds.Min.Y;

@@ -37,7 +37,9 @@ public struct PooledMemory<T> : IDisposable where T : unmanaged
 
     public Memory<T> AsMemory() => _rentedBuffer.AsMemory(0, Count);
 
-    /// <summary>Rents a buffer and copies <paramref name="source" /> into it.</summary>
+    /// <summary>
+    ///     Rents a buffer and copies <paramref name="source" /> into it.
+    /// </summary>
     public static PooledMemory<T> CopyFrom(ReadOnlySpan<T> source)
     {
         var result = new PooledMemory<T>(source.Length);

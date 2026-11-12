@@ -6,15 +6,6 @@ using Rin.Core.Shared.Math;
 
 namespace Rin.Core.Views.Graphics.Quads;
 
-public enum PrimitiveType
-{
-    Line,
-    Circle,
-    Rectangle,
-    QuadraticCurve,
-    CubicCurve
-}
-
 [StructLayout(LayoutKind.Explicit)]
 [NoReorder]
 public struct Quad() // : ICloneable<Quad>
@@ -36,8 +27,6 @@ public struct Quad() // : ICloneable<Quad>
     [PublicAPI] [FieldOffset(0)] public required RenderMode Mode;
     [PublicAPI] [FieldOffset(4)] public required Vector2 Size;
     [PublicAPI] [FieldOffset(12)] public required Matrix4x4 Transform;
-
-    // [FieldOffset(88)] public PrimitiveData PrimitiveInfo = default;
 
     [FieldOffset(76)] public LineData LineInfo = default;
 
@@ -103,14 +92,7 @@ public struct Quad() // : ICloneable<Quad>
         public float Thickness;
     }
 
-    // public struct PrimitiveData
-    // {
-    //     public PrimitiveType Type { get; set; }
-    //     public Vector4 Data1 { get; set; }
-    //     public Vector4 Data2 { get; set; }
-    //     public Vector4 Data3 { get; set; }
-    //     public Vector4 Data4 { get; set; }
-    // }
+
     [NoReorder]
     public struct ColorWheelData
     {
@@ -192,13 +174,6 @@ public struct Quad() // : ICloneable<Quad>
             Mode = RenderMode.Line,
             Transform = t,
             Size = size,
-            // LineInfo = new LineData
-            // {
-            //     Begin = (begin - p1) / size,
-            //     End = (end - p1) / size,
-            //     Color = color ?? Color.White,
-            //     Thickness = thickness / float.Min(size.X,size.Y),
-            // }
             LineInfo = new LineData
             {
                 Begin = begin.Transform(transform),

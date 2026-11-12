@@ -7,7 +7,7 @@ using Rin.World.Graphics.Default;
 namespace Rin.World.Graphics;
 
 /// <summary>
-///     Interface for a material pass
+///     Base for material passes that write a fixed-size block of data per draw.
 /// </summary>
 public abstract class SimpleMaterialPass : IMaterialPass
 {
@@ -19,9 +19,6 @@ public abstract class SimpleMaterialPass : IMaterialPass
     /// <summary>
     ///     Bind the shader for this material, push any constants, bind any descriptors
     /// </summary>
-    /// <param name="frame"></param>
-    /// <param name="groupMaterialBuffer"></param>
-    /// <returns></returns>
     public abstract IGraphicsBindContext? BindGroup(WorldFrame frame, in DeviceBufferView groupMaterialBuffer);
 
     public virtual void DeclareResources(IGraphConfig config, ProcessedMesh mesh)

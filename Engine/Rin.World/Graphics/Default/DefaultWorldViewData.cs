@@ -24,8 +24,6 @@ public class DefaultWorldViewData : IWorldCollectedData
         Channel = viewer.Channel;
         Extent = extent;
         Projection = MathR.PerspectiveProjection(FieldOfView, extent, NearClip);
-        ViewProjection = View * Projection;
-        ViewFrustum = MathR.ExtractWorldSpaceFrustum(View, ViewProjection, FarClip);
     }
 
     [PublicAPI] public DefaultWorldSnapshot Snapshot { get; }
@@ -37,14 +35,14 @@ public class DefaultWorldViewData : IWorldCollectedData
 
     public float Time { get; init; }
 
-    /// <summary>The scene's shared half inside the graph currently being written; set by <see cref="Write" />.</summary>
+    /// <summary>
+    ///     The scene's shared half inside the graph currently being written; set by <see cref="Write" />.
+    /// </summary>
     public DefaultSceneFrame SceneFrame { get; private set; } = null!;
 
     [PublicAPI] public Transform ViewTransform;
-    [PublicAPI] public Frustum ViewFrustum;
     [PublicAPI] public Matrix4x4 View { get; }
     [PublicAPI] public Matrix4x4 Projection { get; }
-    [PublicAPI] public Matrix4x4 ViewProjection { get; }
     [PublicAPI] public float FieldOfView { get; }
     [PublicAPI] public float NearClip { get; }
     [PublicAPI] public float FarClip { get; }

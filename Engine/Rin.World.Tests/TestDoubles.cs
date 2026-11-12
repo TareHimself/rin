@@ -7,20 +7,19 @@ using Rin.Core.Shared.Math;
 using Rin.World.Graphics;
 using Rin.World.Graphics.Mesh;
 using Rin.World.Mesh.Skinning;
+using Rin.World.Mesh.Skinning.Animation;
 using Rin.World.Physics;
 
 namespace Rin.World.Tests;
 
 internal sealed class FakeMesh : IMesh
 {
-    public ulong GetVertexFormatSize() => throw new NotSupportedException();
     public MeshSurface[] Surfaces { get; init; } = [];
 
     public MeshSurface[] GetSurfaces() => Surfaces;
     public MeshSurface GetSurface(int surfaceIndex) => throw new NotSupportedException();
     public DeviceBufferView GetVertices() => default;
     public DeviceBufferView GetVertices(int surfaceIndex) => default;
-    public uint GetVertexCount() => 0;
     public uint GetVertexCount(int surfaceIndex) => 0;
     public DeviceBufferView GetIndices() => default;
     public Bounds3D GetBounds() => default;
@@ -28,36 +27,30 @@ internal sealed class FakeMesh : IMesh
 
 internal sealed class FakeMeshMaterial : IMeshMaterial
 {
-    public bool Translucent => false;
     public IMaterialPass ColorPass => throw new NotSupportedException();
     public IMaterialPass DepthPass => throw new NotSupportedException();
 }
 
 internal sealed class FakeMeshFactory : IMeshFactory
 {
-    private readonly Dictionary<int, IMesh> _meshes = [];
+    private readonly Dictionary<MeshHandle, IMesh> _meshes = [];
+    private uint _nextIndex;
 
-    public int Register(IMesh mesh)
+    public MeshHandle Register(IMesh mesh)
     {
-        var id = _meshes.Count + 1;
-        _meshes.Add(id, mesh);
-        return id;
+        var handle = new MeshHandle(_nextIndex++, 1);
+        _meshes.Add(handle, mesh);
+        return handle;
     }
 
-    public IMesh? GetMesh(int meshId) => _meshes.GetValueOrDefault(meshId);
+    public IMesh? GetMesh(MeshHandle mesh) => _meshes.GetValueOrDefault(mesh);
 
-    public bool IsMeshReady(int meshId) => _meshes.ContainsKey(meshId);
-
-    public Task? GetPendingMesh(int meshId) => null;
-
-    public Task CreateMesh<TVertexFormat>(out int meshId, Buffer<TVertexFormat> vertices, Buffer<uint> indices,
+    public MeshHandle CreateMesh<TVertexFormat>(ReadOnlySpan<TVertexFormat> vertices, ReadOnlySpan<uint> indices,
         MeshSurface[] surfaces) where TVertexFormat : unmanaged, IVertex => throw new NotSupportedException();
 
-    public Task CreateMesh(out int meshId, Buffer<Vertex> vertices, Buffer<uint> indices, MeshSurface[] surfaces) =>
-        throw new NotSupportedException();
-
-    public void FreeMeshes(params ReadOnlySpan<int> meshIds)
+    public void FreeMeshes(params ReadOnlySpan<MeshHandle> meshes)
     {
+        foreach (var mesh in meshes) _meshes.Remove(mesh);
     }
 
     public void Dispose()
@@ -136,10 +129,6 @@ internal sealed class FakeRenderSystem : IRenderSystem
     {
         if (!_live.Contains(handle)) throw new InvalidOperationException("Stale or unknown proxy handle");
         PushedPoses.Add((handle, pose));
-    }
-
-    public void UpdateStaticMeshProxy(RenderProxyHandle handle, in StaticMeshProxyDesc desc)
-    {
     }
 
     public void UpdateLightProxy(RenderProxyHandle handle, in LightInfo desc)
@@ -405,5 +394,123 @@ internal static class TestSkeletons
         var socket = new Bone { Name = SocketBone, Parent = root, LocalTransform = new Transform { Position = socketOffset } };
         root.Children = [socket];
         return new Skeleton([root, socket]);
+    }
+}
+
+internal sealed class FakePoseNode(int boneCount, params (int Index, Transform Value)[] overrides) : IPoseNode
+{
+    public int EvaluateCount { get; private set; }
+    public List<AnimationNotifyStateRange> ActiveStates { get; } = [];
+    public List<AnimationNotify> CrossedNotifies { get; } = [];
+
+    public PooledSkeletalPose Evaluate(in AnimationEvalContext ctx)
+    {
+        EvaluateCount++;
+        if (ctx.Notifies is { } sink)
+        {
+            sink.ReportSource(this, ctx.Weight);
+            foreach (var notify in CrossedNotifies) sink.ReportCrossed(notify, this);
+        }
+        if (ctx.ActiveNotifyStates is { } active)
+            foreach (var range in ActiveStates)
+                active.Add(range);
+
+        var pose = new PooledSkeletalPose(boneCount);
+        foreach (var (index, value) in overrides) pose.Set(index, value);
+        return pose;
+    }
+}
+
+internal sealed class RecordingNotify(string name) : IAnimationNotify
+{
+    public string Name => name;
+    public int ResetCount { get; private set; }
+    public int NotifyCount { get; private set; }
+    public Entity LastEntity { get; private set; }
+
+    public void Reset()
+    {
+        ResetCount++;
+    }
+
+    public void Notify(World world, Entity entity, AnimationGraph graph)
+    {
+        NotifyCount++;
+        LastEntity = entity;
+    }
+}
+
+internal sealed class SingleInstanceNotifyFactory(IAnimationNotify instance) : IAnimationNotifyFactory
+{
+    public int CreateCount { get; private set; }
+    public int ReleaseCount { get; private set; }
+
+    public IAnimationNotify Create()
+    {
+        CreateCount++;
+        return instance;
+    }
+
+    public void Release(IAnimationNotify released)
+    {
+        ReleaseCount++;
+    }
+}
+
+internal sealed class RecordingNotifyState(string name) : IAnimationNotifyState
+{
+    public string Name => name;
+    public int ResetCount { get; private set; }
+    public int BeginCount { get; private set; }
+    public int EndCount { get; private set; }
+
+    public void Reset()
+    {
+        ResetCount++;
+    }
+
+    public void NotifyBegin(World world, Entity entity, AnimationGraph graph)
+    {
+        BeginCount++;
+    }
+
+    public void NotifyEnd(World world, Entity entity, AnimationGraph graph)
+    {
+        EndCount++;
+    }
+}
+
+internal sealed class SingleInstanceNotifyStateFactory(IAnimationNotifyState instance) : IAnimationNotifyStateFactory
+{
+    public int CreateCount { get; private set; }
+    public int ReleaseCount { get; private set; }
+
+    public IAnimationNotifyState Create()
+    {
+        CreateCount++;
+        return instance;
+    }
+
+    public void Release(IAnimationNotifyState released)
+    {
+        ReleaseCount++;
+    }
+}
+
+internal static class TestNotify
+{
+    public static (AnimationNotify Notify, RecordingNotify Handler) At(float time, string name,
+        bool dominantClipOnly = false)
+    {
+        var handler = new RecordingNotify(name);
+        return (new AnimationNotify(time, new SingleInstanceNotifyFactory(handler), dominantClipOnly), handler);
+    }
+
+    public static (AnimationNotifyStateRange Range, RecordingNotifyState Handler, SingleInstanceNotifyStateFactory Factory) StateAt(
+        float start, float end, string name)
+    {
+        var handler = new RecordingNotifyState(name);
+        var factory = new SingleInstanceNotifyStateFactory(handler);
+        return (new AnimationNotifyStateRange(start, end, factory), handler, factory);
     }
 }

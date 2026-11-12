@@ -3,9 +3,6 @@ namespace Rin.Core.Graphics.Graph;
 /// <summary>
 ///     Very basic callback based pass that can be used for debug/simple operations
 /// </summary>
-/// <param name="configure"></param>
-/// <param name="execute"></param>
-/// <param name="name"></param>
 public class ActionPass(
     Action<IPass, IGraphConfig> configure,
     Action<IPass, ICompiledGraph, IExecutionContext> execute,

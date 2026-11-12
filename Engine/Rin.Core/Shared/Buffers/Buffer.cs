@@ -1,11 +1,10 @@
-﻿using System.Collections;
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using System.Runtime.InteropServices;
 using Rin.Core.Extensions;
 
 namespace Rin.Core.Shared.Buffers;
 
-public class Buffer<T> : IBuffer<T>, IBinarySerializable //, IEnumerable<T>
+public class Buffer<T> : IBuffer<T>, IBinarySerializable
     where T : unmanaged
 {
     private IntPtr _ptr = IntPtr.Zero;
@@ -88,16 +87,6 @@ public class Buffer<T> : IBuffer<T>, IBinarySerializable //, IEnumerable<T>
             var _ = input.Read(new Span<byte>(_ptr.ToPointer(), (int)byteSize));
         }
     }
-
-    // public IEnumerator<T> GetEnumerator()
-    // {
-    //     return new Enumerator(this);
-    // }
-
-    // IEnumerator IEnumerable.GetEnumerator()
-    // {
-    //     return GetEnumerator();
-    // }
 
     public void Dispose()
     {
@@ -221,39 +210,5 @@ public class Buffer<T> : IBuffer<T>, IBinarySerializable //, IEnumerable<T>
     ~Buffer()
     {
         ReleaseUnmanagedResources();
-    }
-
-    public class Enumerator(Buffer<T> buffer) : IEnumerator<T>
-    {
-        private int _index;
-
-        public bool MoveNext()
-        {
-            if (_index + 1 >= buffer.GetElementsCount()) return false;
-
-            ++_index;
-
-            return true;
-        }
-
-        public void Reset()
-        {
-            _index = -1;
-        }
-
-        public T Current => buffer.GetElement(_index);
-
-        object IEnumerator.Current
-        {
-            get
-            {
-                Debug.Write("Calling current on an enumerator with unmanaged types");
-                return Current;
-            }
-        }
-
-        public void Dispose()
-        {
-        }
     }
 }

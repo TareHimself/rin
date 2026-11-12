@@ -30,7 +30,7 @@ public class AsyncFileImageView : CoverImageView
     private async Task LoadFile(string filePath)
     {
         using var image = HostImage.Create(File.OpenRead(filePath));
-        await image.CreateTexture(out var handle);
+        var handle = image.CreateTexture();
         var extent = image.Extent;
         await IApplication.Get().MainDispatcher.Enqueue(() =>
         {

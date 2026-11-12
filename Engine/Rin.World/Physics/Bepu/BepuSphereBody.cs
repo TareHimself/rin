@@ -23,11 +23,6 @@ internal class BepuSphereBody : BepuBody
         return _radius;
     }
 
-    public float GetScaledRadius()
-    {
-        return _shape.Radius;
-    }
-
     public void SetRadius(float radius)
     {
         _radius = radius;

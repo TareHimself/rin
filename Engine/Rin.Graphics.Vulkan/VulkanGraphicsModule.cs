@@ -29,7 +29,7 @@ public partial class VulkanGraphicsModule : IGraphicsModule, IExternalResourceSo
 
     private readonly DescriptorLayoutFactory _descriptorLayoutFactory = new();
     private readonly int _maxEventsPerPeep = 64;
-    private readonly List<Pair<TaskCompletionSource, Action<IExecutionContext>>> _pendingGraphicsSubmits = [];
+    private readonly List<(TaskCompletionSource Completion, Action<IExecutionContext> Action)> _pendingGraphicsSubmits = [];
     private readonly FrameCollector _frames = new();
     private readonly Dictionary<ulong, RinWindow> _rinWindows = [];
 
@@ -486,7 +486,7 @@ public partial class VulkanGraphicsModule : IGraphicsModule, IExternalResourceSo
         lock (_pendingGraphicsSubmits)
         {
             var pending = new TaskCompletionSource();
-            _pendingGraphicsSubmits.Add(new Pair<TaskCompletionSource, Action<IExecutionContext>>(pending, action));
+            _pendingGraphicsSubmits.Add((pending, action));
             return pending.Task;
         }
     }
@@ -501,91 +501,6 @@ public partial class VulkanGraphicsModule : IGraphicsModule, IExternalResourceSo
         }
     }
 
-    private static void GenerateMipMaps(IExecutionContext ctx, IVulkanTexture image, Extent2D size, ImageFilter filter,
-        ImageLayout srcLayout, ImageLayout dstLayout)
-    {
-        Debug.Assert(ctx is VulkanExecutionContext);
-        var cmd = ((VulkanExecutionContext)ctx).CommandBuffer;
-        var mipLevels = DeriveMipLevels(size);
-        var curSize = size;
-        for (var mip = 0; mip < mipLevels; mip++)
-        {
-            var halfSize = curSize;
-            halfSize.Width /= 2;
-            halfSize.Height /= 2;
-            cmd.ImageBarrier(image, srcLayout,
-                ImageLayout.TransferSrc, new ImageBarrierOptions
-                {
-                    SubresourceRange = new VkImageSubresourceRange
-                    {
-                        aspectMask = VkImageAspectFlags.VK_IMAGE_ASPECT_COLOR_BIT,
-                        baseArrayLayer = 0,
-                        layerCount = VK_REMAINING_ARRAY_LAYERS,
-                        baseMipLevel = (uint)mip,
-                        levelCount = 1
-                    }
-                });
-
-            if (mip < mipLevels - 1)
-            {
-                var blitRegion = new VkImageBlit2
-                {
-                    sType = VkStructureType.VK_STRUCTURE_TYPE_IMAGE_BLIT_2,
-                    srcSubresource = new VkImageSubresourceLayers
-                    {
-                        aspectMask = VkImageAspectFlags.VK_IMAGE_ASPECT_COLOR_BIT,
-                        mipLevel = (uint)mip,
-                        baseArrayLayer = 0,
-                        layerCount = 1
-                    },
-                    dstSubresource = new VkImageSubresourceLayers
-                    {
-                        aspectMask = VkImageAspectFlags.VK_IMAGE_ASPECT_COLOR_BIT,
-                        mipLevel = (uint)(mip + 1),
-                        baseArrayLayer = 0,
-                        layerCount = 1
-                    }
-                };
-
-                blitRegion.srcOffsets[1] = new VkOffset3D
-                {
-                    x = (int)curSize.Width,
-                    y = (int)curSize.Height,
-                    z = 1
-                };
-
-                blitRegion.dstOffsets[1] = new VkOffset3D
-                {
-                    x = (int)halfSize.Width,
-                    y = (int)halfSize.Height,
-                    z = 1
-                };
-
-                unsafe
-                {
-                    var blitInfo = new VkBlitImageInfo2
-                    {
-                        sType = VkStructureType.VK_STRUCTURE_TYPE_BLIT_IMAGE_INFO_2,
-                        srcImage = image.VulkanImage,
-                        srcImageLayout = VkImageLayout.VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-                        dstImage = image.VulkanImage,
-                        dstImageLayout = VkImageLayout.VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-                        regionCount = 1,
-                        pRegions = &blitRegion,
-                        filter = filter.ToVk()
-                    };
-
-                    vkCmdBlitImage2(cmd, &blitInfo);
-                }
-
-                curSize = halfSize;
-            }
-        }
-
-        cmd.ImageBarrier(image, ImageLayout.TransferSrc,
-            dstLayout);
-    }
-
     public IDisposableVulkanTexture CreateVulkanTexture(in Extent2D extent, ImageFormat format, bool mips = false,
         ImageCreateFlags usage = ImageCreateFlags.None)
     {
@@ -598,7 +513,11 @@ public partial class VulkanGraphicsModule : IGraphicsModule, IExternalResourceSo
                 Dimensions = 1
             };
 
+            // Building the chain blits each level into the next one.
+            if (mips) usage |= ImageCreateFlags.TransferSrc | ImageCreateFlags.TransferDst;
+
             var imageCreateInfo = MakeImageCreateInfo(format, extent3D, usage);
+            if (mips) imageCreateInfo.mipLevels = extent.FullMipLevels;
             VkImage image = new();
             var allocation = IntPtr.Zero;
             Native.NewImage(ref image, ref allocation, &imageCreateInfo, _allocator, "Texture");
@@ -614,7 +533,8 @@ public partial class VulkanGraphicsModule : IGraphicsModule, IExternalResourceSo
                 Allocation = allocation,
                 Extent = extent,
                 Format = format,
-                Usage = usage
+                Usage = usage,
+                Mips = mips
             };
 
             //_images.Add(vkImage);
@@ -698,7 +618,7 @@ public partial class VulkanGraphicsModule : IGraphicsModule, IExternalResourceSo
 
     private void HandlePendingGraphicsSubmits()
     {
-        Pair<TaskCompletionSource, Action<IExecutionContext>>[] pending;
+        (TaskCompletionSource Completion, Action<IExecutionContext> Action)[] pending;
 
         lock (_pendingGraphicsSubmits)
         {
@@ -837,11 +757,6 @@ public partial class VulkanGraphicsModule : IGraphicsModule, IExternalResourceSo
             baseArrayLayer = 0,
             layerCount = VK_REMAINING_ARRAY_LAYERS
         };
-    }
-
-    private static uint DeriveMipLevels(Extent2D extent)
-    {
-        return (uint)(float.Floor(float.Log2(float.Max(extent.Width, extent.Height))) + 1);
     }
 
     public static VulkanGraphicsModule Get()

@@ -4,6 +4,7 @@ using Rin.Core.Views;
 using Rin.World;
 using Rin.World.Graphics;
 using Rin.World.Graphics.Default;
+using Rin.World.Graphics.Mesh;
 using Rin.World.Graphics.Surfaces;
 using Rin.World.Physics;
 using Rin.World.Scripting;
@@ -17,13 +18,13 @@ namespace Examples.Scripting;
 /// </summary>
 public sealed class Arena
 {
-    private readonly int _cubeMeshId;
+    private readonly MeshHandle _cubeMesh;
 
-    public Arena(RenderFeature render, ScriptFeature scripts, int cubeMeshId, SurfaceMaterial<PbrMaterial> gold)
+    public Arena(RenderFeature render, ScriptFeature scripts, MeshHandle cubeMesh, SurfaceMaterial<PbrMaterial> gold)
     {
         World = render.World;
         Scripts = scripts;
-        _cubeMeshId = cubeMeshId;
+        _cubeMesh = cubeMesh;
         Gold = render.Materials.Add(gold);
         Stone = Solid(render, new Vector3(0.35f, 0.36f, 0.4f));
         Gate = Solid(render, new Vector3(0.2f, 0.45f, 0.25f));
@@ -59,7 +60,7 @@ public sealed class Arena
         var cube = World.Spawn();
         // cube.glb spans -1 to 1, so a scale of half the size gives a cube of that size.
         World.SetLocalTransform(cube, new LocalTransform { Position = position, Scale = size / 2f });
-        World.Add(cube, new StaticMesh { MeshId = _cubeMeshId, Materials = material });
+        World.Add(cube, new StaticMesh { Mesh = _cubeMesh, Materials = material });
         return cube;
     }
 

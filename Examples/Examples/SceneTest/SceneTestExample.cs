@@ -38,7 +38,7 @@ public sealed class SceneTestExample : Example
     private const float BoxRainIntervalSeconds = 3f;
 
     private readonly Random _rng = new();
-    private int? _cubeMeshId;
+    private MeshHandle _cubeMesh;
     private MaterialSet _boxMaterials;
     private RenderFeature? _render;
     private PhysicsFeature? _physics;
@@ -64,12 +64,13 @@ public sealed class SceneTestExample : Example
         var perspectiveCam = SpawnCamera(world, new Vector3(0f, 10f, -40f), Quaternion.Identity);
         var topCam = SpawnCamera(world, new Vector3(0f, 80f, 20f), MathR.LookTowards(new Vector3(0f, -1f, 0f)));
 
-        SpawnBox(world, new Vector3(0f, -6f, 20f), new Vector3(200f, 1f, 200f), PhysicsState.Static, null);
+        SpawnBox(world, new Vector3(0f, -6f, 20f), new Vector3(200f, 1f, 200f), PhysicsState.Static, default);
 
-        GltfMeshImporter.LoadStaticMesh(Path.Join(Global.Directory, "assets", "models", "cube.glb")).DispatchMain(mesh =>
+        var cubePath = Path.Join(Global.Directory, "assets", "models", "cube.glb");
+        Task.Run(() => GltfMeshImporter.LoadStaticMesh(cubePath)).DispatchMain(loaded =>
         {
-            if (_render != render || mesh is null) return;
-            _cubeMeshId = mesh.MeshId;
+            if (_render != render || loaded is not { } mesh) return;
+            _cubeMesh = mesh;
 
             SpawnPointLight(world, new Vector3(0f, 35f, 20f));
             SpawnPointLight(world, new Vector3(0f, -20f, 0f));
@@ -81,8 +82,8 @@ public sealed class SceneTestExample : Example
             world.Add(sun, new DirectionalLight { Radiance = 10.0f });
 
             // Static visible obstacle the dynamic boxes pile against.
-            SpawnBox(world, new Vector3(0f, -2.5f, 22f), new Vector3(10f, 5f, 10f), PhysicsState.Static, mesh.MeshId);
-            SpawnWavyPillar(render, mesh.MeshId);
+            SpawnBox(world, new Vector3(0f, -2.5f, 22f), new Vector3(10f, 5f, 10f), PhysicsState.Static, mesh);
+            SpawnWavyPillar(render, mesh);
 
             LoadGoldMaterial().DispatchMain(material =>
             {
@@ -111,7 +112,7 @@ public sealed class SceneTestExample : Example
         _physics = null;
         _render?.RenderSystem.Dispose();
         _render = null;
-        _cubeMeshId = null;
+        _cubeMesh = default;
         _boxMaterials = default;
         _meshFactory?.Dispose();
         _meshFactory = null;
@@ -139,15 +140,15 @@ public sealed class SceneTestExample : Example
     }
 
     // The physics system multiplies the box size by the entity scale, as the old SceneTest did with the same values.
-    private void SpawnBox(World world, Vector3 position, Vector3 size, PhysicsState state, int? meshId)
+    private void SpawnBox(World world, Vector3 position, Vector3 size, PhysicsState state, MeshHandle mesh)
     {
         var box = world.Spawn();
         world.SetLocalTransform(box, new LocalTransform { Position = position, Scale = size });
         world.Add(box, new RigidBody { Shape = ColliderShape.Box(size), State = state });
-        if (meshId is { } id) world.Add(box, new StaticMesh { MeshId = id, Materials = _boxMaterials });
+        if (mesh.IsValid) world.Add(box, new StaticMesh { Mesh = mesh, Materials = _boxMaterials });
     }
 
-    private static void SpawnWavyPillar(RenderFeature render, int meshId)
+    private static void SpawnWavyPillar(RenderFeature render, MeshHandle mesh)
     {
         var materials = render.Materials.Add(new SurfaceMaterial<WavyMaterial>(new WavyMaterial
         {
@@ -160,12 +161,12 @@ public sealed class SceneTestExample : Example
         var pillar = render.World.Spawn();
         render.World.SetLocalTransform(pillar,
             new LocalTransform { Position = new Vector3(-15f, 2f, 22f), Scale = new Vector3(2f, 16f, 2f) });
-        render.World.Add(pillar, new StaticMesh { MeshId = meshId, Materials = materials });
+        render.World.Add(pillar, new StaticMesh { Mesh = mesh, Materials = materials });
     }
 
     private void SpawnBoxes(int count)
     {
-        if (_render?.World is not { } world || _cubeMeshId is not { } meshId) return;
+        if (_render?.World is not { } world || !_cubeMesh.IsValid) return;
 
         for (var i = 0; i < count; i++)
         {
@@ -173,14 +174,14 @@ public sealed class SceneTestExample : Example
                 (float)(_rng.NextDouble() * 10.0 - 5.0),
                 26f + i * 3f,
                 22f + (float)(_rng.NextDouble() * 10.0 - 5.0));
-            SpawnBox(world, position, new Vector3(2f), PhysicsState.Simulated, meshId);
+            SpawnBox(world, position, new Vector3(2f), PhysicsState.Simulated, _cubeMesh);
         }
     }
 
     // Fixed layout so every bench run starts from the same scene.
     private void SpawnBoxGrid(int count)
     {
-        if (_render?.World is not { } world || _cubeMeshId is not { } meshId) return;
+        if (_render?.World is not { } world || !_cubeMesh.IsValid) return;
 
         const float halfExtent = (BenchGridSide - 1) * BenchGridSpacing * 0.5f;
         for (var i = 0; i < count; i++)
@@ -191,7 +192,7 @@ public sealed class SceneTestExample : Example
                 cell % BenchGridSide * BenchGridSpacing - halfExtent,
                 26f + layer * BenchGridSpacing,
                 22f + cell / BenchGridSide * BenchGridSpacing - halfExtent);
-            SpawnBox(world, position, new Vector3(2f), PhysicsState.Simulated, meshId);
+            SpawnBox(world, position, new Vector3(2f), PhysicsState.Simulated, _cubeMesh);
         }
     }
 
@@ -199,10 +200,9 @@ public sealed class SceneTestExample : Example
     private void LoadFoxes(RenderFeature render, SurfaceMaterial<PbrMaterial> material)
     {
         var foxPath = Path.Join(Global.Directory, "assets", "models", "fox.glb");
-        GltfMeshImporter.LoadSkinnedMesh(foxPath).DispatchMain(skinned =>
+        Task.Run(() => GltfMeshImporter.LoadSkinnedMesh(foxPath)).DispatchMain(skinned =>
         {
             if (_render != render || skinned is null) return;
-            if (!IMeshFactory.Get().IsMeshReady(skinned.MeshId)) return;
 
             var world = render.World;
             var materials = render.Materials.Add(material);
@@ -218,7 +218,7 @@ public sealed class SceneTestExample : Example
                 world.SetScale(fox, new Vector3(0.05f));
                 world.Add(fox, new SkinnedMesh
                 {
-                    MeshId = skinned.MeshId,
+                    Mesh = skinned.Mesh,
                     Materials = materials,
                     PoseSource = render.PoseSources.Add(graph)
                 });

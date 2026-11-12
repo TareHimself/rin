@@ -36,7 +36,7 @@ public class RenderFeatureTests
     {
         var entity = _world.Spawn();
 
-        _world.Add(entity, new StaticMesh { MeshId = _meshes.Register(new FakeMesh()) });
+        _world.Add(entity, new StaticMesh { Mesh = _meshes.Register(new FakeMesh()) });
 
         Assert.That(_render.CreatedStaticMeshes, Has.Count.EqualTo(1));
         Assert.That(_world.Get<RenderProxy>(entity).Handle, Is.EqualTo(_render.CreatedStaticMeshes[0].Handle));
@@ -46,7 +46,7 @@ public class RenderFeatureTests
     public void AddingAStaticMeshThroughTheCommandBufferCreatesTheProxyOnPlayback()
     {
         var entity = _world.Spawn();
-        _world.Commands.Add(entity, new StaticMesh { MeshId = _meshes.Register(new FakeMesh()) });
+        _world.Commands.Add(entity, new StaticMesh { Mesh = _meshes.Register(new FakeMesh()) });
 
         Assert.That(_render.CreatedStaticMeshes, Is.Empty);
 
@@ -59,27 +59,27 @@ public class RenderFeatureTests
     [Test]
     public void AStaticMeshAddedFromInsideAQueryLoopThroughCommandsGetsAProxy()
     {
-        var meshId = _meshes.Register(new FakeMesh());
+        var mesh = _meshes.Register(new FakeMesh());
         var entity = _world.Spawn();
         _world.Add(entity, new Health(1));
 
         foreach (var (_, entities) in _world.Query<Health>())
             for (var i = 0; i < entities.Length; i++)
-                _world.Commands.Add(entities[i], new StaticMesh { MeshId = meshId });
+                _world.Commands.Add(entities[i], new StaticMesh { Mesh = mesh });
         _world.Update(0f);
 
         Assert.That(_world.Has<RenderProxy>(entity), Is.True);
     }
 
     [Test]
-    public void AMeshThatIsNotReadyGetsNoProxy()
+    public void AddingAMeshWithAHandleThatIsNotLiveThrows()
     {
-        var entity = _world.Spawn();
+        var freed = _meshes.Register(new FakeMesh());
+        _meshes.FreeMeshes(freed);
 
-        _world.Add(entity, new StaticMesh { MeshId = 42 });
-
+        Assert.Throws<InvalidOperationException>(() => _world.Add(_world.Spawn(), new StaticMesh { Mesh = freed }));
+        Assert.Throws<InvalidOperationException>(() => _world.Add(_world.Spawn(), new StaticMesh()));
         Assert.That(_render.CreatedStaticMeshes, Is.Empty);
-        Assert.That(_world.Has<RenderProxy>(entity), Is.False);
     }
 
     [Test]
@@ -91,7 +91,7 @@ public class RenderFeatureTests
         _world.SetPosition(child, new Vector3(0, 2, 0));
         _world.SetParent(child, parent);
 
-        _world.Add(child, new StaticMesh { MeshId = _meshes.Register(new FakeMesh()) });
+        _world.Add(child, new StaticMesh { Mesh = _meshes.Register(new FakeMesh()) });
 
         Assert.That(_render.CreatedStaticMeshes[0].Desc.Transform.Translation, Is.EqualTo(new Vector3(10, 2, 0)));
     }
@@ -101,7 +101,7 @@ public class RenderFeatureTests
     {
         var entity = _world.Spawn();
 
-        _world.Add(entity, new StaticMesh { MeshId = _meshes.Register(new FakeMesh()) });
+        _world.Add(entity, new StaticMesh { Mesh = _meshes.Register(new FakeMesh()) });
 
         Assert.That(_render.CreatedStaticMeshes[0].Desc.Transform, Is.EqualTo(Matrix4x4.Identity));
     }
@@ -116,7 +116,7 @@ public class RenderFeatureTests
 
         _world.Add(entity, new StaticMesh
         {
-            MeshId = _meshes.Register(mesh),
+            Mesh = _meshes.Register(mesh),
             Materials = _feature.Materials.Add(first, null, third)
         });
 
@@ -129,7 +129,7 @@ public class RenderFeatureTests
     public void RemovingTheStaticMeshDestroysTheProxyAndRemovesRenderProxy()
     {
         var entity = _world.Spawn();
-        _world.Add(entity, new StaticMesh { MeshId = _meshes.Register(new FakeMesh()) });
+        _world.Add(entity, new StaticMesh { Mesh = _meshes.Register(new FakeMesh()) });
         var handle = _world.Get<RenderProxy>(entity).Handle;
 
         _world.Remove<StaticMesh>(entity);
@@ -154,13 +154,13 @@ public class RenderFeatureTests
     [Test]
     public void DespawningAParentDestroysTheProxiesOfItsChildren()
     {
-        var meshId = _meshes.Register(new FakeMesh());
+        var mesh = _meshes.Register(new FakeMesh());
         var parent = _world.Spawn();
         var child = _world.Spawn();
         var grandchild = _world.Spawn();
         _world.SetParent(child, parent);
         _world.SetParent(grandchild, child);
-        _world.Add(parent, new StaticMesh { MeshId = meshId });
+        _world.Add(parent, new StaticMesh { Mesh = mesh });
         _world.Add(child, new PointLight());
         _world.Add(grandchild, new DirectionalLight());
 
@@ -174,7 +174,7 @@ public class RenderFeatureTests
     public void DespawningThroughTheCommandBufferDestroysTheProxy()
     {
         var entity = _world.Spawn();
-        _world.Add(entity, new StaticMesh { MeshId = _meshes.Register(new FakeMesh()) });
+        _world.Add(entity, new StaticMesh { Mesh = _meshes.Register(new FakeMesh()) });
         _world.Commands.Despawn(entity);
 
         _world.Update(0f);
@@ -267,7 +267,7 @@ public class RenderFeatureTests
         var entity = _world.Spawn();
 
         Assert.Throws<InvalidOperationException>(() =>
-            _world.Add(entity, new SkinnedMesh { MeshId = _meshes.Register(new FakeMesh()) }));
+            _world.Add(entity, new SkinnedMesh { Mesh = _meshes.Register(new FakeMesh()) }));
     }
 
     [Test]
@@ -288,7 +288,7 @@ public class RenderFeatureTests
 
     private SkinnedMesh SkinnedMeshOf(IPoseSource source) => new()
     {
-        MeshId = _meshes.Register(new FakeMesh()),
+        Mesh = _meshes.Register(new FakeMesh()),
         PoseSource = _feature.PoseSources.Add(source)
     };
 }

@@ -37,13 +37,11 @@ public interface IWindow : IDisposable
     /// <summary>
     ///     Gets the position of the cursor relative to the drawable area of this window
     /// </summary>
-    /// <returns></returns>
     public Vector2 GetCursorPosition();
 
     /// <summary>
     ///     Sets the position of the cursor relative to the drawable area of this window
     /// </summary>
-    /// <param name="position"></param>
     public void SetCursorPosition(in Vector2 position);
 
 
@@ -52,13 +50,11 @@ public interface IWindow : IDisposable
     /// <summary>
     ///     Sets the size of this window
     /// </summary>
-    /// <param name="size"></param>
     public void SetSize(in Extent2D size);
 
     /// <summary>
     ///     Gets the rect for the drawable area of this window
     /// </summary>
-    /// <returns></returns>
     public Extent2D GetSize();
 
     public IWindow CreateChild(string name, in Extent2D extent, WindowFlags flags = WindowFlags.Visible);

@@ -38,12 +38,13 @@ public class HostImage : IHostImage
         _image.Dispose();
     }
 
-    public Task<ResourceHandle> CreateTexture(out ResourceHandle handle, ImageFilter filter = ImageFilter.Linear,
-        ImageTiling tiling = ImageTiling.Repeat, bool mips = false, string? debugName = null,
-        IGraphicsModule? graphicsModule = null)
+    public ResourceHandle CreateTexture(bool mips = false, IGraphicsModule? graphicsModule = null)
     {
-        return (graphicsModule ?? IGraphicsModule.Get()).CreateTexture(out handle, _image.RawsaveBuffer(), Extent,
-            Format.ToDeviceFormat(), mips);
+        var graphics = graphicsModule ?? IGraphicsModule.Get();
+        var handle = graphics.CreateTexture(Extent, Format.ToDeviceFormat(), mips,
+            ImageCreateFlags.Sampled | ImageCreateFlags.TransferDst);
+        graphics.QueueTextureUpload(handle, _image.RawsaveBuffer(), Extent);
+        return handle;
     }
 
     public Extent2D Extent => new()
@@ -112,7 +113,6 @@ public class HostImage : IHostImage
 
     public static IHostImage Create(in Extent2D extent, ImageFormat format)
     {
-        //VipsImage.Black(width,height,).
         uint channels = 0;
         var bandFormat = Enums.BandFormat.Uchar;
         uint byteSize = 1;

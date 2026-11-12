@@ -12,8 +12,6 @@ public class WorldFrame(
     public Matrix4x4 View => view;
     public Matrix4x4 Projection => projection;
 
-    public Matrix4x4 ViewProjection { get; } = projection * view;
-
     public DeviceBufferView SceneInfo => worldInfo;
 
     public IExecutionContext ExecutionContext { get; } = executionContext;

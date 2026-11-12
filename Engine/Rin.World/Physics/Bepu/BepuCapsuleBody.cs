@@ -30,11 +30,6 @@ internal class BepuCapsuleBody : BepuBody
         return _height;
     }
 
-    public float GetScaledRadius()
-    {
-        return _shape.Radius;
-    }
-
     public float GetScaledHalfHeight()
     {
         return _shape.HalfLength;

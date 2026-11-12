@@ -14,7 +14,9 @@ public interface IAudioEffectDescriptor
     void ReleaseParameters(IntPtr parameters);
 }
 
-/// <summary>Strongly-typed by the effect's parameter struct so <see cref="ISupportsAudioEffects.AddEffect{TParams}"/> can infer <c>TParams</c>.</summary>
+/// <summary>
+///     Strongly-typed by the effect's parameter struct so <see cref="ISupportsAudioEffects.AddEffect{TParams}"/> can infer <c>TParams</c>.
+/// </summary>
 public interface IAudioEffectDescriptor<TParams> : IAudioEffectDescriptor where TParams : unmanaged
 {
 }

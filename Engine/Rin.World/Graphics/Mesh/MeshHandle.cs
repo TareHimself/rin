@@ -1,23 +1,20 @@
 namespace Rin.World.Graphics.Mesh;
 
+/// <summary>
+///     A handle to a mesh in an <see cref="IMeshFactory" />. <c>default</c> is no mesh, and a handle goes stale when its
+///     mesh is freed.
+/// </summary>
 public readonly record struct MeshHandle
 {
-    private readonly int _data;
+    private readonly ulong _data;
 
-    public MeshHandle(int data)
+    public MeshHandle(uint index, uint generation)
     {
-        _data = data;
+        _data = index | ((ulong)generation << 32);
     }
 
-    public static MeshHandle InvalidMesh => new(-1);
+    internal uint Index => (uint)(_data & 0xFFFFFFFF);
+    internal uint Generation => (uint)(_data >> 32);
 
-    // public bool IsValid()
-    // {
-    //     return GeometryId > 0 && IGraphicsModule.Get().GetBindlessImageFactory().IsValid(this);
-    // }
-
-    public static explicit operator int(MeshHandle handle)
-    {
-        return handle._data;
-    }
+    public bool IsValid => Generation != 0;
 }

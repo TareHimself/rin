@@ -241,7 +241,7 @@ public class RenderExtractTests
         _world.SetPosition(entity, position);
         _world.Add(entity, new SkinnedMesh
         {
-            MeshId = _meshes.Register(new FakeMesh()),
+            Mesh = _meshes.Register(new FakeMesh()),
             PoseSource = _feature.PoseSources.Add(source)
         });
         return entity;
@@ -251,7 +251,7 @@ public class RenderExtractTests
     {
         var entity = _world.Spawn();
         _world.SetPosition(entity, position);
-        _world.Add(entity, new StaticMesh { MeshId = _meshes.Register(new FakeMesh()) });
+        _world.Add(entity, new StaticMesh { Mesh = _meshes.Register(new FakeMesh()) });
         return entity;
     }
 }

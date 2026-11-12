@@ -4,19 +4,6 @@ public static class EnumerableExtensions
 {
     extension<TFirst>(IEnumerable<TFirst> first)
     {
-        public IEnumerable<(TFirst First, TSecond Second, TThird Third, TFourth Fourth)>
-            Zip<TSecond, TThird, TFourth>(IEnumerable<TSecond> second,
-                IEnumerable<TThird> third, IEnumerable<TFourth> fourth)
-        {
-            using var e1 = first.GetEnumerator();
-            using var e2 = second.GetEnumerator();
-            using var e3 = third.GetEnumerator();
-            using var e4 = fourth.GetEnumerator();
-
-            while (e1.MoveNext() && e2.MoveNext() && e3.MoveNext() && e4.MoveNext())
-                yield return (e1.Current, e2.Current, e3.Current, e4.Current);
-        }
-
         public IEnumerable<(TFirst First, TSecond Second, TThird Third, TFourth Fourth, TFifth Fifth)>
             Zip<TSecond, TThird, TFourth, TFifth>(IEnumerable<TSecond> second,
                 IEnumerable<TThird> third, IEnumerable<TFourth> fourth, IEnumerable<TFifth> fifth)
@@ -32,52 +19,33 @@ public static class EnumerableExtensions
         }
     }
 
-
     public static IEnumerable<T> AsReversed<T>(this T[] target)
     {
-        for (var i = target.Length - 1; i > -1; i--)
-        {
-            if (target.Length <= i) continue;
-            yield return target[i];
-        }
+        for (var i = target.Length - 1; i > -1; i--) yield return target[i];
     }
 
     public static IEnumerable<T> AsReversed<T>(this IEnumerable<T> target)
     {
+        if (target is List<T> asList)
         {
-            if (target is List<T> asList)
+            for (var i = asList.Count - 1; i > -1; i--)
             {
-                for (var i = asList.Count - 1; i > -1; i--)
-                {
-                    if (asList.Count <= i) continue;
-                    yield return asList[i];
-                }
-
-                yield break;
+                if (asList.Count <= i) continue;
+                yield return asList[i];
             }
+
+            yield break;
         }
 
+        if (target is LinkedList<T> asLinkedList)
         {
-            if (target is LinkedList<T> asLinkedList)
-            {
-                var el = asLinkedList.Last;
-                while (el != null)
-                {
-                    yield return el.Value;
-                    el = el.Previous;
-                }
+            for (var node = asLinkedList.Last; node != null; node = node.Previous) yield return node.Value;
 
-                yield break;
-            }
+            yield break;
         }
-        {
-            var asArray = target.ToArray();
-            for (var i = asArray.Length - 1; i > -1; i--)
-            {
-                if (asArray.Length <= i) continue;
-                yield return asArray[i];
-            }
-        }
+
+        var asArray = target.ToArray();
+        for (var i = asArray.Length - 1; i > -1; i--) yield return asArray[i];
     }
 
     public static T? TryGet<T>(this T[] target, int index) where T : class?

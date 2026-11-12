@@ -19,6 +19,6 @@ CI passes `-p:RinShadeSkipCompile=true` for this project.
 | `Physics/` | Entity bodies and their rebuild after a restore, push and pull, contacts and their order, entity queries, time scale and a determinism check against the fakes, plus queries, contact and trigger events, mesh and hull bodies and time dilation against the real Bepu system, and body handles |
 | `Scripting/` | The script lifecycle, tick order, restore, and which scripts survive a snapshot restore |
 | `Tasks/` | `GameTask` waits, combinators, resume order, cancellation, faults, what a snapshot restore cancels, and the zero-allocation check |
-| `Skinning/` | Skeleton poses, animation clips and the animation graph nodes (mirrors `Mesh/Skinning/`) |
+| `Mesh/Skinning/` | Skeleton poses, animation clips and the animation graph nodes |
 
-References: Rin.World (Rin.Core comes through it), Rin.SourceGenerators as an analyzer, so the test components are registered too.
+References: Rin.World (Rin.Core comes through it), Rin.Graphics.Null for the tests that create GPU resources, Rin.SourceGenerators as an analyzer, so the test components are registered too.

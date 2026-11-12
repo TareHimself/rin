@@ -23,8 +23,6 @@ public class Dispatcher
     /// <summary>
     ///     Schedule an action to be run on <see cref="DispatchPending" />
     /// </summary>
-    /// <param name="action"></param>
-    /// <returns></returns>
     public Task Enqueue(Action action)
     {
         return Enqueue(action, CancellationToken.None);
@@ -33,9 +31,6 @@ public class Dispatcher
     /// <summary>
     ///     Schedule an action to be run on <see cref="DispatchPending" />
     /// </summary>
-    /// <param name="action"></param>
-    /// <param name="cancellationToken"></param>
-    /// <returns></returns>
     public Task Enqueue(Action action, CancellationToken cancellationToken)
     {
         return Enqueue(static cb => cb(), action, cancellationToken);

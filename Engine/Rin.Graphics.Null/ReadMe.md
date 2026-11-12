@@ -10,4 +10,4 @@ dotnet build Engine/Rin.Graphics.Null/Rin.Graphics.Null.csproj
 
 It has no tests of its own and is exercised through Rin.GLTF.Tests.
 
-References: Rin.Core. Used by Rin.GLTF.Tests and Examples (the `headless` example).
+References: Rin.Core. Used by Rin.GLTF.Tests, Rin.World.Tests and Examples (the `headless` example).

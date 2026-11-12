@@ -18,17 +18,18 @@ public class GltfMeshImporterTests
     }
 
     [Test]
-    public async Task LoadStaticMeshLoadsARealMesh()
+    public void LoadStaticMeshLoadsARealMesh()
     {
-        var mesh = await GltfMeshImporter.LoadStaticMesh(CubePath);
+        var mesh = GltfMeshImporter.LoadStaticMesh(CubePath);
 
         Assert.That(mesh, Is.Not.Null);
+        Assert.That(IMeshFactory.Get().GetMesh(mesh!.Value), Is.Not.Null);
     }
 
     [Test]
-    public async Task LoadSkinnedMeshLoadsMeshAndSkeleton()
+    public void LoadSkinnedMeshLoadsMeshAndSkeleton()
     {
-        var mesh = await GltfMeshImporter.LoadSkinnedMesh(FoxPath);
+        var mesh = GltfMeshImporter.LoadSkinnedMesh(FoxPath);
 
         Assert.That(mesh, Is.Not.Null);
         Assert.That(mesh!.Skeleton.Bones, Has.Length.EqualTo(24));

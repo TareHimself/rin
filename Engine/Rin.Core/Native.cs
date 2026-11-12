@@ -120,9 +120,6 @@ internal static partial class Native
     public static partial int videoContextEnsureHeader(IntPtr context);
 
     [LibraryImport(DllName)]
-    public static partial int videoContextIsReady(IntPtr context);
-
-    [LibraryImport(DllName)]
     public static partial int videoContextSeek(IntPtr context, double time);
 
     [LibraryImport(DllName)]
@@ -141,9 +138,6 @@ internal static partial class Native
     public static partial int videoContextGetAudioTrackCount(IntPtr context);
 
     [LibraryImport(DllName)]
-    public static partial void videoContextSetAudioTrack(IntPtr context, int track);
-
-    [LibraryImport(DllName)]
     public static partial double videoContextGetDuration(IntPtr context);
 
     [LibraryImport(DllName)]
@@ -154,9 +148,6 @@ internal static partial class Native
 
     [LibraryImport(DllName)]
     public static partial VideoByteRange videoContextGetNeededRange(IntPtr context);
-
-    [LibraryImport(DllName)]
-    public static partial int videoContextEnded(IntPtr context);
 
     [LibraryImport(DllName)]
     public static partial int videoContextGetBufferedFrameCount(IntPtr context);

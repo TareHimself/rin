@@ -138,29 +138,8 @@ public sealed class NullGraphicsModule : IGraphicsModule
         return TrackTexture(ResourceType.Cubemap, extent, format);
     }
 
-    public Task<ResourceHandle> CreateTexture(out ResourceHandle handle, ReadOnlySpan<byte> data, in Extent2D extent,
-        ImageFormat format, bool mips = false, ImageCreateFlags flags = ImageCreateFlags.None)
-    {
-        handle = TrackTexture(ResourceType.Texture, extent, format);
-        return Task.FromResult(handle);
-    }
-
-    public Task<ResourceHandle> CreateTextureArray(out ResourceHandle handle, ReadOnlySpan<byte> data,
-        in Extent2D extent, ImageFormat format, uint count, bool mips = false, ImageCreateFlags flags = ImageCreateFlags.None)
-    {
-        handle = TrackTexture(ResourceType.TextureArray, extent, format);
-        return Task.FromResult(handle);
-    }
-
-    public Task<ResourceHandle> CreateCubemap(out ResourceHandle handle, ReadOnlySpan<byte> data, in Extent2D extent,
-        ImageFormat format, bool mips = false, ImageCreateFlags flags = ImageCreateFlags.None)
-    {
-        handle = TrackTexture(ResourceType.Cubemap, extent, format);
-        return Task.FromResult(handle);
-    }
-
     public Task QueueTextureUpload(ResourceHandle handle, ReadOnlyMemory<byte> data, Extent2D extent,
-        Offset2D offset = default)
+        Offset2D offset = default, int mipLevel = -1)
     {
         return Task.CompletedTask;
     }

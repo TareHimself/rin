@@ -3,7 +3,6 @@ namespace Rin.Core.Shared.Curves;
 /// <summary>
 ///     A curve class with custom interpolation methods
 /// </summary>
-/// <typeparam name="TValue"></typeparam>
 public abstract class AdvancedCurve<TValue> : Curve<CustomCurvePoint<TValue>, TValue> where TValue : struct
 {
     private float HermiteRemap(float t, float tangent)
@@ -38,10 +37,6 @@ public abstract class AdvancedCurve<TValue> : Curve<CustomCurvePoint<TValue>, TV
     /// <summary>
     ///     Interpolate the value using the remapped alpha
     /// </summary>
-    /// <param name="previous"></param>
-    /// <param name="next"></param>
-    /// <param name="alpha"></param>
-    /// <returns></returns>
     protected abstract TValue LinearInterpolateValue(in TValue previous, in TValue next, float alpha);
 
 

@@ -36,7 +36,9 @@ public class DefaultSceneFrame : IDisposable
     public SkinnedMeshInfo[] SkinnedGeometry => Snapshot.SkinnedGeometry;
     public IReadOnlyList<ProcessedMesh> ProcessedMeshes { get; private set; } = [];
 
-    /// <summary>Per <see cref="SkinnedGeometry" /> entry.</summary>
+    /// <summary>
+    ///     Per <see cref="SkinnedGeometry" /> entry.
+    /// </summary>
     public PooledMemory<Matrix4x4>[] SkinningMatrices { get; }
     public int TotalMeshCount => ProcessedMeshes.Count;
     public int SkinnedMeshStartIndex { get; private set; }
@@ -54,10 +56,14 @@ public class DefaultSceneFrame : IDisposable
     public uint BoundsBufferId { get; set; }
     public uint SkinningOutputBufferId { get; set; }
 
-    /// <summary>Per <see cref="IndirectGroups" /> entry; 0 when the group's material needs no data.</summary>
+    /// <summary>
+    ///     Per <see cref="IndirectGroups" /> entry; 0 when the group's material needs no data.
+    /// </summary>
     public uint[] ColorMaterialBufferIds { get; set; } = [];
 
-    /// <summary>Per <see cref="DepthIndirectGroups" /> entry; 0 when the group's material needs no data.</summary>
+    /// <summary>
+    ///     Per <see cref="DepthIndirectGroups" /> entry; 0 when the group's material needs no data.
+    /// </summary>
     public uint[] DepthMaterialBufferIds { get; set; } = [];
 
     public uint[] MeshRecordBufferIds { get; set; } = [];

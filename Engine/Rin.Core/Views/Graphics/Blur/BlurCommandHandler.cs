@@ -34,8 +34,6 @@ internal class BlurInitCommandHandler : ICommandHandler
             newSize = newSize.Clamp(blurArea * 0.05f,
                 new Vector2(surfaceContext.Extent.Width, surfaceContext.Extent.Height));
 
-            //newSize = blurArea;
-
             command.BlurP1 = Vector2.Zero;
             command.BlurP2 = newSize = newSize.Ceiling();
 
@@ -190,17 +188,6 @@ internal partial class BlurSecondPassCommandHandler : ICommandHandler
                     DestRect = new Vector4(command.InitCommand.BoundingBoxP1, command.InitCommand.BoundingBoxP2.X,
                         command.InitCommand.BoundingBoxP2.Y)
                 });
-                // buffer.WriteSingle(new BlurData
-                // {
-                //     SourceT = srcImage.BindlessHandle,
-                //     Projection = surfaceContext.ProjectionMatrix,
-                //     Count = command.InitCommand.Count,
-                //     Strength = 1f,
-                //     Radius = Vector2.One,
-                //     Tint = command.InitCommand.Tint,
-                //     Transform = command.InitCommand.Transform,
-                //     DestRect = new Vector4(command.InitCommand.BoundingBoxP1,command.InitCommand.BoundingBoxP2.X,command.InitCommand.BoundingBoxP2.Y)
-                // });
                 bindContext
                     .Push(new BlurShader.PushConstants
                     {

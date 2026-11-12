@@ -1,5 +1,4 @@
 using System.Runtime.CompilerServices;
-using JetBrains.Annotations;
 using Rin.Core.Graphics;
 using Rin.Core.Graphics.Graph;
 
@@ -10,9 +9,7 @@ namespace Rin.World.Graphics.Default.Passes;
 /// </summary>
 public class DepthPrepassIndirectPass(DefaultWorldViewData view) : IPass
 {
-    [PublicAPI] public uint DepthImageId { get; private set; }
-
-    [PublicAPI] public ResourceHandle? DepthImage { get; set; }
+    private uint DepthImageId { get; set; }
     private uint DepthSceneBufferId { get; set; }
 
     public uint Id { get; set; }
@@ -39,9 +36,9 @@ public class DepthPrepassIndirectPass(DefaultWorldViewData view) : IPass
     {
         var sceneFrame = view.SceneFrame;
         var worldDataBuffer = graph.GetBufferOrException(DepthSceneBufferId);
-        DepthImage = graph.GetImageOrException(DepthImageId);
+        var depthImage = graph.GetImageOrException(DepthImageId);
         ctx
-            .BeginRendering(view.Extent, [], DepthImage.Value)
+            .BeginRendering(view.Extent, [], depthImage)
             .EnableBackFaceCulling();
 
         var worldFrame = new WorldFrame(view.View, view.Projection, worldDataBuffer, ctx);
@@ -50,7 +47,6 @@ public class DepthPrepassIndirectPass(DefaultWorldViewData view) : IPass
         {
             View = worldFrame.View,
             Projection = worldFrame.Projection,
-            ViewProjection = worldFrame.ViewProjection,
             Time = view.Time
         });
 

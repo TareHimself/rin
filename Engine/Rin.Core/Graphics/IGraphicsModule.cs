@@ -1,4 +1,3 @@
-// using Rin.Core.Graphics.Meshes;
 using Rin.Core.Graphics.Shaders;
 using Rin.Core.Graphics.Windows;
 using Rin.Core.Shared.Buffers;
@@ -6,7 +5,15 @@ using Rin.Shade;
 
 namespace Rin.Core.Graphics;
 
-public interface  IGraphicsModule : IModule, IUpdatable, IProviderResolvable<IGraphicsModule>
+/// <summary>
+///     The graphics backend: windows, renderers, shaders and GPU resources.
+/// </summary>
+/// <remarks>
+///     A handle is usable as soon as its <c>Create</c> method returns. <c>Queue</c> uploads and copies run in the order
+///     they were queued, ahead of the first pass of a graph that declares the resource, or at the end of the frame when
+///     no graph does. Await a returned task only to learn that the work ran, never before using the resource.
+/// </remarks>
+public interface IGraphicsModule : IModule, IUpdatable, IProviderResolvable<IGraphicsModule>
 {
     public event Action<IWindow>? OnWindowClosed;
     public event Action<IWindow>? OnWindowCreated;
@@ -30,15 +37,14 @@ public interface  IGraphicsModule : IModule, IUpdatable, IProviderResolvable<IGr
     public void WaitIdle();
 
     /// <summary>
-    ///     Registers a resource without allocating GPU memory for it - buffer creation itself is CPU-only,
-    ///     so unlike texture creation there's no async variant of this.
+    ///     Allocates the buffer and gives it a bindless slot.
     /// </summary>
     public ResourceHandle CreateBuffer(ulong size, BufferCreateFlags flags, bool sequentialWrite = true);
 
     /// <summary>
     ///     Uploads into a buffer via the transfer queue (staging buffer + copy), for buffers not created with
-    ///     <see cref="BufferCreateFlags.HostSrc" />/<see cref="BufferCreateFlags.HostDst" />. Mirrors
-    ///     <see cref="QueueTextureUpload" />.
+    ///     <see cref="BufferCreateFlags.HostSrc" />/<see cref="BufferCreateFlags.HostDst" />. Ordered as the
+    ///     <see cref="IGraphicsModule" /> remarks describe.
     /// </summary>
     public Task QueueBufferUpload(ResourceHandle handle, ReadOnlyMemory<byte> data, ulong offset = 0);
 
@@ -79,24 +85,12 @@ public interface  IGraphicsModule : IModule, IUpdatable, IProviderResolvable<IGr
         ImageCreateFlags flags = ImageCreateFlags.None);
 
     /// <summary>
-    ///     The handle is usable as soon as this returns; its contents arrive the first time a graph uses it or at the
-    ///     end of the frame, and until then it samples as the default texture.
-    /// </summary>
-    public Task<ResourceHandle> CreateTexture(out ResourceHandle handle, ReadOnlySpan<byte> data, in Extent2D extent,
-        ImageFormat format, bool mips = false, ImageCreateFlags flags = ImageCreateFlags.None);
-
-    public Task<ResourceHandle> CreateTextureArray(out ResourceHandle handle, ReadOnlySpan<byte> data,
-        in Extent2D extent,
-        ImageFormat format, uint count, bool mips = false, ImageCreateFlags flags = ImageCreateFlags.None);
-
-    public Task<ResourceHandle> CreateCubemap(out ResourceHandle handle, ReadOnlySpan<byte> data, in Extent2D extent,
-        ImageFormat format, bool mips = false, ImageCreateFlags flags = ImageCreateFlags.None);
-
-    /// <summary>
-    ///     Completes once the write has been submitted by the render thread, so never block the update thread on it.
+    ///     Ordered like <see cref="QueueBufferUpload" />. A <paramref name="mipLevel" /> of -1 writes level 0 and rebuilds
+    ///     the levels below it; any other value writes only that level. A sampled texture reads as the default texture
+    ///     until its first upload runs. The task completes on the render thread, so never block the update thread on it.
     /// </summary>
     public Task QueueTextureUpload(ResourceHandle handle, ReadOnlyMemory<byte> data, Extent2D extent,
-        Offset2D offset = default);
+        Offset2D offset = default, int mipLevel = -1);
 
     public bool IsValidResourceHandle(in ResourceHandle handle);
 

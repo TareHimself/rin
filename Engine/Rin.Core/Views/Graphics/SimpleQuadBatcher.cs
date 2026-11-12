@@ -27,11 +27,6 @@ public abstract class SimpleQuadBatcher<T> : IBatcher where T : IBatch
     /// <summary>
     ///     Bind sets, write data, push constants and return the number of quads to draw
     /// </summary>
-    /// <param name="frame"></param>
-    /// <param name="view"></param>
-    /// <param name="batch"></param>
-    /// <param name="bindContext"></param>
-    /// <returns></returns>
     protected abstract uint WriteBatch(ViewsFrame frame, in DeviceBufferView view, T batch,
         IGraphicsBindContext bindContext);
 }

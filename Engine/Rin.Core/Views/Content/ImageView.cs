@@ -37,16 +37,6 @@ public class ImageView : ContentView
         return new Vector2(extent.Width, extent.Height);
     }
 
-    // public override void CollectContent(TransformInfo info, DrawCommands drawCommands)
-    // {
-    //     //throw new NotImplementedException();
-    //     if (TextureId != -1)
-    //     {
-    //         drawCommands.AddTexture(TextureId, info.Transform, GetContentSize(), Tint, null,
-    //             BorderRadius);
-    //     }
-    // }
-
     public override void CollectContent(in Matrix4x4 transform, CommandList commands)
     {
         if (Image.Handle != ResourceHandle.InvalidTexture) DrawImage(Image, transform, commands);

@@ -3,8 +3,6 @@ using Rin.Core.Views.Layouts;
 
 namespace Rin.Core.Views.Composite;
 
-/// <summary>
-/// </summary>
 public class FlexBoxView : MultiSlotCompositeView<FlexBoxSlot>
 {
     private readonly FlexLayout _layout;

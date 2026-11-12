@@ -6,16 +6,15 @@ using Rin.World.Graphics.Default;
 namespace Rin.World.Graphics;
 
 /// <summary>
-///     Interface for a material pass
+///     Writes and binds the per-draw data a material's shader reads in one pass.
 /// </summary>
 public interface IMaterialPass
 {
     public IGraphicsShader Shader { get; }
 
     /// <summary>
-    ///     The memory required for a single draw using this pass
+    ///     The memory required for a single draw using this pass.
     /// </summary>
-    /// <returns></returns>
     public ulong GetRequiredMemory();
 
     /// <summary>
