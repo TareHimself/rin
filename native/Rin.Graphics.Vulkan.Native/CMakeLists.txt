@@ -28,3 +28,8 @@ install(TARGETS ${PROJECT_NAME} RUNTIME DESTINATION bin LIBRARY DESTINATION bin)
 if(SILO_RUNTIME_LIBRARIES)
     install(FILES ${SILO_RUNTIME_LIBRARIES} DESTINATION bin)
 endif()
+# silo leaves the Vulkan loader out of SILO_RUNTIME_LIBRARIES because drivers install it on Windows and
+# Linux. macOS has none, so ship it under the name the module links: @rpath/libvulkan.1.dylib.
+if(APPLE)
+    install(FILES $<TARGET_FILE:vulkan-loader::vulkan-loader> DESTINATION bin RENAME libvulkan.1.dylib)
+endif()
