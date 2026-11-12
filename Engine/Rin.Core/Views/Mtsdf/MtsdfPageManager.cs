@@ -1,4 +1,3 @@
-using Rin.Core.Extensions;
 using Rin.Core.Graphics;
 using Rin.Core.Shared;
 using StbRectPackSharp;
@@ -10,7 +9,7 @@ public class MtsdfPageManager : IDisposable
     private int _padding = 2;
     private class MtsdfPage : IDisposable
     {
-        public Task<ResourceHandle> TextureHandleTask { get; set; }
+        public ResourceHandle TextureHandle => _textureHandle;
         public Packer Packer { get; set; }
         private readonly ResourceHandle _textureHandle;
         private readonly IGraphicsModule _graphicsModule;
@@ -23,7 +22,7 @@ public class MtsdfPageManager : IDisposable
             // when baking static atlases - clearing to 0 reads as "inside" and produces opaque seams wherever
             // sampling touches unwritten padding.
             using var clear = hostImage.Mutate(c => c.Fill(255,255,255,0));
-            TextureHandleTask = clear.CreateTexture(out _textureHandle,graphicsModule: graphicsModule);
+            clear.CreateTexture(out _textureHandle,graphicsModule: graphicsModule);
             Packer = new Packer(initialWidth: (int)extent.Width, initialHeight: (int)extent.Height);
         }
 
@@ -49,7 +48,6 @@ public class MtsdfPageManager : IDisposable
     private readonly Lock _pageLock = new Lock();
     private int _pageIndex = -1;
     private readonly List<MtsdfPage> _pages = [];
-    private readonly List<Task<MtsdfInfo>> _infos = [];
     private bool _disposed = false;
     private IGraphicsModule _graphicsModule;
 
@@ -60,94 +58,50 @@ public class MtsdfPageManager : IDisposable
     }
 
     /// <summary>
-    ///     Carries everything the <see cref="AddMtsdf" /> continuations need so they can be passed as
-    ///     <c>static</c> lambdas + explicit state (see <see cref="TaskExtensions.Then{T,TState,TV}" />) instead of
-    ///     each capturing <c>this</c>/<c>data</c>/<c>info</c>/<c>completionSource</c> into its own closure - this
-    ///     runs once per glyph rasterized, so avoiding a closure (and its delegate) per continuation matters.
+    ///     Packs the glyph into a page and queues its upload, which lands ahead of the first draw that samples it.
     /// </summary>
-    private sealed class PendingUpload(
-        MtsdfPageManager owner,
-        MtsdfInfo info,
-        ReadOnlyMemory<byte> data,
-        TaskCompletionSource<MtsdfInfo> completionSource)
-    {
-        public readonly MtsdfPageManager Owner = owner;
-        public MtsdfInfo Info = info;
-        public readonly ReadOnlyMemory<byte> Data = data;
-        public readonly TaskCompletionSource<MtsdfInfo> CompletionSource = completionSource;
-    }
-
-    public Task<MtsdfInfo> AddMtsdf(in Extent2D extent, ReadOnlyMemory<byte> data)
-    {
-        MtsdfPage? page = null;
-        MtsdfInfo info;
-        var completionSource = new TaskCompletionSource<MtsdfInfo>();
-        lock (_pageLock)
-        {
-            if (_disposed) return Task.FromException<MtsdfInfo>(new ObjectDisposedException(nameof(MtsdfPageManager)));
-            PackerRectangle? packed = null;
-            if (_pageIndex == -1)
-            {
-                _pages.Add(new MtsdfPage(_extent,_graphicsModule));
-                _pageIndex = 0;
-            }
-
-            while (packed is null)
-            {
-                packed = _pages[_pageIndex].Packer.PackRect(_padding * 2 + (int)extent.Width, _padding * 2 + (int)extent.Height, null);
-                if (packed is not null) continue;
-                _pages.Add(new MtsdfPage(_extent,_graphicsModule));
-                _pageIndex++;
-            }
-
-            page = _pages[_pageIndex];
-
-            var id = _infos.Count;
-            info = new MtsdfInfo
-            {
-                Id = id,
-                State = MtsdfState.Assigned,
-                Rect = new RectUint
-                {
-                    Offset =
-                    {
-                        X = (uint)(packed.X + _padding),
-                        Y = (uint)(packed.Y + _padding),
-                    },
-                    Extent = extent
-                },
-                Atlas = ResourceHandle.InvalidTexture
-            };
-            _infos.Add(completionSource.Task);
-        }
-
-        var upload = new PendingUpload(this, info, data, completionSource);
-        page.TextureHandleTask.Then(static (handle, upload) =>
-        {
-            if (upload.Owner._disposed) return;
-            upload.Owner._graphicsModule.QueueTextureUpload(handle, upload.Data, upload.Info.Rect.Extent, upload.Info.Rect.Offset)
-                .Then(static state =>
-                {
-                    var (upload, handle) = state;
-                    lock (upload.Owner._pageLock)
-                    {
-                        if (upload.Owner._disposed) return;
-                        upload.Info.Atlas = handle;
-                        upload.Info.State = MtsdfState.Ready;
-                        upload.CompletionSource.SetResult(upload.Info);
-                    }
-                }, (upload, handle));
-        }, upload);
-
-        return completionSource.Task;
-    }
-
-    public Task<MtsdfInfo> GetInfo(int id)
+    public MtsdfInfo AddMtsdf(in Extent2D extent, ReadOnlyMemory<byte> data)
     {
         lock (_pageLock)
         {
-            return _infos[id];
+            ObjectDisposedException.ThrowIf(_disposed, this);
+
+            var rect = PackRect(extent);
+            var atlas = _pages[_pageIndex].TextureHandle;
+            _graphicsModule.QueueTextureUpload(atlas, data, rect.Extent, rect.Offset);
+            return new MtsdfInfo { Atlas = atlas, Rect = rect };
         }
+    }
+
+    private RectUint PackRect(in Extent2D extent)
+    {
+        if (_pageIndex == -1) AddPage();
+
+        var width = _padding * 2 + (int)extent.Width;
+        var height = _padding * 2 + (int)extent.Height;
+        var packed = _pages[_pageIndex].Packer.PackRect(width, height, null);
+        if (packed is null)
+        {
+            AddPage();
+            packed = _pages[_pageIndex].Packer.PackRect(width, height, null)
+                     ?? throw new ArgumentException("The glyph is larger than an atlas page.", nameof(extent));
+        }
+
+        return new RectUint
+        {
+            Offset =
+            {
+                X = (uint)(packed.X + _padding),
+                Y = (uint)(packed.Y + _padding)
+            },
+            Extent = extent
+        };
+    }
+
+    private void AddPage()
+    {
+        _pages.Add(new MtsdfPage(_extent, _graphicsModule));
+        _pageIndex = _pages.Count - 1;
     }
 
     private void ReleaseUnmanagedResources()
@@ -161,7 +115,6 @@ public class MtsdfPageManager : IDisposable
             }
 
             _pages.Clear();
-            _infos.Clear();
             _pageIndex = 0;
         }
     }
