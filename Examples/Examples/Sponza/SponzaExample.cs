@@ -118,13 +118,7 @@ public sealed class SponzaExample : Example
 
             {
                 using var image = HostImage.Create(new MemoryStream(tex.Content.Content.ToArray()));
-                var handle = image.CreateTexture(out var newHandle, sampler.MagFilter switch
-                {
-                    TextureInterpolationFilter.NEAREST => ImageFilter.Nearest,
-                    TextureInterpolationFilter.LINEAR => ImageFilter.Linear,
-                    TextureInterpolationFilter.DEFAULT => ImageFilter.Linear,
-                    _ => throw new ArgumentOutOfRangeException()
-                }, mips: true).GetAwaiter().GetResult();
+                var newHandle = image.CreateTexture(mips: true);
                 cache.Add(id, newHandle);
                 return newHandle;
             }

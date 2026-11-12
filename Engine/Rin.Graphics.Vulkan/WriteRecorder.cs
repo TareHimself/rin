@@ -12,11 +12,82 @@ internal static class WriteRecorder
         PendingTextureWrite write)
     {
         staging.Write(write.Data);
-        RecordBufferToImage(cmd, image, staging, write.Offset, write.Extent);
+        RecordBufferToImage(cmd, image, staging, write.Offset, write.Extent, write.Level);
+        if (write.RebuildsMipChain && image.Mips) RecordMipChain(cmd, image);
+    }
+
+    /// <summary>
+    ///     Blits level 0 down the chain. Expects every level in <see cref="ImageLayout.TransferDst" /> and leaves them there.
+    /// </summary>
+    public static void RecordMipChain(in VkCommandBuffer cmd, IVulkanTexture image)
+    {
+        var lastLevel = image.Extent.FullMipLevels - 1;
+        if (lastLevel == 0) return;
+
+        for (uint level = 0; level < lastLevel; level++)
+        {
+            cmd.ImageBarrier(image.VulkanImage, ImageLayout.TransferDst, ImageLayout.TransferSrc,
+                MipBarrier(image, ImageLayout.TransferDst, ImageLayout.TransferSrc, level, 1));
+            RecordMipBlit(cmd, image, level);
+        }
+
+        cmd.ImageBarrier(image.VulkanImage, ImageLayout.TransferSrc, ImageLayout.TransferDst,
+            MipBarrier(image, ImageLayout.TransferSrc, ImageLayout.TransferDst, 0, lastLevel));
+    }
+
+    private static ImageBarrierOptions MipBarrier(IVulkanTexture image, ImageLayout from, ImageLayout to,
+        uint baseLevel, uint levelCount)
+    {
+        var options = new ImageBarrierOptions(image.Format, from, to);
+        options.SubresourceRange.baseMipLevel = baseLevel;
+        options.SubresourceRange.levelCount = levelCount;
+        return options;
+    }
+
+    private static void RecordMipBlit(in VkCommandBuffer cmd, IVulkanTexture image, uint sourceLevel)
+    {
+        var sourceExtent = image.Extent.MipExtent(sourceLevel);
+        var targetExtent = image.Extent.MipExtent(sourceLevel + 1);
+        var region = new VkImageBlit2
+        {
+            sType = VkStructureType.VK_STRUCTURE_TYPE_IMAGE_BLIT_2,
+            srcSubresource = MipLayers(image, sourceLevel),
+            dstSubresource = MipLayers(image, sourceLevel + 1)
+        };
+        region.srcOffsets[1] = new VkOffset3D { x = (int)sourceExtent.Width, y = (int)sourceExtent.Height, z = 1 };
+        region.dstOffsets[1] = new VkOffset3D { x = (int)targetExtent.Width, y = (int)targetExtent.Height, z = 1 };
+
+        unsafe
+        {
+            var blit = new VkBlitImageInfo2
+            {
+                sType = VkStructureType.VK_STRUCTURE_TYPE_BLIT_IMAGE_INFO_2,
+                srcImage = image.VulkanImage,
+                srcImageLayout = VkImageLayout.VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+                dstImage = image.VulkanImage,
+                dstImageLayout = VkImageLayout.VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                regionCount = 1,
+                pRegions = &region,
+                filter = VkFilter.VK_FILTER_LINEAR
+            };
+
+            vkCmdBlitImage2(cmd, &blit);
+        }
+    }
+
+    private static VkImageSubresourceLayers MipLayers(IVulkanTexture image, uint level)
+    {
+        return new VkImageSubresourceLayers
+        {
+            aspectMask = image.Format.ToAspectFlags(),
+            mipLevel = level,
+            baseArrayLayer = 0,
+            layerCount = 1
+        };
     }
 
     public static void RecordBufferToImage(in VkCommandBuffer cmd, IVulkanTexture image, in DeviceBufferView buffer,
-        in Offset2D offset, in Extent2D extent)
+        in Offset2D offset, in Extent2D extent, uint mipLevel = 0)
     {
         var region = new VkBufferImageCopy
         {
@@ -24,7 +95,7 @@ internal static class WriteRecorder
             imageSubresource = new VkImageSubresourceLayers
             {
                 aspectMask = image.Format.ToAspectFlags(),
-                mipLevel = 0,
+                mipLevel = mipLevel,
                 baseArrayLayer = 0,
                 layerCount = 1
             },

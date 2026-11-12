@@ -22,7 +22,7 @@ public class MtsdfPageManager : IDisposable
             // when baking static atlases - clearing to 0 reads as "inside" and produces opaque seams wherever
             // sampling touches unwritten padding.
             using var clear = hostImage.Mutate(c => c.Fill(255,255,255,0));
-            clear.CreateTexture(out _textureHandle,graphicsModule: graphicsModule);
+            _textureHandle = clear.CreateTexture(graphicsModule: graphicsModule);
             Packer = new Packer(initialWidth: (int)extent.Width, initialHeight: (int)extent.Height);
         }
 

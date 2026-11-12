@@ -240,7 +240,11 @@ public static class UiGalleryScene
             data[index + 3] = 255;
         }
 
-        IGraphicsModule.Get().CreateTexture(out var handle, data, new Extent2D(size), ImageFormat.RGBA8);
+        var graphics = IGraphicsModule.Get();
+        var extent = new Extent2D(size);
+        var handle = graphics.CreateTexture(extent, ImageFormat.RGBA8,
+            flags: ImageCreateFlags.Sampled | ImageCreateFlags.TransferDst);
+        graphics.QueueTextureUpload(handle, data, extent);
         return handle;
     }
 }

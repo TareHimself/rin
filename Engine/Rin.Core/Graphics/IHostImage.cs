@@ -9,9 +9,10 @@ public interface IHostImage : IDisposable
 
     public HostImageFormat Format { get; }
 
-    public Task<ResourceHandle> CreateTexture(out ResourceHandle handle, ImageFilter filter = ImageFilter.Linear,
-        ImageTiling tiling = ImageTiling.Repeat,
-        bool mips = false, string? debugName = null, IGraphicsModule? graphicsModule = null);
+    /// <summary>
+    ///     Creates a sampled texture and queues this image as its contents.
+    /// </summary>
+    public ResourceHandle CreateTexture(bool mips = false, IGraphicsModule? graphicsModule = null);
     
     /// <summary>
     /// Saves the image as png

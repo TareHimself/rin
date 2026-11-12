@@ -8,25 +8,25 @@ public sealed class TextureCache : IDisposable
 {
     private readonly record struct Key(UInt128 PixelHash, Extent2D Extent, HostImageFormat Format, bool Mips);
 
-    private readonly Dictionary<Key, (ResourceHandle Handle, Task<ResourceHandle> Task)> _textures = [];
+    private readonly Dictionary<Key, ResourceHandle> _textures = [];
     private readonly Lock _sync = new();
 
     public async Task<ResourceHandle> Load(string path, bool mips = false)
     {
         using var image = await Task.Run(() => HostImage.Create(File.OpenRead(path)));
-        return await Get(image, mips);
+        return Get(image, mips);
     }
 
-    public Task<ResourceHandle> Get(IHostImage image, bool mips = false)
+    public ResourceHandle Get(IHostImage image, bool mips = false)
     {
         var key = new Key(HashPixels(image), image.Extent, image.Format, mips);
         lock (_sync)
         {
-            if (_textures.TryGetValue(key, out var existing)) return existing.Task;
+            if (_textures.TryGetValue(key, out var existing)) return existing;
 
-            var task = image.CreateTexture(out var handle, mips: mips);
-            _textures.Add(key, (handle, task));
-            return task;
+            var handle = image.CreateTexture(mips);
+            _textures.Add(key, handle);
+            return handle;
         }
     }
 
@@ -34,7 +34,7 @@ public sealed class TextureCache : IDisposable
     {
         lock (_sync)
         {
-            IGraphicsModule.Get().FreeResourceHandles(_textures.Values.Select(c => c.Handle).ToArray());
+            IGraphicsModule.Get().FreeResourceHandles(_textures.Values.ToArray());
             _textures.Clear();
         }
     }

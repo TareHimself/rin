@@ -7,6 +7,7 @@ public class BindlessTexture : BindlessResource, IDisposableVulkanTexture
 {
     public IDisposableVulkanTexture? Source { get; set; }
     public bool DescriptorPending { get; set; }
+    public bool HasUpload { get; set; }
     public Extent2D Extent => Source?.Extent ?? throw new NullReferenceException();
     public bool Mips => Source?.Mips ?? throw new NullReferenceException();
     public ImageCreateFlags Usage => Source?.Usage ?? throw new NullReferenceException();

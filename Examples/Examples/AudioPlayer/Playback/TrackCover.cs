@@ -39,7 +39,7 @@ public sealed class TrackCover : IDisposable
 
             var palette = CoverPalette.From(image);
             var extent = image.Extent;
-            await image.CreateTexture(out var handle);
+            var handle = image.CreateTexture();
             return (new ImageInfo(handle, extent), palette);
         }
         catch (OperationCanceledException)

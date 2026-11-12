@@ -28,7 +28,7 @@ public class AsyncWebImageView : CoverImageView
             var stream = await Client.GetStreamAsync(uri);
             using var img = await Task.Run(() => HostImage.Create(stream));
 
-            await img.CreateTexture(out var texId);
+            var texId = img.CreateTexture();
             var extent = img.Extent;
             IApplication.Get().MainDispatcher.Enqueue(() =>
             {

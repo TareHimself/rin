@@ -1,4 +1,5 @@
 ﻿using System.Globalization;
+using System.Numerics;
 using JetBrains.Annotations;
 
 namespace Rin.Core.Graphics;
@@ -44,6 +45,20 @@ public record struct Extent2D : IFormattable
 
         return
             $"<{Width.ToString(format, formatProvider)}{separator} {Height.ToString(format, formatProvider)}>";
+    }
+
+    /// <summary>
+    ///     How many levels a texture of this size has when created with mips, down to 1 x 1.
+    /// </summary>
+    public readonly uint FullMipLevels => (uint)BitOperations.Log2(uint.Max(uint.Max(Width, Height), 1)) + 1;
+
+    /// <summary>
+    ///     The size of mip <paramref name="level" />, where level 0 is this extent.
+    /// </summary>
+    public readonly Extent2D MipExtent(uint level)
+    {
+        var shift = (int)uint.Min(level, 31);
+        return new Extent2D(uint.Max(Width >> shift, 1), uint.Max(Height >> shift, 1));
     }
 
     public void Deconstruct(out uint width, out uint height)
