@@ -33,7 +33,7 @@ jobs:
     needs: changes
     runs-on: windows-latest
     env:
-      RUN: ${{ github.event_name == 'push' || contains(fromJSON(needs.changes.outputs.projects), 'Shade/Rin.Shade.CpuTests/Rin.Shade.CpuTests.csproj') || contains(fromJSON(needs.changes.outputs.projects), 'Engine/Rin.World/Rin.World.csproj') }}
+      RUN: ${{ github.event_name == 'push' || contains(fromJSON(needs.changes.outputs.projects), 'Shade/Rin.Shade.CpuTests/Rin.Shade.CpuTests.csproj') || contains(fromJSON(needs.changes.outputs.projects), 'Examples/Examples/Examples.csproj') }}
     steps:
       - name: Skip, no real-Slang project affected
         if: env.RUN != 'true'
@@ -88,6 +88,7 @@ jobs:
           - { name: Rin.Slang.Compiler.Tests, project: Slang/Rin.Slang.Compiler.Tests/Rin.Slang.Compiler.Tests.csproj, fakes: true, args: '-p:RinShadeSkipCompile=true' }
           - { name: Rin.Graphics.Vulkan.Tests, project: Engine/Rin.Graphics.Vulkan.Tests/Rin.Graphics.Vulkan.Tests.csproj, fakes: true, args: '-p:RinShadeSkipCompile=true' }
           - { name: Rin.Shade.Tests, project: Shade/Rin.Shade.Tests/Rin.Shade.Tests.csproj, fakes: false, args: '' }
+          - { name: Examples.Tests, project: Examples/Examples.Tests/Examples.Tests.csproj, fakes: false, args: '-p:RinShadeSkipCompile=true' }
     steps:
       - name: Skip, this project is not affected
         if: env.RUN != 'true'
@@ -116,6 +117,35 @@ jobs:
         if: env.RUN == 'true'
         run: dotnet test ${{ matrix.project }} ${{ matrix.args }} --no-restore --nologo --logger "console;verbosity=normal"
 
+  # Builds every project, including the ones no test job covers (Examples, Experiments, tools), so a change
+  # that breaks one of them fails CI. Shader compilation is skipped, see test-real-slang.
+  build:
+    name: Build solution
+    needs: changes
+    runs-on: windows-latest
+    env:
+      RUN: ${{ github.event_name == 'push' || needs.changes.outputs.projects != '[]' }}
+    steps:
+      - name: Skip, no project is affected
+        if: env.RUN != 'true'
+        run: echo "Skipped"
+      - uses: actions/checkout@v7
+        if: env.RUN == 'true'
+      - uses: ./.github/actions/setup
+        if: env.RUN == 'true'
+
+      - name: Pack native stub packages
+        if: env.RUN == 'true'
+        run: uv run python scripts/pack_native_stubs.py .feed
+
+      - name: Restore
+        if: env.RUN == 'true'
+        run: dotnet restore rin.sln -p:RinShadeSkipCompile=true
+
+      - name: Build
+        if: env.RUN == 'true'
+        run: dotnet build rin.sln -p:RinShadeSkipCompile=true --no-restore --nologo
+
   # What the stub-based jobs cannot do: needs the real Slang from the build-native-slang job.
   test-real-slang:
     name: ${{ matrix.name }} (real Slang)
@@ -130,9 +160,10 @@ jobs:
           - name: Test Rin.Shade.CpuTests
             project: Shade/Rin.Shade.CpuTests/Rin.Shade.CpuTests.csproj
             command: dotnet test Shade/Rin.Shade.CpuTests/Rin.Shade.CpuTests.csproj --no-restore --nologo --logger "console;verbosity=normal"
+          # Examples references Rin.Core and Rin.World, so building it compiles their shaders and its own.
           - name: Compile all shaders
-            project: Engine/Rin.World/Rin.World.csproj
-            command: dotnet build Engine/Rin.World/Rin.World.csproj -c Release --no-restore --nologo
+            project: Examples/Examples/Examples.csproj
+            command: dotnet build Examples/Examples/Examples.csproj -c Release --no-restore --nologo
     steps:
       - name: Skip, no real-Slang project affected
         if: env.RUN != 'true'
