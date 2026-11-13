@@ -125,8 +125,14 @@ internal sealed class FakeFontManager : IFontManager
 
     public IFont? GetFont(string name) => _font;
 
+    public float LastMeasureMaxWidth { get; private set; }
+
     public int MeasureText(IFont font, in ReadOnlySpan<char> text, float size, Span<GlyphRect> into,
-        float maxWidth = float.PositiveInfinity) => FakeFont.Measure(text, into);
+        float maxWidth = float.PositiveInfinity)
+    {
+        LastMeasureMaxWidth = maxWidth;
+        return FakeFont.Measure(text, into);
+    }
 
     public float GetPixelRange() => 0f;
     public IEnumerable<IFont> GetFonts() => [_font];

@@ -75,6 +75,19 @@ public class TextBoxViewTests
     }
 
     [Test]
+    public void RemeasuresWhenTheWrapWidthChanges()
+    {
+        var fontManager = (FakeFontManager)_module.FontManager;
+        var text = new TextBoxView { Content = "abc def", WrapContent = true };
+
+        text.Layout(new Vector2(200f, 100f));
+        var wide = fontManager.LastMeasureMaxWidth;
+        text.Layout(new Vector2(50f, 100f));
+
+        Assert.That(fontManager.LastMeasureMaxWidth, Is.LessThan(wide));
+    }
+
+    [Test]
     public void CollectsNothingWhileGlyphsArePending()
     {
         ((FakeFontManager)_module.FontManager).GlyphState = LiveGlyphState.Pending;

@@ -118,7 +118,9 @@ public class TextBoxView : ContentView
     protected override Vector2 LayoutContent(in Vector2 availableSpace)
     {
         ReleaseLayouts();
-        Wrap = _wrapContent ? float.IsFinite(availableSpace.X) ? availableSpace.X + 2f : null : null;
+        float? wrap = _wrapContent && float.IsFinite(availableSpace.X) ? availableSpace.X + 2f : null;
+        if (wrap != Wrap) InvalidateCharacterBounds();
+        Wrap = wrap;
         var bounds = GetCharacterBounds();
         if (bounds.IsEmpty) return new Vector2(0.0f, LineHeight);
         var extent = MeasureExtent(bounds);
