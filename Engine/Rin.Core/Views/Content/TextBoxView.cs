@@ -6,6 +6,7 @@ using Rin.Core.Views.Font;
 using Rin.Core.Views.Graphics;
 using Rin.Core.Views.Graphics.Quads;
 using Rin.Core.Extensions;
+using Rin.Core.Shared;
 using Rin.Core.Shared.Math;
 
 namespace Rin.Core.Views.Content;
@@ -15,8 +16,8 @@ namespace Rin.Core.Views.Content;
 /// </summary>
 public class TextBoxView : ContentView
 {
-    private GlyphRect[]? _cachedBounds;
-    private CachedQuadLayout[]? _cachedLayouts;
+    private PooledMemory<GlyphRect>? _cachedBounds;
+    private PooledMemory<CachedQuadLayout>? _cachedLayouts;
 
     private string _content = string.Empty;
     private string _fontFamily;
@@ -31,7 +32,6 @@ public class TextBoxView : ContentView
         _fontManager = module.FontManager;
         _fontFamily = module.DefaultFontFamily;
         _cachedLayouts = null;
-        _cachedBounds = null;
         MakeNewFont();
     }
 
@@ -51,8 +51,8 @@ public class TextBoxView : ContentView
         {
             if (value != _wrapContent)
             {
-                _cachedLayouts = null;
-                _cachedBounds = null;
+                ReleaseLayouts();
+                InvalidateCharacterBounds();
             }
             _wrapContent = value;
             InvalidateLayout();
@@ -87,7 +87,7 @@ public class TextBoxView : ContentView
         get => _fontSize;
         set
         {
-            _cachedLayouts = null;
+            ReleaseLayouts();
             _fontSize = value;
             MakeNewFont();
         }
@@ -109,71 +109,112 @@ public class TextBoxView : ContentView
     protected virtual void TextChanged(string newText)
     {
         _content = newText;
-        _cachedLayouts = null;
-        _cachedBounds = null;
+        ReleaseLayouts();
+        InvalidateCharacterBounds();
         InvalidateDesiredSize();
         InvalidateLayout();
     }
 
     protected override Vector2 LayoutContent(in Vector2 availableSpace)
     {
-        _cachedLayouts = null;
-        Wrap = _wrapContent ? float.IsFinite(availableSpace.X) ? availableSpace.X + 2f : null : null;
-        var bounds = GetCharacterBounds(Wrap);
-        if (bounds.Empty()) return new Vector2(0.0f, LineHeight);
-        // PenX + Advance (not the ink-based Right) so trailing whitespace still reserves its layout space.
-        var width = bounds.Max(c => c.PenX + c.Advance);
+        ReleaseLayouts();
+        float? wrap = _wrapContent && float.IsFinite(availableSpace.X) ? availableSpace.X + 2f : null;
+        if (wrap != Wrap) InvalidateCharacterBounds();
+        Wrap = wrap;
+        var bounds = GetCharacterBounds();
+        if (bounds.IsEmpty) return new Vector2(0.0f, LineHeight);
+        var extent = MeasureExtent(bounds);
         // At least a full line, so text without descenders is as tall as text with them.
-        var height = float.Max(bounds.MaxBy(c => c.Bottom).Bottom, LineHeight);
-        return new Vector2(width, height);
+        return extent with { Y = float.Max(extent.Y, LineHeight) };
+    }
+
+    /// <summary>
+    ///     The widest pen extent and the lowest ink edge of <paramref name="bounds" />.
+    /// </summary>
+    private static Vector2 MeasureExtent(ReadOnlySpan<GlyphRect> bounds)
+    {
+        var width = float.NegativeInfinity;
+        var bottom = float.NegativeInfinity;
+        foreach (ref readonly var bound in bounds)
+        {
+            // PenX + Advance (not the ink-based Right) so trailing whitespace still reserves its layout space.
+            width = float.Max(width, bound.PenX + bound.Advance);
+            bottom = float.Max(bottom, bound.Bottom);
+        }
+
+        return new Vector2(width, bottom);
     }
 
     private void MakeNewFont()
     {
         if (_fontManager.GetFont(FontFamily) is { } font) CurrentFont = font;
-        _cachedBounds = null;
-        _cachedLayouts = ComputeLayout(out var pending);
-        if (pending) _cachedLayouts = null;
+        InvalidateCharacterBounds();
+        ReleaseLayouts();
+        var layout = ComputeLayout(out var pending);
+        if (pending) layout.Dispose();
+        else _cachedLayouts = layout;
         InvalidateDesiredSize();
         InvalidateLayout();
     }
 
 
-    protected GlyphRect[] GetCharacterBounds(float? wrap = null, bool cache = true)
+    /// <summary>
+    ///     Every character's bounds at the current wrap, cached until invalidated.
+    /// </summary>
+    protected ReadOnlySpan<GlyphRect> GetCharacterBounds()
     {
-        if (CurrentFont == null) return [];
+        if (CurrentFont == null) return default;
+        if (_cachedBounds is { } cached) return cached.AsSpan();
 
-        if (cache && _cachedBounds is { } cached) return cached;
+        var bounds = new PooledMemory<GlyphRect>(Content.Length);
+        bounds.Truncate(MeasureContent(bounds.AsSpan(), Wrap));
+        _cachedBounds = bounds;
+        return bounds.AsSpan();
+    }
 
-        var bounds = FontManager.MeasureText(CurrentFont, Content, FontSize, wrap ?? float.PositiveInfinity);
+    /// <summary>
+    ///     Measures the content into <paramref name="into" />, which needs room for every character.
+    /// </summary>
+    protected int MeasureContent(Span<GlyphRect> into, float? wrap)
+    {
+        if (CurrentFont == null) return 0;
+        return FontManager.MeasureText(CurrentFont, Content, FontSize, into, wrap ?? float.PositiveInfinity);
+    }
 
-        if (cache) return _cachedBounds = bounds;
-
-        return bounds;
+    protected void InvalidateCharacterBounds()
+    {
+        _cachedBounds?.Dispose();
+        _cachedBounds = null;
     }
 
     public override Vector2 ComputeDesiredContentSize()
     {
         if (Content.Empty() || CurrentFont == null) return new Vector2(0.0f, LineHeight);
-        var bounds = GetCharacterBounds(cache: false);
-        var width = bounds.Empty() ? 0 : bounds.Max(c => c.PenX + c.Advance);
-        var lines = float.Max(1, Content.Split("\n").Length);
-        var height = LineHeight * lines;
+        using var scratch = new PooledMemory<GlyphRect>(Content.Length);
+        var bounds = scratch.AsSpan()[..MeasureContent(scratch.AsSpan(), null)];
+        if (bounds.IsEmpty) return Vector2.Zero;
 
-        return new Vector2(width, bounds.Empty() ? 0 : float.Max(bounds.MaxBy(c => c.Bottom).Bottom, height));
+        var extent = MeasureExtent(bounds);
+        var lines = Content.AsSpan().Count('\n') + 1;
+        return extent with { Y = float.Max(extent.Y, LineHeight * lines) };
     }
 
-    protected CachedQuadLayout[] ComputeLayout(out bool anyPending)
+    /// <summary>
+    ///     The caller owns the returned buffer and must dispose it or cache it.
+    /// </summary>
+    protected PooledMemory<CachedQuadLayout> ComputeLayout(out bool anyPending)
     {
         if (CurrentFont == null || Content.Empty())
         {
             anyPending = false;
-            return [];
+            return new PooledMemory<CachedQuadLayout>(0);
         }
 
         var pending = false;
-        List<CachedQuadLayout> results = [];
-        foreach (var bound in GetCharacterBounds(Wrap))
+        var bounds = GetCharacterBounds();
+        var results = new PooledMemory<CachedQuadLayout>(bounds.Length);
+        var count = 0;
+        foreach (var bound in bounds)
         {
             var range = _fontManager.GetPixelRange();
             var glyph = _fontManager.GetGlyph(CurrentFont, bound.Character);
@@ -191,12 +232,32 @@ public class TextBoxView : ContentView
 
             var (finalTransform, size) = MtsdfGlyphLayout.Compute(bound, glyph, range);
 
-            results.Add(new CachedQuadLayout(glyph.AtlasHandle, finalTransform, size, glyph.Coordinate, range));
+            results[count++] = new CachedQuadLayout(glyph.AtlasHandle, finalTransform, size, glyph.Coordinate, range);
         }
 
         anyPending = pending;
+        results.Truncate(count);
+        return results;
+    }
 
-        return results.ToArray();
+    private void ReleaseLayouts()
+    {
+        _cachedLayouts?.Dispose();
+        _cachedLayouts = null;
+    }
+
+    protected override void OnRemovedFromSurface(ISurface surface)
+    {
+        ReleaseLayouts();
+        InvalidateCharacterBounds();
+        base.OnRemovedFromSurface(surface);
+    }
+
+    public override void Dispose()
+    {
+        ReleaseLayouts();
+        InvalidateCharacterBounds();
+        base.Dispose();
     }
     
     private readonly List<Quad> _collectCacheQuads = [];
@@ -209,29 +270,29 @@ public class TextBoxView : ContentView
         if (Content.NotEmpty() && _cachedLayouts == null)
         {
             var layout = ComputeLayout(out var hadAnyPending);
-            var x4 = transform;
-            _collectCacheQuads.AddRange(layout.Select(c => Quad.Mtsdf(c.Atlas, c.Transform * x4, c.Size,
-                c.PixelRange, ForegroundColor, c.Uv)));
-            _collectCacheAtlases.AddRange(layout.Select(c => c.Atlas).Distinct());
-            if (_collectCacheQuads.Count == 0) return;
-            if (!hadAnyPending) _cachedLayouts = layout;
+            AddLayoutQuads(layout.AsSpan(), transform);
+            if (hadAnyPending || layout.Count == 0) layout.Dispose();
+            else _cachedLayouts = layout;
         }
-        else if (_cachedLayouts != null)
+        else if (_cachedLayouts is { } cached)
         {
-            var x4 = transform;
-            foreach (var quad in _cachedLayouts)
-            {
-                _collectCacheQuads.Add(Quad.Mtsdf(quad.Atlas, quad.Transform * x4, quad.Size, quad.PixelRange,
-                    ForegroundColor, quad.Uv));
-            }
-
-            _collectCacheAtlases.AddRange(_cachedLayouts.Select(c => c.Atlas).Distinct());
+            AddLayoutQuads(cached.AsSpan(), transform);
         }
 
         if (_collectCacheQuads.Count > 0)
         {
             commands.Add(new QuadDrawCommand(CollectionsMarshal.AsSpan(_collectCacheQuads),
                 CollectionsMarshal.AsSpan(_collectCacheAtlases)));
+        }
+    }
+
+    private void AddLayoutQuads(ReadOnlySpan<CachedQuadLayout> layouts, in Matrix4x4 transform)
+    {
+        foreach (ref readonly var layout in layouts)
+        {
+            _collectCacheQuads.Add(Quad.Mtsdf(layout.Atlas, layout.Transform * transform, layout.Size,
+                layout.PixelRange, ForegroundColor, layout.Uv));
+            if (!_collectCacheAtlases.Contains(layout.Atlas)) _collectCacheAtlases.Add(layout.Atlas);
         }
     }
 

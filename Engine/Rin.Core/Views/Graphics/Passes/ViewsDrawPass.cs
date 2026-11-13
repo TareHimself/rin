@@ -4,7 +4,7 @@ using Rin.Core.Views.Graphics.CommandHandlers;
 
 namespace Rin.Core.Views.Graphics.Passes;
 
-public class ViewsDrawPass : IPassWithPreAdd
+public class ViewsDrawPass : IPassWithPreAdd, IDisposable
 {
     private readonly ICommandHandler[] _commandHandlers;
     private readonly IPassConfig _passConfig;
@@ -43,5 +43,10 @@ public class ViewsDrawPass : IPassWithPreAdd
     public void PreAdd(IGraphBuilder builder)
     {
         foreach (var handler in _preHandlers) handler.PreAdd(builder);
+    }
+
+    public void Dispose()
+    {
+        foreach (var handler in _commandHandlers) (handler as IDisposable)?.Dispose();
     }
 }

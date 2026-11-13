@@ -29,9 +29,10 @@ public class HarfBuzzFont : IFont, IDisposable
         return (extents.Ascender - extents.Descender + extents.LineGap) * fontSize / UnitsPerEm;
     }
 
-    public GlyphRect[] MeasureText(in ReadOnlySpan<char> text, float size, float maxWidth = float.PositiveInfinity)
+    public int MeasureText(in ReadOnlySpan<char> text, float size, Span<GlyphRect> into,
+        float maxWidth = float.PositiveInfinity)
     {
-        return FontManager.MeasureText(this, text, size, maxWidth);
+        return FontManager.MeasureText(this, text, size, into, maxWidth);
     }
 
     public IEnumerable<CodePoint> GetCodePoints()

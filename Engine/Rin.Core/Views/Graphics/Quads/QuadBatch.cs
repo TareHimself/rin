@@ -5,14 +5,21 @@ using Rin.Core.Views.Graphics.Commands;
 
 namespace Rin.Core.Views.Graphics.Quads;
 
-public class QuadBatch : IBatch
+/// <summary>
+///     The quad commands drawn together. It reads their quads in place, and releases them when disposed.
+/// </summary>
+public class QuadBatch : IBatch, IDisposable
 {
-    private readonly List<Quad> _quads = [];
+    private readonly List<QuadDrawCommand> _commands = [];
     private readonly HashSet<ResourceHandle> _textures = [];
+
+    public int QuadCount { get; private set; }
+
+    public IReadOnlyList<QuadDrawCommand> Commands => _commands;
 
     public ulong GetMemoryNeeded()
     {
-        return Utils.ByteSizeOf<Quad>(_quads.Count);
+        return Utils.ByteSizeOf<Quad>(QuadCount);
     }
 
     public IBatcher GetBatcher()
@@ -23,8 +30,9 @@ public class QuadBatch : IBatch
     public void AddFromCommand(ICommand command)
     {
         if (command is not QuadDrawCommand asQuadDraw) return;
-        _quads.AddRange(asQuadDraw.GetQuads());
-        _textures.UnionWith(asQuadDraw.GetTextures());
+        _commands.Add(asQuadDraw);
+        QuadCount += asQuadDraw.Quads.Length;
+        foreach (var texture in asQuadDraw.Textures) _textures.Add(texture);
     }
 
     public void DeclareResources(IGraphConfig config)
@@ -37,8 +45,10 @@ public class QuadBatch : IBatch
         }
     }
 
-    public List<Quad> GetQuads()
+    public void Dispose()
     {
-        return _quads;
+        foreach (var command in _commands) command.Dispose();
+        _commands.Clear();
+        QuadCount = 0;
     }
 }

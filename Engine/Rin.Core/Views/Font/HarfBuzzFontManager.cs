@@ -2,6 +2,7 @@ using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Numerics;
 using Rin.Core.Graphics;
+using Rin.Core.Shared;
 using Rin.Core.Shared.Threading;
 using Rin.Core.Extensions;
 using Rin.Core.Views.Mtsdf;
@@ -167,12 +168,12 @@ public class HarfBuzzFontManager : IFontManager
         return _fonts.GetValueOrDefault(name);
     }
 
-    public GlyphRect[] MeasureText(IFont font, in ReadOnlySpan<char> text, float size,
+    public int MeasureText(IFont font, in ReadOnlySpan<char> text, float size, Span<GlyphRect> into,
         float maxWidth = float.PositiveInfinity)
     {
         Debug.Assert(font is HarfBuzzFont);
         var myFont = (HarfBuzzFont)font;
-        return GetCharacterBounds(myFont, text, size, maxWidth);
+        return GetCharacterBounds(myFont, text, size, into, maxWidth);
     }
 
     public void Dispose()
@@ -197,12 +198,20 @@ public class HarfBuzzFontManager : IFontManager
 
     /// <summary>
     ///     Shapes <paramref name="text" /> as a single run (ligatures disabled so cluster == char index, kerning left
-    ///     on) and returns each character's horizontal advance in font units.
+    ///     on) and writes each character's horizontal advance in font units.
     /// </summary>
-    private static unsafe float[] ShapeAdvances(HarfBuzzFont font, ReadOnlySpan<char> text)
+    private static readonly HarfBuzzNative.Feature[] ShapingFeatures =
+    [
+        HarfBuzzNative.Feature.Toggle("liga", false),
+        HarfBuzzNative.Feature.Toggle("clig", false),
+        HarfBuzzNative.Feature.Toggle("dlig", false),
+        HarfBuzzNative.Feature.Toggle("kern", true)
+    ];
+
+    private static unsafe void ShapeAdvances(HarfBuzzFont font, ReadOnlySpan<char> text, Span<float> advances)
     {
-        var advances = new float[text.Length];
-        if (text.Length == 0) return advances;
+        advances.Clear();
+        if (text.Length == 0) return;
 
         var buffer = HarfBuzzNative.hb_buffer_create();
         try
@@ -214,17 +223,9 @@ public class HarfBuzzFontManager : IFontManager
 
             HarfBuzzNative.hb_buffer_guess_segment_properties(buffer);
 
-            var features = new[]
+            fixed (HarfBuzzNative.Feature* pFeatures = ShapingFeatures)
             {
-                HarfBuzzNative.Feature.Toggle("liga", false),
-                HarfBuzzNative.Feature.Toggle("clig", false),
-                HarfBuzzNative.Feature.Toggle("dlig", false),
-                HarfBuzzNative.Feature.Toggle("kern", true)
-            };
-
-            fixed (HarfBuzzNative.Feature* pFeatures = features)
-            {
-                HarfBuzzNative.hb_shape(font.Font, buffer, pFeatures, (uint)features.Length);
+                HarfBuzzNative.hb_shape(font.Font, buffer, pFeatures, (uint)ShapingFeatures.Length);
             }
 
             var infos = HarfBuzzNative.hb_buffer_get_glyph_infos(buffer, out var glyphCount);
@@ -233,10 +234,8 @@ public class HarfBuzzFontManager : IFontManager
             for (var i = 0; i < glyphCount; i++)
             {
                 var cluster = infos[i].Cluster;
-                if (cluster < (uint)advances.Length) advances[cluster] += positions[i].XAdvance;
+                if (cluster < (uint)advances.Length) advances[(int)cluster] += positions[i].XAdvance;
             }
-
-            return advances;
         }
         finally
         {
@@ -279,25 +278,30 @@ public class HarfBuzzFontManager : IFontManager
     ///     Greedy word-wrap: breaks at the last space that fits, falling back to a hard break mid-word when a single
     ///     word is wider than <paramref name="maxWidth" />.
     /// </summary>
-    private static GlyphRect[] GetCharacterBounds(HarfBuzzFont font, in ReadOnlySpan<char> text, float size,
-        float maxWidth = float.PositiveInfinity)
+    private static int GetCharacterBounds(HarfBuzzFont font, in ReadOnlySpan<char> text, float size,
+        Span<GlyphRect> results, float maxWidth = float.PositiveInfinity)
     {
-        if (text.Length == 0) return [];
+        if (text.Length == 0) return 0;
+        ArgumentOutOfRangeException.ThrowIfLessThan(results.Length, text.Length);
 
-        var advancesInFontUnits = ShapeAdvances(font, text);
+        var length = text.Length;
+        using var scratch = new PooledMemory<float>(length * 5);
+        var floats = scratch.AsSpan();
+        var advancesInFontUnits = floats[..length];
+        var xOffsets = floats.Slice(length, length);
+        var inkWidths = floats.Slice(length * 2, length);
+        var topOffsets = floats.Slice(length * 3, length);
+        var inkHeights = floats.Slice(length * 4, length);
+
+        ShapeAdvances(font, text, advancesInFontUnits);
         var scale = font.UnitsPerEm == 0 ? 0f : size / font.UnitsPerEm;
         var lineHeight = font.GetLineHeight(size);
         var ascentPx = HarfBuzzNative.TryGetHorizontalFontExtents(font.Font, out var fontExtents)
             ? fontExtents.Ascender * scale
             : lineHeight;
 
-        var xOffsets = new float[text.Length];
-        var inkWidths = new float[text.Length];
-        var topOffsets = new float[text.Length];
-        var inkHeights = new float[text.Length];
         GetGlyphInkMetrics(font, text, scale, ascentPx, xOffsets, inkWidths, topOffsets, inkHeights);
 
-        var results = new GlyphRect[text.Length];
         var penX = 0f;
         var penY = 0f;
         var lineStart = 0;
@@ -361,7 +365,7 @@ public class HarfBuzzFontManager : IFontManager
             penX += advance;
         }
 
-        return results;
+        return text.Length;
     }
 
     private SdfResult? GenerateGlyph(char character, HarfBuzzFont font)

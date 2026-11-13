@@ -96,8 +96,9 @@ public class FontIconView : ContentView
         if (CurrentFont == null || _icon == '\0') return null;
         if (_cachedBound is { } cached) return cached;
 
-        var bounds = _fontManager.MeasureText(CurrentFont, [_icon], _iconSize);
-        return bounds.Length == 0 ? null : _cachedBound = bounds[0];
+        Span<GlyphRect> bounds = stackalloc GlyphRect[1];
+        var count = _fontManager.MeasureText(CurrentFont, [_icon], _iconSize, bounds);
+        return count == 0 ? null : _cachedBound = bounds[0];
     }
 
     protected override Vector2 LayoutContent(in Vector2 availableSpace)

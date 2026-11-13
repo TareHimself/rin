@@ -5,7 +5,9 @@ using Rin.Core.Graphics.Windows;
 using Rin.Core.Shared;
 using Rin.Core.Views;
 using Rin.Core.Views.Events;
+using Rin.Core.Views.Font;
 using Rin.Core.Views.Graphics;
+using Rin.Core.Views.Window;
 
 namespace Rin.Core.Tests.Views;
 
@@ -80,4 +82,100 @@ internal sealed class FakeSurface : ISurface
     public void ForceLayout() { }
     public void Update(float deltaTime) { }
     public void Dispose() { }
+}
+
+internal sealed class FakeViewsModule : IViewsModule
+{
+    public IFontManager FontManager { get; } = new FakeFontManager();
+    public string DefaultFontFamily { get; set; } = "Noto Sans";
+    public event Action<IWindowSurface>? OnSurfaceCreated;
+    public event Action<IWindowSurface>? OnSurfaceDestroyed;
+
+    public void Start(IApplication app) { }
+    public void Stop(IApplication app) { }
+    public void Update(float deltaTime) { }
+    public void AddFont(string fontPath) { }
+    public IBatcher GetBatcher<T>() where T : IBatcher, new() => throw new NotSupportedException();
+    public IWindowSurface? GetWindowSurface(IWindowRenderer renderer) => null;
+    public IWindowSurface? GetWindowSurface(IWindow window) => null;
+}
+
+// A monospace font, so cursor positions map to characters without a real font.
+internal sealed class FakeFontManager : IFontManager
+{
+    private readonly FakeFont _font;
+
+    public FakeFontManager()
+    {
+        _font = new FakeFont(this);
+    }
+
+    public Task Prepare(IFont font, IEnumerable<char> characters) => Task.CompletedTask;
+    public void LoadFont(Stream fileStream) { }
+
+    public LiveGlyphState GlyphState { get; set; } = LiveGlyphState.Invalid;
+
+    public LiveGlyphInfo GetGlyph(IFont font, char character) => new()
+    {
+        AtlasHandle = default,
+        Coordinate = default,
+        Size = default,
+        State = GlyphState
+    };
+
+    public IFont? GetFont(string name) => _font;
+
+    public float LastMeasureMaxWidth { get; private set; }
+
+    public int MeasureText(IFont font, in ReadOnlySpan<char> text, float size, Span<GlyphRect> into,
+        float maxWidth = float.PositiveInfinity)
+    {
+        LastMeasureMaxWidth = maxWidth;
+        return FakeFont.Measure(text, into);
+    }
+
+    public float GetPixelRange() => 0f;
+    public IEnumerable<IFont> GetFonts() => [_font];
+    public void Dispose() { }
+}
+
+internal sealed class FakeFont(IFontManager manager) : IFont
+{
+    public const float Advance = 10f;
+    public const float LineHeight = 20f;
+
+    public string Name => "fake";
+    public IFontManager FontManager => manager;
+    public float GetLineHeight(float fontSize) => LineHeight;
+
+    public int MeasureText(in ReadOnlySpan<char> text, float size, Span<GlyphRect> into,
+        float maxWidth = float.PositiveInfinity)
+    {
+        return Measure(text, into);
+    }
+
+    public IEnumerable<CodePoint> GetCodePoints() => [];
+
+    public static int Measure(ReadOnlySpan<char> text, Span<GlyphRect> bounds)
+    {
+        var column = 0;
+        var line = 0;
+        for (var i = 0; i < text.Length; i++)
+        {
+            bounds[i] = new GlyphRect
+            {
+                Character = text[i],
+                PenX = column * Advance,
+                Advance = Advance,
+                LineTop = line * LineHeight,
+                LineHeight = LineHeight
+            };
+            column++;
+            if (text[i] != '\n') continue;
+            column = 0;
+            line++;
+        }
+
+        return text.Length;
+    }
 }

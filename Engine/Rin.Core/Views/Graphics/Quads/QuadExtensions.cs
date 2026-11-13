@@ -2,12 +2,15 @@
 using Rin.Core.Graphics;
 using Rin.Core.Views.Font;
 using Rin.Core.Extensions;
+using Rin.Core.Shared.Pooling;
 using Rin.Core.Shared.Math;
 
 namespace Rin.Core.Views.Graphics.Quads;
 
 public static class QuadExtensions
 {
+    private const int MaxStackGlyphs = 64;
+
     public static CommandList AddQuads(this CommandList commandList, params ReadOnlySpan<Quad> quads)
     {
         return commandList.Add(new QuadDrawCommand(quads));
@@ -129,7 +132,10 @@ public static class QuadExtensions
         float fontSize = 24f, in Color? color = null)
     {
         var fontManager = font.FontManager;
-        foreach (var bound in font.MeasureText(text, fontSize))
+        using var bounds = new ScratchSpan<GlyphRect>(text.Length,
+            text.Length <= MaxStackGlyphs ? stackalloc GlyphRect[text.Length] : default);
+        var count = font.MeasureText(text, fontSize, bounds.Span);
+        foreach (var bound in bounds.Span[..count])
         {
             var range = fontManager.GetPixelRange();
             var glyph = fontManager.GetGlyph(font, bound.Character);

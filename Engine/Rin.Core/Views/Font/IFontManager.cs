@@ -21,7 +21,10 @@ public interface IFontManager : IDisposable
 
     public IFont? GetFont(string name);
 
-    public GlyphRect[] MeasureText(IFont font, in ReadOnlySpan<char> text, float size,
+    /// <summary>
+    ///     Writes one rect per character into <paramref name="into" /> and returns how many were written.
+    /// </summary>
+    public int MeasureText(IFont font, in ReadOnlySpan<char> text, float size, Span<GlyphRect> into,
         float maxWidth = float.PositiveInfinity);
 
     public float GetPixelRange();

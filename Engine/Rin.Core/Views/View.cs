@@ -25,12 +25,11 @@ public abstract class View : IView
         get
         {
             MaybeForceLayout();
-            return new Vector2(field.X, field.Y);
+            return field;
         }
         set
         {
-            field.X = value.X;
-            field.Y = value.Y;
+            field = value;
             _cachedRelativeTransform = null;
         }
     }
@@ -42,11 +41,10 @@ public abstract class View : IView
     /// </summary>
     public Vector2 Pivot
     {
-        get => new(field.X, field.Y);
+        get;
         set
         {
-            field.X = value.X;
-            field.Y = value.Y;
+            field = value;
             _cachedRelativeTransform = null;
         }
     }
@@ -56,11 +54,10 @@ public abstract class View : IView
     /// </summary>
     public Vector2 Translate
     {
-        get => new(field.X, field.Y);
+        get;
         set
         {
-            field.X = value.X;
-            field.Y = value.Y;
+            field = value;
             _cachedRelativeTransform = null;
         }
     } = Vector2.Zero;
@@ -70,11 +67,10 @@ public abstract class View : IView
     /// </summary>
     public Vector2 Scale
     {
-        get => new(field.X, field.Y);
+        get;
         set
         {
-            field.X = value.X;
-            field.Y = value.Y;
+            field = value;
             _cachedRelativeTransform = null;
         }
     } = Vector2.One;
@@ -84,13 +80,7 @@ public abstract class View : IView
     /// </summary>
     public Padding Padding
     {
-        get => new()
-        {
-            Top = field.Top,
-            Bottom = field.Bottom,
-            Left = field.Left,
-            Right = field.Right
-        };
+        get;
         set
         {
             field = value;

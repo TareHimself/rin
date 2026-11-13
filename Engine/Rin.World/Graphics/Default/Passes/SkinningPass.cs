@@ -16,12 +16,12 @@ namespace Rin.World.Graphics.Default.Passes;
 /// <summary>
 ///     Skins every skinned surface's vertices into one output buffer on the GPU.
 /// </summary>
-public partial class SkinningPass(DefaultSceneFrame sceneFrame) : IComputePass
+public partial class SkinningPass(DefaultSceneFrame sceneFrame) : IComputePass, IDisposable
 {
     [ComputeShader<SkinningShader>]
     private partial IComputeShader Shader { get; }
     
-    private List<SkinningExecutionInfo> ExecutionInfos { get; set; } = [];
+    private PooledMemory<SkinningExecutionInfo>? _executionInfos;
 
     private uint TotalVerticesToSkin { get; set; }
 
@@ -40,7 +40,10 @@ public partial class SkinningPass(DefaultSceneFrame sceneFrame) : IComputePass
         HashSet<uint> sourceVertexReads = [];
         Dictionary<IMesh,int> uniqueMeshesDictionary = [];
         UniqueSkinnedMeshes.EnsureCapacity(sceneFrame.ProcessedSkinnedMeshCount);
-        ExecutionInfos.EnsureCapacity(sceneFrame.SkinnedSurfaceCount);
+        var pooledInfos = new PooledMemory<SkinningExecutionInfo>((int)TotalVerticesToSkin);
+        _executionInfos = pooledInfos;
+        var executionInfos = pooledInfos.AsSpan();
+        var executionInfoCount = 0;
         
         foreach (var skinnedPose in sceneFrame.SkinningMatrices)
         {
@@ -68,19 +71,19 @@ public partial class SkinningPass(DefaultSceneFrame sceneFrame) : IComputePass
             
             for (var vertexId = 0; vertexId < processedMesh.Surface.VertexCount; vertexId++)
             {
-                ExecutionInfos.Add(new SkinningExecutionInfo
+                executionInfos[executionInfoCount++] = new SkinningExecutionInfo
                 {
                     MeshIndex = uniqueMeshIndex,
                     PoseIndex = processedMesh.GeometryId, // poses are 1-1 with the skinned geometry array
                     VertexIndex = (int)(processedMesh.Surface.VertexStart + vertexId)
-                });
+                };
             }
         }
         
         SkinnedMeshArrayBufferId = config.CreateBuffer<DeviceSpan<SkinnedVertex>>(UniqueSkinnedMeshes.Count, GraphBufferUsage.HostThenCompute);
         PosePointerArrayBufferId = config.CreateBuffer<DeviceSpan<Matrix4x4>>(SkinningPoseBufferIds.Count, GraphBufferUsage.HostThenCompute);
         SkinningExecutionInfoBufferId =
-            config.CreateBuffer<SkinningExecutionInfo>(ExecutionInfos.Count, GraphBufferUsage.HostThenCompute);
+            config.CreateBuffer<SkinningExecutionInfo>(executionInfoCount, GraphBufferUsage.HostThenCompute);
     }
 
     public void Execute(ICompiledGraph graph, IExecutionContext ctx)
@@ -100,7 +103,7 @@ public partial class SkinningPass(DefaultSceneFrame sceneFrame) : IComputePass
             }
         }
         var executionInfos = graph.GetBuffer(SkinningExecutionInfoBufferId);
-        executionInfos.Write(ExecutionInfos);
+        if (_executionInfos is { } pooledInfos) executionInfos.Write(pooledInfos);
         using var meshPointers = new PooledMemory<DeviceSpan<SkinnedVertex>>(UniqueSkinnedMeshes.Count);
         for (var i = 0; i < UniqueSkinnedMeshes.Count; i++) meshPointers[i] = UniqueSkinnedMeshes[i].GetVertices().ToDeviceSpan<SkinnedVertex>();
         meshPointersArray.Write(meshPointers);
@@ -123,5 +126,11 @@ public partial class SkinningPass(DefaultSceneFrame sceneFrame) : IComputePass
                 mesh.VertexBuffer = output.GetView(mesh.VertexBuffer.Offset, mesh.VertexBuffer.Size);
             }
         }
+    }
+
+    public void Dispose()
+    {
+        _executionInfos?.Dispose();
+        _executionInfos = null;
     }
 }
