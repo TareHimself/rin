@@ -426,10 +426,15 @@ public class WindowRenderer : IWindowRenderer
         }
     }
 
-    private class RenderData : IRenderData
+    private class RenderData : IRenderData, IDisposable
     {
         public required GraphCollector Collector { get; init; }
         public Extent2D RenderExtent { get; init; }
         public required IRenderer Renderer { get; init; }
+
+        public void Dispose()
+        {
+            Collector.Dispose();
+        }
     }
 }

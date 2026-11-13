@@ -2,7 +2,7 @@
 
 namespace Rin.Graphics.Vulkan.Graph;
 
-public class GraphCollector : IGraphCollector
+public class GraphCollector : IGraphCollector, IDisposable
 {
     private readonly List<ICollectedData> _data = [];
 
@@ -14,5 +14,10 @@ public class GraphCollector : IGraphCollector
     public void Write(IGraphBuilder builder)
     {
         foreach (var data in _data) data.Write(builder);
+    }
+
+    public void Dispose()
+    {
+        foreach (var data in _data) (data as IDisposable)?.Dispose();
     }
 }

@@ -8,9 +8,10 @@ using Rin.Core.Shared.Math;
 
 namespace Rin.Core.Views.Graphics;
 
-public class DefaultCollectedSurfaceData : ICollectedSurfaceData
+public class DefaultCollectedSurfaceData : ICollectedSurfaceData, IDisposable
 {
     private readonly CommandList _commandList;
+    private bool _written;
 
     public DefaultCollectedSurfaceData(CommandList commandList)
     {
@@ -25,6 +26,7 @@ public class DefaultCollectedSurfaceData : ICollectedSurfaceData
 
     public virtual void Write(IGraphBuilder builder)
     {
+        _written = true;
         var drawList = _commandList;
 
         var clips = drawList.Clips;
@@ -85,6 +87,16 @@ public class DefaultCollectedSurfaceData : ICollectedSurfaceData
     }
 
     public SurfaceContext SurfaceContext { get; }
+
+    /// <summary>
+    ///     Releases the commands of data that was never written. Once written, its passes release them.
+    /// </summary>
+    public void Dispose()
+    {
+        if (_written) return;
+        _written = true;
+        foreach (var command in _commandList.Commands) (command as IDisposable)?.Dispose();
+    }
 
     private static StencilClip[] BuildStencilClips(uint[] clipIds, List<ClipInfo> clips)
     {

@@ -6,7 +6,7 @@ using Rin.Core.Views.Graphics.PassConfigs;
 
 namespace Rin.Core.Views.Graphics.CommandHandlers;
 
-public class BatchCommandHandler : ICommandHandler
+public class BatchCommandHandler : ICommandHandler, IDisposable
 {
     private readonly List<IBatch> _batches = [];
     private readonly List<uint> _masks = [];
@@ -71,5 +71,11 @@ public class BatchCommandHandler : ICommandHandler
             batcher.Draw(viewFrame, batch, buffer.GetView(offset, bufferSize));
             offset += bufferSize;
         }
+    }
+
+    public void Dispose()
+    {
+        foreach (var batch in _batches) (batch as IDisposable)?.Dispose();
+        _batches.Clear();
     }
 }

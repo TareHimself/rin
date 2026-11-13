@@ -103,7 +103,6 @@ internal sealed class FrameCollector
         for (var i = 0; i < batch.Count; i++) Dispose(batch[i]);
     }
 
-    // IRenderData is not IDisposable today, but a renderer may return a disposable implementation later.
     private static void Dispose(IRenderData data)
     {
         if (data is IDisposable disposable) disposable.Dispose();
