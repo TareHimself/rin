@@ -31,6 +31,15 @@ public struct PooledMemory<T> : IDisposable where T : unmanaged
         _pool.Return(_rentedBuffer);
     }
 
+    /// <summary>
+    ///     Shortens the visible length; the rented buffer is unchanged.
+    /// </summary>
+    public void Truncate(int count)
+    {
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(count, Count);
+        Count = count;
+    }
+
     public ref T this[int index] => ref _rentedBuffer[index];
 
     public Span<T> AsSpan() => _rentedBuffer.AsSpan(0, Count);

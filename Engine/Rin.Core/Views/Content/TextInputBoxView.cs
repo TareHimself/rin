@@ -444,10 +444,13 @@ public class TextInputBoxView : TextBoxView
         }
     }
 
-    private GlyphRect[] GetContentBounds()
+    private ReadOnlySpan<GlyphRect> GetContentBounds()
     {
-        var bounds = GetCharacterBounds(Wrap);
-        return bounds.Length == Content.Length ? bounds : GetCharacterBounds(Wrap, false);
+        var bounds = GetCharacterBounds();
+        if (bounds.Length == Content.Length) return bounds;
+
+        InvalidateCharacterBounds();
+        return GetCharacterBounds();
     }
 
     /// <summary>
