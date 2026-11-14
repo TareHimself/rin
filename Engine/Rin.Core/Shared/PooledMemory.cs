@@ -42,11 +42,11 @@ public struct PooledMemory<T> : IDisposable
         Count = count;
     }
 
-    public ref T this[int index] => ref _rentedBuffer[index];
+    public readonly ref T this[int index] => ref _rentedBuffer[index];
 
-    public Span<T> AsSpan() => _rentedBuffer.AsSpan(0, Count);
+    public readonly Span<T> AsSpan() => _rentedBuffer.AsSpan(0, Count);
 
-    public Memory<T> AsMemory() => _rentedBuffer.AsMemory(0, Count);
+    public readonly Memory<T> AsMemory() => _rentedBuffer.AsMemory(0, Count);
 
     /// <summary>
     ///     Rents a buffer and copies <paramref name="source" /> into it.

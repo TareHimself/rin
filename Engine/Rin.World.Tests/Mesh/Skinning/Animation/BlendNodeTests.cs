@@ -16,7 +16,7 @@ public class BlendNodeTests
 
         using var pose = node.Evaluate(new AnimationEvalContext(0f));
 
-        Assert.That(pose.BoneTransforms.Span[0].Position, Is.EqualTo(new Vector3(1, 0, 0)));
+        Assert.That(pose.BoneTransforms[0].Position, Is.EqualTo(new Vector3(1, 0, 0)));
     }
 
     [Test]
@@ -28,7 +28,7 @@ public class BlendNodeTests
 
         using var pose = node.Evaluate(new AnimationEvalContext(0f));
 
-        Assert.That(pose.BoneTransforms.Span[0].Position, Is.EqualTo(new Vector3(9, 0, 0)));
+        Assert.That(pose.BoneTransforms[0].Position, Is.EqualTo(new Vector3(9, 0, 0)));
     }
 
     [Test]
@@ -40,7 +40,7 @@ public class BlendNodeTests
 
         using var pose = node.Evaluate(new AnimationEvalContext(0f));
 
-        Assert.That(pose.BoneTransforms.Span[0].Position, Is.EqualTo(new Vector3(5, 0, 0)));
+        Assert.That(pose.BoneTransforms[0].Position, Is.EqualTo(new Vector3(5, 0, 0)));
     }
 
     [Test]

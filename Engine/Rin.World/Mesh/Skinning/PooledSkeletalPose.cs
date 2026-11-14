@@ -1,4 +1,4 @@
-using System.Buffers;
+using Rin.Core.Shared;
 using Rin.Core.Shared.Math;
 
 namespace Rin.World.Mesh.Skinning;
@@ -8,41 +8,39 @@ namespace Rin.World.Mesh.Skinning;
 // this pose is consumed (blended into a parent, or materialized via ToSkeletalPose).
 public struct PooledSkeletalPose : IDisposable
 {
-    private IMemoryOwner<Transform>? _transformsOwner;
-    private IMemoryOwner<ulong>? _maskOwner;
-
-    public Memory<Transform> BoneTransforms;
-    public Memory<ulong> Mask;
+    private PooledMemory<Transform> _transforms;
+    private PooledMemory<ulong> _mask;
+    private bool _disposed;
 
     public PooledSkeletalPose(int boneCount)
     {
-        _transformsOwner = MemoryPool<Transform>.Shared.Rent(boneCount);
-        BoneTransforms = _transformsOwner.Memory[..boneCount];
-
-        var maskLength = (boneCount + 63) / 64;
-        _maskOwner = MemoryPool<ulong>.Shared.Rent(maskLength);
-        Mask = _maskOwner.Memory[..maskLength];
-        Mask.Span.Clear(); // rented memory is not zero-initialized, unlike `new ulong[n]`
+        _transforms = new PooledMemory<Transform>(boneCount);
+        // Rented memory is not zero-initialized, unlike `new ulong[n]`.
+        _mask = new PooledMemory<ulong>((boneCount + 63) / 64).Clear();
     }
+
+    public readonly Span<Transform> BoneTransforms => _transforms.AsSpan();
+
+    public readonly Span<ulong> Mask => _mask.AsSpan();
 
     public readonly bool IsSet(int boneIndex)
     {
-        return (Mask.Span[boneIndex >> 6] & (1UL << (boneIndex & 63))) != 0;
+        return (Mask[boneIndex >> 6] & (1UL << (boneIndex & 63))) != 0;
     }
 
     public readonly void Set(int boneIndex, in Transform transform)
     {
-        BoneTransforms.Span[boneIndex] = transform;
-        Mask.Span[boneIndex >> 6] |= 1UL << (boneIndex & 63);
+        BoneTransforms[boneIndex] = transform;
+        Mask[boneIndex >> 6] |= 1UL << (boneIndex & 63);
     }
 
     public static PooledSkeletalPose Blend(in PooledSkeletalPose a, in PooledSkeletalPose b, float alpha)
     {
-        var result = new PooledSkeletalPose(a.BoneTransforms.Length);
-        var aSpan = a.BoneTransforms.Span;
-        var bSpan = b.BoneTransforms.Span;
+        var aSpan = a.BoneTransforms;
+        var bSpan = b.BoneTransforms;
+        var result = new PooledSkeletalPose(aSpan.Length);
 
-        for (var i = 0; i < result.BoneTransforms.Length; i++)
+        for (var i = 0; i < aSpan.Length; i++)
         {
             var inA = a.IsSet(i);
             var inB = b.IsSet(i);
@@ -58,16 +56,16 @@ public struct PooledSkeletalPose : IDisposable
     public readonly SkeletalPose ToSkeletalPose()
     {
         var result = new SkeletalPose(BoneTransforms.Length);
-        BoneTransforms.Span.CopyTo(result.BoneTransforms);
-        Mask.Span.CopyTo(result.Mask);
+        BoneTransforms.CopyTo(result.BoneTransforms);
+        Mask.CopyTo(result.Mask);
         return result;
     }
 
     public void Dispose()
     {
-        _transformsOwner?.Dispose();
-        _transformsOwner = null;
-        _maskOwner?.Dispose();
-        _maskOwner = null;
+        if (_disposed) return;
+        _disposed = true;
+        _transforms.Dispose();
+        _mask.Dispose();
     }
 }

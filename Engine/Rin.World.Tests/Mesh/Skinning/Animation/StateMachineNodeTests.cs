@@ -34,7 +34,7 @@ public class StateMachineNodeTests
         using var pose = node.Evaluate(new AnimationEvalContext(0.1f));
 
         Assert.That(node.CurrentStateName, Is.EqualTo("A"));
-        Assert.That(pose.BoneTransforms.Span[0].Position, Is.EqualTo(new Vector3(0, 0, 0)));
+        Assert.That(pose.BoneTransforms[0].Position, Is.EqualTo(new Vector3(0, 0, 0)));
     }
 
     [Test]
@@ -46,7 +46,7 @@ public class StateMachineNodeTests
         using var pose = node.Evaluate(new AnimationEvalContext(0.5f));
 
         Assert.That(node.CurrentStateName, Is.EqualTo("A"), "still mid-transition, hasn't fully switched yet");
-        Assert.That(pose.BoneTransforms.Span[0].Position, Is.EqualTo(new Vector3(5, 0, 0)));
+        Assert.That(pose.BoneTransforms[0].Position, Is.EqualTo(new Vector3(5, 0, 0)));
     }
 
     [Test]
@@ -62,6 +62,6 @@ public class StateMachineNodeTests
         Assert.That(node.CurrentStateName, Is.EqualTo("B"));
 
         using var pose = node.Evaluate(new AnimationEvalContext(0f));
-        Assert.That(pose.BoneTransforms.Span[0].Position, Is.EqualTo(new Vector3(10, 0, 0)));
+        Assert.That(pose.BoneTransforms[0].Position, Is.EqualTo(new Vector3(10, 0, 0)));
     }
 }
