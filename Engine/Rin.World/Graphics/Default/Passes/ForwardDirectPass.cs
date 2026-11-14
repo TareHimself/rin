@@ -26,7 +26,7 @@ public class ForwardDirectPass(DefaultWorldViewData view) : IPass
 
         _worldBufferId = config.CreateBuffer<WorldInfo>(GraphBufferUsage.HostThenGraphics);
 
-        sceneFrame.DeclareDrawResources(config, sceneFrame.IndirectGroups, material => material.ColorPass);
+        sceneFrame.DeclareDrawResources(config, sceneFrame.ColorBatches, material => material.ColorPass);
         foreach (var id in sceneFrame.ColorMaterialBufferIds)
             if (id != 0)
                 config.ReadBuffer(id, GraphBufferUsage.Graphics);
@@ -56,16 +56,16 @@ public class ForwardDirectPass(DefaultWorldViewData view) : IPass
             Channel = view.Channel
         });
 
-        var i = 0;
-        foreach (var group in sceneFrame.IndirectGroups.Values)
+        var meshes = sceneFrame.ProcessedMeshes;
+        var batches = sceneFrame.ColorBatches;
+        for (var i = 0; i < batches.Count; i++)
         {
             var materialDataBuffer = graph.GetBufferOrNull(sceneFrame.ColorMaterialBufferIds[i]);
-            i++;
-
-            var first = group[0];
+            var batch = batches[i];
+            ref readonly var first = ref meshes[batch[0]];
             ctx.BindIndexBuffer(first.IndexBuffer);
             if (first.Material.ColorPass.BindGroup(worldFrame, materialDataBuffer) is { } bindContext)
-                DirectMeshDraw.DrawGroup(bindContext, group);
+                DirectMeshDraw.DrawBatch(bindContext, meshes, batch);
         }
 
         ctx.EndRendering();

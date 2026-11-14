@@ -36,12 +36,12 @@ public class MaterialIdentityTests
     {
         public IGraphicsShader Shader => shader;
         public ulong GetRequiredMemory() => 0;
-        public void Write(Span<byte> destination, ProcessedMesh mesh) => throw new NotSupportedException();
+        public void Write(Span<byte> destination, in ProcessedMesh mesh) => throw new NotSupportedException();
 
         public IGraphicsBindContext? BindGroup(WorldFrame frame, in DeviceBufferView groupMaterialBuffer) =>
             throw new NotSupportedException();
 
-        public void DeclareResources(IGraphConfig config, ProcessedMesh mesh) => throw new NotSupportedException();
+        public void DeclareResources(IGraphConfig config, in ProcessedMesh mesh) => throw new NotSupportedException();
     }
 
     private sealed class PassB(IGraphicsShader shader) : PassA(shader);

@@ -22,11 +22,11 @@ public partial class FillIndirectBuffersPass(CullingPass cullingPass, DefaultWor
         foreach (var id in sceneFrame.MeshRecordBufferIds) config.ReadBuffer(id, GraphBufferUsage.Compute);
         foreach (var id in sceneFrame.DepthMeshRecordBufferIds) config.ReadBuffer(id, GraphBufferUsage.Compute);
 
-        view.IndirectCommandBuffers = CreatePerGroup<DrawIndexedIndirectCommand>(config, sceneFrame.IndirectGroups);
+        view.IndirectCommandBuffers = CreatePerBatch<DrawIndexedIndirectCommand>(config, sceneFrame.ColorBatches);
         view.DepthIndirectCommandBuffers =
-            CreatePerGroup<DrawIndexedIndirectCommand>(config, sceneFrame.DepthIndirectGroups);
-        view.IndirectCommandCountBuffers = CreateCounters(config, sceneFrame.IndirectGroups.Count);
-        view.DepthIndirectCommandCountBuffers = CreateCounters(config, sceneFrame.DepthIndirectGroups.Count);
+            CreatePerBatch<DrawIndexedIndirectCommand>(config, sceneFrame.DepthBatches);
+        view.IndirectCommandCountBuffers = CreateCounters(config, sceneFrame.ColorBatches.Count);
+        view.DepthIndirectCommandCountBuffers = CreateCounters(config, sceneFrame.DepthBatches.Count);
     }
 
     public void Execute(ICompiledGraph graph, IExecutionContext ctx)
@@ -35,19 +35,18 @@ public partial class FillIndirectBuffersPass(CullingPass cullingPass, DefaultWor
 
         var sceneFrame = view.SceneFrame;
         var cullingResults = graph.GetBufferOrException(cullingPass.OutputBufferId).ToDeviceSpan<uint>();
-        DispatchGroups(graph, bindContext, cullingResults, sceneFrame.IndirectGroups,
+        DispatchBatches(graph, bindContext, cullingResults, sceneFrame.ColorBatches,
             sceneFrame.MeshRecordBufferIds, view.IndirectCommandBuffers, view.IndirectCommandCountBuffers);
-        DispatchGroups(graph, bindContext, cullingResults, sceneFrame.DepthIndirectGroups,
+        DispatchBatches(graph, bindContext, cullingResults, sceneFrame.DepthBatches,
             sceneFrame.DepthMeshRecordBufferIds, view.DepthIndirectCommandBuffers,
             view.DepthIndirectCommandCountBuffers);
     }
 
-    private static uint[] CreatePerGroup<T>(IGraphConfig config,
-        IReadOnlyDictionary<DefaultSceneFrame.BatchKey, List<ProcessedMesh>> groups) where T : unmanaged
+    private static uint[] CreatePerBatch<T>(IGraphConfig config, MeshBatches batches) where T : unmanaged
     {
-        var ids = new uint[groups.Count];
-        var i = 0;
-        foreach (var group in groups.Values) ids[i++] = config.CreateBuffer<T>(group.Count, GraphBufferUsage.Compute);
+        var ids = new uint[batches.Count];
+        for (var i = 0; i < ids.Length; i++)
+            ids[i] = config.CreateBuffer<T>(batches[i].Length, GraphBufferUsage.Compute);
         return ids;
     }
 
@@ -58,21 +57,19 @@ public partial class FillIndirectBuffersPass(CullingPass cullingPass, DefaultWor
         return ids;
     }
 
-    private static void DispatchGroups(ICompiledGraph graph, IComputeBindContext bindContext,
-        DeviceSpan<uint> cullingResults, IReadOnlyDictionary<DefaultSceneFrame.BatchKey, List<ProcessedMesh>> groups,
+    private static void DispatchBatches(ICompiledGraph graph, IComputeBindContext bindContext,
+        DeviceSpan<uint> cullingResults, MeshBatches batches,
         uint[] meshRecordBufferIds, uint[] commandBufferIds, uint[] countBufferIds)
     {
-        var i = 0;
-        foreach (var group in groups.Values)
+        for (var i = 0; i < batches.Count; i++)
         {
             var meshRecords = graph.GetBufferOrException(meshRecordBufferIds[i]);
             var commandBuffer = graph.GetBufferOrException(commandBufferIds[i]);
             var countBuffer = graph.GetBufferOrException(countBufferIds[i]);
-            i++;
 
             countBuffer.WriteSingle<uint>(0);
 
-            var invokeCount = (uint)group.Count;
+            var invokeCount = (uint)batches[i].Length;
             bindContext
                 .Reset()
                 .Push(new DrawIndirectShader.PushConstants

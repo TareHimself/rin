@@ -38,15 +38,15 @@ public sealed class SurfaceColorPass<TMaterial> : SimpleMaterialPass
         });
     }
 
-    public override void DeclareResources(IGraphConfig config, ProcessedMesh mesh)
+    public override void DeclareResources(IGraphConfig config, in ProcessedMesh mesh)
     {
         ReadTextures(config, Material(mesh).Textures);
     }
 
-    public override void Write(Span<byte> destination, ProcessedMesh mesh)
+    public override void Write(Span<byte> destination, in ProcessedMesh mesh)
     {
         MemoryMarshal.Write(destination, Material(mesh).ToDraw(mesh));
     }
 
-    private static SurfaceMaterial<TMaterial> Material(ProcessedMesh mesh) => (SurfaceMaterial<TMaterial>)mesh.Material;
+    private static SurfaceMaterial<TMaterial> Material(in ProcessedMesh mesh) => (SurfaceMaterial<TMaterial>)mesh.Material;
 }

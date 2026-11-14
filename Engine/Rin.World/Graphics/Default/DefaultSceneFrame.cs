@@ -15,6 +15,8 @@ namespace Rin.World.Graphics.Default;
 public class DefaultSceneFrame : IDisposable
 {
     private readonly Dictionary<IMesh, (uint Vertices, uint Indices)> _meshBufferIds = [];
+    private PooledMemory<ProcessedMesh> _meshes;
+    private bool _disposed;
 
     public DefaultSceneFrame(DefaultWorldSnapshot snapshot, IGraphBuilder builder)
     {
@@ -35,35 +37,36 @@ public class DefaultSceneFrame : IDisposable
 
     public DefaultWorldSnapshot Snapshot { get; }
     public ReadOnlySpan<SkinnedMeshInfo> SkinnedGeometry => Snapshot.SkinnedGeometry;
-    public IReadOnlyList<ProcessedMesh> ProcessedMeshes { get; private set; } = [];
+    /// <summary>
+    ///     Every surface the frame draws, static ones first. Batches index into it.
+    /// </summary>
+    public ReadOnlySpan<ProcessedMesh> ProcessedMeshes => _meshes.AsSpan();
 
     /// <summary>
     ///     Per <see cref="SkinnedGeometry" /> entry.
     /// </summary>
     public PooledMemory<Matrix4x4>[] SkinningMatrices { get; }
-    public int TotalMeshCount => ProcessedMeshes.Count;
+    public int TotalMeshCount => _meshes.Count;
     public int SkinnedMeshStartIndex { get; private set; }
-    public int ProcessedSkinnedMeshCount => ProcessedMeshes.Count - SkinnedMeshStartIndex;
+    public int ProcessedSkinnedMeshCount => _meshes.Count - SkinnedMeshStartIndex;
     public int SkinnedSurfaceCount { get; private set; }
     public long SkinnedVertexCount { get; private set; }
 
-    public IReadOnlyDictionary<BatchKey, List<ProcessedMesh>> IndirectGroups { get; private set; } =
-        new Dictionary<BatchKey, List<ProcessedMesh>>();
+    public MeshBatches ColorBatches { get; private set; } = null!;
 
-    public IReadOnlyDictionary<BatchKey, List<ProcessedMesh>> DepthIndirectGroups { get; private set; } =
-        new Dictionary<BatchKey, List<ProcessedMesh>>();
+    public MeshBatches DepthBatches { get; private set; } = null!;
 
     public uint SkinningPassId { get; private set; }
     public uint BoundsBufferId { get; set; }
     public uint SkinningOutputBufferId { get; set; }
 
     /// <summary>
-    ///     Per <see cref="IndirectGroups" /> entry; 0 when the group's material needs no data.
+    ///     Per <see cref="ColorBatches" /> entry; 0 when the batch's material needs no data.
     /// </summary>
     public uint[] ColorMaterialBufferIds { get; set; } = [];
 
     /// <summary>
-    ///     Per <see cref="DepthIndirectGroups" /> entry; 0 when the group's material needs no data.
+    ///     Per <see cref="DepthBatches" /> entry; 0 when the batch's material needs no data.
     /// </summary>
     public uint[] DepthMaterialBufferIds { get; set; } = [];
 
@@ -72,8 +75,21 @@ public class DefaultSceneFrame : IDisposable
 
     public void Dispose()
     {
+        if (_disposed) return;
+        _disposed = true;
         foreach (var matrices in SkinningMatrices) matrices.Dispose();
+        ColorBatches.Dispose();
+        DepthBatches.Dispose();
+        _meshes.Dispose();
         Snapshot.Release();
+    }
+
+    /// <summary>
+    ///     Points a skinned surface at its vertices in the skinning output.
+    /// </summary>
+    internal void RepointVertexBuffer(int meshIndex, in DeviceBufferView vertices)
+    {
+        _meshes[meshIndex].VertexBuffer = vertices;
     }
 
     private static PooledMemory<Matrix4x4>[] ComputeSkinningMatrices(DefaultWorldSnapshot snapshot)
@@ -92,19 +108,21 @@ public class DefaultSceneFrame : IDisposable
         return matrices;
     }
 
-    public void DeclareDrawResources(IGraphConfig config, IReadOnlyDictionary<BatchKey, List<ProcessedMesh>> groups,
+    public void DeclareDrawResources(IGraphConfig config, MeshBatches batches,
         Func<IMeshMaterial, IMaterialPass> selectPass)
     {
         HashSet<uint> read = [];
         HashSet<IMeshMaterial> declaredMaterials = [];
-        foreach (var group in groups.Values)
-        foreach (var mesh in group)
-        {
-            if (declaredMaterials.Add(mesh.Material)) selectPass(mesh.Material).DeclareResources(config, mesh);
-            if (read.Add(mesh.IndexBufferId)) config.ReadBuffer(mesh.IndexBufferId, GraphBufferUsage.Graphics);
-            if (mesh.AbsoluteMeshIndex < SkinnedMeshStartIndex && read.Add(mesh.SourceVertexBufferId))
-                config.ReadBuffer(mesh.SourceVertexBufferId, GraphBufferUsage.Graphics);
-        }
+        var meshes = ProcessedMeshes;
+        for (var batch = 0; batch < batches.Count; batch++)
+            foreach (var index in batches[batch])
+            {
+                ref readonly var mesh = ref meshes[index];
+                if (declaredMaterials.Add(mesh.Material)) selectPass(mesh.Material).DeclareResources(config, mesh);
+                if (read.Add(mesh.IndexBufferId)) config.ReadBuffer(mesh.IndexBufferId, GraphBufferUsage.Graphics);
+                if (mesh.AbsoluteMeshIndex < SkinnedMeshStartIndex && read.Add(mesh.SourceVertexBufferId))
+                    config.ReadBuffer(mesh.SourceVertexBufferId, GraphBufferUsage.Graphics);
+            }
     }
 
     private bool TryUseMesh(IGraphBuilder builder, IMesh mesh, out (uint Vertices, uint Indices) ids)
@@ -120,17 +138,20 @@ public class DefaultSceneFrame : IDisposable
 
     private void ProcessMeshes(IGraphBuilder builder)
     {
-        var meshes = new List<ProcessedMesh>();
-
         var staticGeometry = Snapshot.StaticGeometry;
+        var skinnedGeometry = Snapshot.SkinnedGeometry;
+        _meshes = new PooledMemory<ProcessedMesh>(CountSurfaces(staticGeometry, skinnedGeometry));
+        var meshes = _meshes.AsSpan();
+        var count = 0;
+
         for (var i = 0; i < staticGeometry.Length; i++)
         {
-            var mesh = staticGeometry[i];
+            ref readonly var mesh = ref staticGeometry[i];
             if (!TryUseMesh(builder, mesh.Mesh, out var staticIds)) continue;
             foreach (var surfaceIndex in mesh.SurfaceIndices)
-                meshes.Add(new ProcessedMesh
+                meshes[count] = new ProcessedMesh
                 {
-                    AbsoluteMeshIndex = meshes.Count,
+                    AbsoluteMeshIndex = count++,
                     GeometryId = i,
                     SurfaceIndex = surfaceIndex,
                     Surface = mesh.Mesh.GetSurface(surfaceIndex),
@@ -140,24 +161,23 @@ public class DefaultSceneFrame : IDisposable
                     SourceVertexBufferId = staticIds.Vertices,
                     VertexBuffer = mesh.Mesh.GetVertices(surfaceIndex),
                     Material = mesh.Materials[surfaceIndex]
-                });
+                };
         }
 
-        SkinnedMeshStartIndex = meshes.Count;
+        SkinnedMeshStartIndex = count;
         ulong skinnedOutputOffset = 0;
-        var skinnedGeometry = Snapshot.SkinnedGeometry;
         for (var i = 0; i < skinnedGeometry.Length; i++)
         {
-            var mesh = skinnedGeometry[i];
+            ref readonly var mesh = ref skinnedGeometry[i];
             if (!TryUseMesh(builder, mesh.Mesh, out var skinnedIds)) continue;
 
             foreach (var surfaceIndex in mesh.SurfaceIndices)
             {
                 var surface = mesh.Mesh.GetSurface(surfaceIndex);
                 var size = mesh.Mesh.GetVertexCount(surfaceIndex) * Utils.ByteSizeOf<Vertex>();
-                meshes.Add(new ProcessedMesh
+                meshes[count] = new ProcessedMesh
                 {
-                    AbsoluteMeshIndex = meshes.Count,
+                    AbsoluteMeshIndex = count++,
                     GeometryId = i,
                     SurfaceIndex = surfaceIndex,
                     Surface = surface,
@@ -167,29 +187,26 @@ public class DefaultSceneFrame : IDisposable
                     SourceVertexBufferId = skinnedIds.Vertices,
                     VertexBuffer = new DeviceBufferView(ResourceHandle.InvalidBuffer, skinnedOutputOffset, size),
                     Material = mesh.Materials[surfaceIndex]
-                });
+                };
                 skinnedOutputOffset += size;
                 SkinnedSurfaceCount++;
                 SkinnedVertexCount += surface.VertexCount;
             }
         }
 
-        ProcessedMeshes = meshes;
+        // Surfaces whose mesh buffers were unavailable are skipped, so fewer may be used than were rented.
+        _meshes.Truncate(count);
+        ColorBatches = MeshBatches.Group(ProcessedMeshes, material => material.ColorPass);
+        DepthBatches = MeshBatches.Group(ProcessedMeshes, material => material.DepthPass);
+    }
 
-        var colorGroups = new Dictionary<BatchKey, List<ProcessedMesh>>();
-        var depthGroups = new Dictionary<BatchKey, List<ProcessedMesh>>();
-        foreach (var mesh in meshes)
-        {
-            var colorKey = new BatchKey(mesh.IndexBuffer, MaterialIdentity.Of(mesh.Material.ColorPass));
-            var depthKey = new BatchKey(mesh.IndexBuffer, MaterialIdentity.Of(mesh.Material.DepthPass));
-            if (!colorGroups.TryGetValue(colorKey, out var colorGroup)) colorGroups[colorKey] = colorGroup = [];
-            if (!depthGroups.TryGetValue(depthKey, out var depthGroup)) depthGroups[depthKey] = depthGroup = [];
-            colorGroup.Add(mesh);
-            depthGroup.Add(mesh);
-        }
-
-        IndirectGroups = colorGroups;
-        DepthIndirectGroups = depthGroups;
+    private static int CountSurfaces(ReadOnlySpan<StaticMeshInfo> staticGeometry,
+        ReadOnlySpan<SkinnedMeshInfo> skinnedGeometry)
+    {
+        var count = 0;
+        foreach (ref readonly var mesh in staticGeometry) count += mesh.SurfaceIndices.Length;
+        foreach (ref readonly var mesh in skinnedGeometry) count += mesh.SurfaceIndices.Length;
+        return count;
     }
 
     public readonly record struct BatchKey(DeviceBufferView IndexBuffer, MaterialIdentity Material);

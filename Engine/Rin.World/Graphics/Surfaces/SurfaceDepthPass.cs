@@ -39,7 +39,7 @@ public sealed class SurfaceDepthPass<TMaterial> : SimpleMaterialPass
         });
     }
 
-    public override void Write(Span<byte> destination, ProcessedMesh mesh)
+    public override void Write(Span<byte> destination, in ProcessedMesh mesh)
     {
         MemoryMarshal.Write(destination, ((SurfaceMaterial<TMaterial>)mesh.Material).ToDraw(mesh));
     }

@@ -37,7 +37,7 @@ public sealed class MeshDepthPass : SimpleMaterialPass
         });
     }
 
-    public override void Write(Span<byte> destination, ProcessedMesh mesh)
+    public override void Write(Span<byte> destination, in ProcessedMesh mesh)
     {
         MemoryMarshal.Write(destination, mesh.ToInstance());
     }
