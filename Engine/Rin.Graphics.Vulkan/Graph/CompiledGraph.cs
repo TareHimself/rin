@@ -1,5 +1,6 @@
 using Rin.Core.Graphics;
 using Rin.Core.Graphics.Graph;
+using Rin.Core.Shared.Pooling;
 using Rin.Core.Shared.Time;
 using Rin.Graphics.Vulkan.Images;
 
@@ -8,7 +9,7 @@ namespace Rin.Graphics.Vulkan.Graph;
 /// <summary>
 ///     A compiled frame graph. Its builder fills it, and gets it back to fill again once it is disposed.
 /// </summary>
-public sealed class CompiledGraph : ICompiledGraph
+public sealed class CompiledGraph : ICompiledGraph, IResettable
 {
     private readonly Dictionary<uint, IVulkanDeviceBuffer> _buffers = [];
     private readonly Dictionary<uint, IResourceDescriptor> _descriptors = [];
@@ -80,19 +81,19 @@ public sealed class CompiledGraph : ICompiledGraph
         foreach (var disposable in _disposables) disposable.Dispose();
         _disposables.Clear();
 
-        ReleaseGroups();
-        _descriptors.Clear();
         _owner.Recycle(this);
     }
 
-    private void ReleaseGroups()
+    public void Reset()
     {
+        if (!_disposed) throw new InvalidOperationException("A compiled graph is reset only after it is disposed.");
+        _descriptors.Clear();
         foreach (var group in _nodes)
         {
             if (group.IsBarrier)
             {
                 var barrier = (BarrierPass)group.Passes[0];
-                barrier.Clear();
+                barrier.Reset();
                 _spareBarriers.Push(barrier);
             }
 

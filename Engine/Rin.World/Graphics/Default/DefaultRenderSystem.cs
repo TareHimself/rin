@@ -1,6 +1,7 @@
 using System.Collections.Concurrent;
 using System.Numerics;
 using Rin.Core.Graphics;
+using Rin.Core.Shared.Pooling;
 using Rin.World.Mesh.Skinning;
 
 namespace Rin.World.Graphics.Default;
@@ -63,8 +64,13 @@ public class DefaultRenderSystem : IRenderSystem
     private float _interpolationAlpha = 1f;
     private float _time;
     private DefaultWorldSnapshot? _scene;
-    private readonly Stack<DefaultWorldSnapshot> _spareScenes = new();
+    private readonly Recycler<DefaultWorldSnapshot> _scenes;
     private float _sceneAlpha;
+
+    public DefaultRenderSystem()
+    {
+        _scenes = new Recycler<DefaultWorldSnapshot>(() => new DefaultWorldSnapshot(this));
+    }
 
     public RenderProxyHandle CreateStaticMeshProxy(in StaticMeshProxyDesc desc)
     {
@@ -142,7 +148,7 @@ public class DefaultRenderSystem : IRenderSystem
 
     private DefaultWorldSnapshot BuildScene()
     {
-        var scene = TakeSpareScene() ?? new DefaultWorldSnapshot(this);
+        var scene = _scenes.Take();
         foreach (var slot in _slots)
         {
             if (slot is not { } row) continue;
@@ -165,24 +171,12 @@ public class DefaultRenderSystem : IRenderSystem
         return scene;
     }
 
-    private DefaultWorldSnapshot? TakeSpareScene()
-    {
-        lock (_spareScenes)
-        {
-            return _spareScenes.TryPop(out var scene) ? scene : null;
-        }
-    }
-
     /// <summary>
     ///     Takes back a scene nothing holds any more. Called from whichever thread released it last.
     /// </summary>
     internal void Recycle(DefaultWorldSnapshot scene)
     {
-        scene.Clear();
-        lock (_spareScenes)
-        {
-            _spareScenes.Push(scene);
-        }
+        _scenes.Return(scene);
     }
 
     public void Dispose()

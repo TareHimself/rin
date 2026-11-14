@@ -1,5 +1,6 @@
 ﻿using System.Numerics;
 using JetBrains.Annotations;
+using Rin.Core.Shared.Pooling;
 using Rin.Core.Views.Graphics.Commands;
 
 namespace Rin.Core.Views.Graphics;
@@ -38,7 +39,7 @@ public readonly struct ClipStackKey(uint[] ids) : IEquatable<ClipStackKey>
     }
 }
 
-public class CommandList
+public class CommandList : IResettable
 {
     private readonly List<ClipStackKey> _clipKeyStack = [ClipStackKey.Empty];
 
@@ -67,6 +68,18 @@ public class CommandList
         return this;
     }
 
+
+    public void Reset()
+    {
+        Commands.Clear();
+        ClipIds.Clear();
+        Clips.Clear();
+        UniqueClipStacks.Clear();
+        _clipKeyStack.Clear();
+        _clipKeyStack.Add(ClipStackKey.Empty);
+        _registeredClipIds = null;
+        _depth = 0;
+    }
 
     public CommandList PushClip(Matrix4x4 transform, Vector2 size)
     {

@@ -3,11 +3,12 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using Rin.Core.Graphics;
 using Rin.Core.Graphics.Graph;
+using Rin.Core.Shared.Pooling;
 using TerraFX.Interop.Vulkan;
 
 namespace Rin.Graphics.Vulkan.Graph;
 
-public class GraphConfig(GraphBuilder builder) : IGraphConfig
+public class GraphConfig(GraphBuilder builder) : IGraphConfig, IResettable
 {
     public enum ActionType
     {
@@ -35,10 +36,7 @@ public class GraphConfig(GraphBuilder builder) : IGraphConfig
 
     public uint CurrentPassId { get; set; }
 
-    /// <summary>
-    ///     Empties the config for the next frame. Its collections keep their capacity.
-    /// </summary>
-    internal void Reset()
+    public void Reset()
     {
         _dependencyLists.ReturnAll(PassDependencies);
         _actionLists.ReturnAll(ResourceActions);

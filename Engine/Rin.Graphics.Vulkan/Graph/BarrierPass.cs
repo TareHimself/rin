@@ -21,7 +21,7 @@ internal readonly record struct BufferResourceSync(
 /// <summary>
 ///     Applies the barriers one level of passes needs. A compiled graph reuses its barrier passes across frames.
 /// </summary>
-internal class BarrierPass : IPass
+internal class BarrierPass : IPass, IResettable
 {
     private const int MaxStackBarriers = 6;
 
@@ -35,7 +35,7 @@ internal class BarrierPass : IPass
         throw new Exception("HOW HAVE YOU DONE THIS?");
     }
 
-    public void Clear()
+    public void Reset()
     {
         Buffers.Clear();
         Images.Clear();

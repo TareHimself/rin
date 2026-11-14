@@ -5,6 +5,7 @@ using Rin.Core.Views.Composite;
 using Rin.Core.Views.Events;
 using Rin.Core.Extensions;
 using Rin.Core.Shared.Math;
+using Rin.Core.Shared.Pooling;
 
 namespace Rin.Core.Views.Graphics;
 
@@ -81,24 +82,27 @@ public abstract class Surface : ISurface
         return true;
     }
 
+    /// <summary>
+    ///     Where a command list from <see cref="CollectCommands" /> goes back once its frame is done with it.
+    /// </summary>
+    public Recycler<CommandList> CommandLists { get; } =
+        new(() => new CommandList { SurfaceSize = Vector2.Zero });
+
     public CommandList? CollectCommands()
     {
         var size = GetSize();
 
-        var drawList = new CommandList
-        {
-            SurfaceSize = size
-        };
+        var drawList = CommandLists.Take();
+        drawList.SurfaceSize = size;
         _rootView.Collect(_rootView.GetLocalTransform(), new Rect2D
         {
             Size = size
         }, drawList);
 
-        var rawCommands = drawList.Commands;
+        if (drawList.Commands.Count != 0) return drawList;
 
-        if (rawCommands.Count == 0) return null;
-
-        return drawList;
+        CommandLists.Return(drawList);
+        return null;
     }
 
     public virtual void ReceiveCursorEnter(CursorMoveSurfaceEvent e)

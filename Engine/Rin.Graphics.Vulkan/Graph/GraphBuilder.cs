@@ -1,10 +1,11 @@
 using Rin.Core.Extensions;
 using Rin.Core.Graphics;
 using Rin.Core.Graphics.Graph;
+using Rin.Core.Shared.Pooling;
 
 namespace Rin.Graphics.Vulkan.Graph;
 
-public class GraphBuilder : IGraphBuilder
+public class GraphBuilder : IGraphBuilder, IResettable
 {
     private readonly Dictionary<ResourceHandle, List<uint>> _externalBufferIds = [];
     private readonly Dictionary<ResourceHandle, uint> _externalImageIds = [];
@@ -16,7 +17,7 @@ public class GraphBuilder : IGraphBuilder
     private readonly List<IDisposable> _disposables = [];
     private readonly GraphCompileState _state = new();
     private readonly GraphConfig _config;
-    private CompiledGraph? _spareGraph;
+    private readonly Recycler<CompiledGraph> _graphs;
     private uint _latestId;
     private readonly IResourcePool _resourcePool;
     private readonly Frame _frame;
@@ -32,6 +33,8 @@ public class GraphBuilder : IGraphBuilder
         _staging = staging;
         ExternalResources = externalResources;
         _config = new GraphConfig(this);
+        // A frame slot disposes its graph before building the next, so one spare is enough.
+        _graphs = new Recycler<CompiledGraph>(() => new CompiledGraph(_resourcePool, _frame, this), 1);
     }
 
     internal IExternalResourceSource ExternalResources { get; }
@@ -60,7 +63,7 @@ public class GraphBuilder : IGraphBuilder
         _externalImageIds.Clear();
         _externalBufferIds.Clear();
 
-        _state.Clear();
+        _state.Reset();
         CollectRoots(config);
         if (_state.Roots.Count == 0)
         {
@@ -97,8 +100,7 @@ public class GraphBuilder : IGraphBuilder
 
     private CompiledGraph TakeGraph()
     {
-        var graph = _spareGraph ?? new CompiledGraph(_resourcePool, _frame, this);
-        _spareGraph = null;
+        var graph = _graphs.Take();
         graph.Reopen();
         return graph;
     }
@@ -108,7 +110,7 @@ public class GraphBuilder : IGraphBuilder
     /// </summary>
     internal void Recycle(CompiledGraph graph)
     {
-        _spareGraph = graph;
+        _graphs.Return(graph);
     }
 
     /// <summary>

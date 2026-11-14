@@ -1,11 +1,12 @@
 using Rin.Core.Graphics.Graph;
+using Rin.Core.Shared.Pooling;
 
 namespace Rin.Graphics.Vulkan.Graph;
 
 /// <summary>
-///     The working collections of one compile. A builder keeps one and clears it, so they keep their capacity.
+///     The working collections of one compile. A builder keeps one and resets it for each compile.
 /// </summary>
-internal sealed class GraphCompileState
+internal sealed class GraphCompileState : IResettable
 {
     private readonly CollectionPool<List<BufferResourceSync>, BufferResourceSync> _bufferSyncLists = new();
     private readonly CollectionPool<HashSet<uint>, uint> _idSets = new();
@@ -61,7 +62,7 @@ internal sealed class GraphCompileState
         syncs.Add(sync);
     }
 
-    public void Clear()
+    public void Reset()
     {
         Roots.Clear();
         _idSets.ReturnAll(Dependencies);

@@ -14,11 +14,14 @@ public class DefaultCollectedSurfaceData : ICollectedSurfaceData, IDisposable
 {
     private const int MaxStackStencilClips = 8;
     private readonly CommandList _commandList;
+    private readonly Recycler<CommandList>? _commandLists;
+    private bool _disposed;
     private bool _written;
 
-    public DefaultCollectedSurfaceData(CommandList commandList)
+    public DefaultCollectedSurfaceData(CommandList commandList, Recycler<CommandList>? commandLists = null)
     {
         _commandList = commandList;
+        _commandLists = commandLists;
         var size = _commandList.SurfaceSize.Ceiling();
         SurfaceContext = new SurfaceContext(new Extent2D
         {
@@ -93,13 +96,17 @@ public class DefaultCollectedSurfaceData : ICollectedSurfaceData, IDisposable
     public SurfaceContext SurfaceContext { get; }
 
     /// <summary>
-    ///     Releases the commands of data that was never written. Once written, its passes release them.
+    ///     Releases the commands of data that was never written (once written, its passes release them), then
+    ///     hands the command list back for the next frame.
     /// </summary>
     public void Dispose()
     {
-        if (_written) return;
-        _written = true;
-        foreach (var command in _commandList.Commands) (command as IDisposable)?.Dispose();
+        if (_disposed) return;
+        _disposed = true;
+        if (!_written)
+            foreach (var command in _commandList.Commands)
+                (command as IDisposable)?.Dispose();
+        _commandLists?.Return(_commandList);
     }
 
     private static void BuildStencilClips(uint[] clipIds, List<ClipInfo> clips, Span<StencilClip> into)

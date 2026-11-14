@@ -2,6 +2,7 @@ using System.Numerics;
 using System.Runtime.InteropServices;
 using Rin.Core.Graphics.Graph;
 using Rin.Core.Shared.Math;
+using Rin.Core.Shared.Pooling;
 
 namespace Rin.World.Graphics.Default;
 
@@ -10,7 +11,7 @@ namespace Rin.World.Graphics.Default;
 ///     proxies change. It owns its data: holders call <see cref="Acquire" /> and <see cref="Release" />, and the
 ///     last release hands it back to its render system to fill again.
 /// </summary>
-public sealed class DefaultWorldSnapshot
+public sealed class DefaultWorldSnapshot : IResettable
 {
     private readonly List<Transform> _bones = [];
     private readonly List<LightInfo> _lights = [];
@@ -91,8 +92,10 @@ public sealed class DefaultWorldSnapshot
         _lights.Add(light);
     }
 
-    internal void Clear()
+    public void Reset()
     {
+        if (Volatile.Read(ref _holders) > 0)
+            throw new InvalidOperationException("A snapshot is reset only once nothing holds it.");
         _static.Clear();
         _skinned.Clear();
         _lights.Clear();
