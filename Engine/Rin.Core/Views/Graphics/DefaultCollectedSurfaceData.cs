@@ -1,15 +1,18 @@
-﻿using Rin.Core.Graphics;
+﻿using System.Runtime.InteropServices;
+using Rin.Core.Graphics;
 using Rin.Core.Graphics.Graph;
 using Rin.Core.Views.Graphics.CommandHandlers;
 using Rin.Core.Views.Graphics.Commands;
 using Rin.Core.Views.Graphics.Passes;
 using Rin.Core.Extensions;
+using Rin.Core.Shared.Pooling;
 using Rin.Core.Shared.Math;
 
 namespace Rin.Core.Views.Graphics;
 
 public class DefaultCollectedSurfaceData : ICollectedSurfaceData, IDisposable
 {
+    private const int MaxStackStencilClips = 8;
     private readonly CommandList _commandList;
     private bool _written;
 
@@ -31,11 +34,12 @@ public class DefaultCollectedSurfaceData : ICollectedSurfaceData, IDisposable
 
         var clips = drawList.Clips;
 
-        List<IPass> passes = [new CreateImagesPass(SurfaceContext)];
+        builder.AddPass(new CreateImagesPass(SurfaceContext));
         {
             var uniqueClipStacks = drawList.UniqueClipStacks;
             Dictionary<ClipStackKey, uint> computedClipMasks = [];
             List<ICommand> pendingCommands = [];
+            Span<StencilClip> stackClips = stackalloc StencilClip[MaxStackStencilClips];
             uint shifted = 1;
             uint currentMask = 0x2;
             for (var i = 0; i < drawList.Commands.Count; i++)
@@ -45,12 +49,12 @@ public class DefaultCollectedSurfaceData : ICollectedSurfaceData, IDisposable
 
                 if (shifted == 8)
                 {
-                    ProcessPendingCommands(pendingCommands, SurfaceContext, passes);
+                    ProcessPendingCommands(pendingCommands, SurfaceContext, builder);
                     pendingCommands.Clear();
                     computedClipMasks.Clear();
                     currentMask = 0x02;
                     shifted = 1;
-                    passes.Add(new StencilClearPass(SurfaceContext));
+                    builder.AddPass(new StencilClearPass(SurfaceContext));
                 }
 
 
@@ -66,8 +70,10 @@ public class DefaultCollectedSurfaceData : ICollectedSurfaceData, IDisposable
                 }
                 else
                 {
-                    passes.Add(new StencilWritePass(SurfaceContext, currentMask,
-                        BuildStencilClips(uniqueClipStacks[clipId], clips)));
+                    var stackIds = uniqueClipStacks[clipId];
+                    using var scratch = new ScratchSpan<StencilClip>(stackIds.Length, stackClips);
+                    BuildStencilClips(stackIds, clips, scratch.Span);
+                    builder.AddPass(new StencilWritePass(SurfaceContext, currentMask, scratch.Span));
                     computedClipMasks.Add(clipId, currentMask);
                     command.StencilMask = currentMask;
                     pendingCommands.Add(command);
@@ -78,12 +84,10 @@ public class DefaultCollectedSurfaceData : ICollectedSurfaceData, IDisposable
 
             if (pendingCommands.Count != 0)
             {
-                ProcessPendingCommands(pendingCommands, SurfaceContext, passes);
+                ProcessPendingCommands(pendingCommands, SurfaceContext, builder);
                 pendingCommands.Clear();
             }
         }
-
-        foreach (var pass in passes) builder.AddPass(pass);
     }
 
     public SurfaceContext SurfaceContext { get; }
@@ -98,20 +102,18 @@ public class DefaultCollectedSurfaceData : ICollectedSurfaceData, IDisposable
         foreach (var command in _commandList.Commands) (command as IDisposable)?.Dispose();
     }
 
-    private static StencilClip[] BuildStencilClips(uint[] clipIds, List<ClipInfo> clips)
+    private static void BuildStencilClips(uint[] clipIds, List<ClipInfo> clips, Span<StencilClip> into)
     {
-        var stencilClips = new StencilClip[clipIds.Length];
         for (var i = 0; i < clipIds.Length; i++)
         {
             var clip = clips[(int)clipIds[i]];
-            stencilClips[i] = new StencilClip(clip.Transform, clip.Size);
+            into[i] = new StencilClip(clip.Transform, clip.Size);
         }
-
-        return stencilClips;
     }
 
+    
     private static void ProcessPendingCommands(IEnumerable<ICommand> drawCommands,
-        SurfaceContext context, List<IPass> passes)
+        SurfaceContext context, IGraphBuilder builder)
     {
         List<ICommand> currentCommands = [];
         List<ICommandHandler> currentHandlers = [];
@@ -123,10 +125,10 @@ public class DefaultCollectedSurfaceData : ICollectedSurfaceData, IDisposable
             // NoOpCommand's are like breaks so we break any batching that can happen here
             if (cmd is NoOpCommand && currentCommands.NotEmpty())
             {
-                currentHandlers.Add(currentCommands.First().CreateHandler(currentCommands.ToArray()));
+                currentHandlers.Add(currentCommands[0].CreateHandler(CollectionsMarshal.AsSpan(currentCommands)));
 
-                passes.Add(new ViewsDrawPass(context, currentCommands.First().CreateConfig(context),
-                    currentHandlers.ToArray()));
+                builder.AddPass(new ViewsDrawPass(context, currentCommands[0].CreateConfig(context),
+                    CollectionsMarshal.AsSpan(currentHandlers)));
 
                 currentCommands.Clear();
                 currentHandlers.Clear();
@@ -135,17 +137,17 @@ public class DefaultCollectedSurfaceData : ICollectedSurfaceData, IDisposable
 
             if (currentCommands.Count > 0)
             {
-                var firstCmd = currentCommands.First();
+                var firstCmd = currentCommands[0];
                 if (currentHandlerType != cmd.HandlerType)
                 {
-                    currentHandlers.Add(firstCmd.CreateHandler(currentCommands.ToArray()));
+                    currentHandlers.Add(firstCmd.CreateHandler(CollectionsMarshal.AsSpan(currentCommands)));
                     currentCommands.Clear();
                 }
 
                 if (currentPassConfigType != cmd.PassConfigType)
                 {
-                    passes.Add(new ViewsDrawPass(context, firstCmd.CreateConfig(context),
-                        currentHandlers.ToArray()));
+                    builder.AddPass(new ViewsDrawPass(context, firstCmd.CreateConfig(context),
+                        CollectionsMarshal.AsSpan(currentHandlers)));
                     currentHandlers.Clear();
                 }
             }
@@ -157,9 +159,9 @@ public class DefaultCollectedSurfaceData : ICollectedSurfaceData, IDisposable
 
         if (currentCommands.NotEmpty())
         {
-            currentHandlers.Add(currentCommands.First().CreateHandler(currentCommands.ToArray()));
-            passes.Add(new ViewsDrawPass(context, currentCommands.First().CreateConfig(context),
-                currentHandlers.ToArray()));
+            currentHandlers.Add(currentCommands[0].CreateHandler(CollectionsMarshal.AsSpan(currentCommands)));
+            builder.AddPass(new ViewsDrawPass(context, currentCommands[0].CreateConfig(context),
+                CollectionsMarshal.AsSpan(currentHandlers)));
         }
     }
 }

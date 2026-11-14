@@ -41,10 +41,9 @@ internal partial class ViewportCommandHandler : ICommandHandlerWithPreAdd
     }
 
 
-    public void Init(ICommand[] commands)
+    public void Init(ReadOnlySpan<ICommand> commands)
     {
-        _commands = new DrawViewportCommand[commands.Length];
-        for (var i = 0; i < commands.Length; i++) _commands[i] = (DrawViewportCommand)commands[i];
+        _commands = commands.CastToArray<DrawViewportCommand>();
     }
 
     public void Configure(IPassConfig passConfig, SurfaceContext surfaceContext, IGraphConfig config)

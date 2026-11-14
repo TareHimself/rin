@@ -21,9 +21,9 @@ public partial class RadialSpectrumCommandHandler : ICommandHandler
     [GraphicsShader<SpectrumShader>]
     private partial IGraphicsShader Shader { get; }
 
-    public void Init(ICommand[] commands)
+    public void Init(ReadOnlySpan<ICommand> commands)
     {
-        _commands = commands.Cast<RadialSpectrumCommand>().ToArray();
+        _commands = commands.CastToArray<RadialSpectrumCommand>();
         _bandEntries = 0;
         foreach (var command in _commands) _bandEntries += command.PackedBands.Length;
     }

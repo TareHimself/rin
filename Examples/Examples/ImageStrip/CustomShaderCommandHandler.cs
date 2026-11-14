@@ -21,9 +21,9 @@ public partial class CustomShaderCommandHandler : ICommandHandler
     private CustomShaderCommand[] _commands = [];
     private uint BufferId { get; set; }
 
-    public void Init(ICommand[] commands)
+    public void Init(ReadOnlySpan<ICommand> commands)
     {
-        _commands = commands.Cast<CustomShaderCommand>().ToArray();
+        _commands = commands.CastToArray<CustomShaderCommand>();
     }
 
     public void Configure(IPassConfig passConfig, SurfaceContext surfaceContext, IGraphConfig config)

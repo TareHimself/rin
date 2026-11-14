@@ -44,9 +44,9 @@ public partial class StencilFillCommandHandler : ICommandHandler
 
     private StencilFillCommand[] _commands = [];
 
-    public void Init(ICommand[] commands)
+    public void Init(ReadOnlySpan<ICommand> commands)
     {
-        _commands = commands.Cast<StencilFillCommand>().ToArray();
+        _commands = commands.CastToArray<StencilFillCommand>();
     }
 
     public void Configure(IPassConfig passConfig, SurfaceContext surfaceContext, IGraphConfig config)

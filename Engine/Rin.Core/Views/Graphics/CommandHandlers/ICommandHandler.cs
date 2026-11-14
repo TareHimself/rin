@@ -9,7 +9,7 @@ namespace Rin.Core.Views.Graphics.CommandHandlers;
 /// </summary>
 public interface ICommandHandler
 {
-    public void Init(ICommand[] commands);
+    public void Init(ReadOnlySpan<ICommand> commands);
 
     /// <summary>
     ///     Configure resources for this handler

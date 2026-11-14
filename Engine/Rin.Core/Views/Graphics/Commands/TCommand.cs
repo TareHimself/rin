@@ -19,7 +19,7 @@ public abstract class TCommand<TPassConfig, TCommandHandler> : ICommand where TP
         return passConfig;
     }
 
-    public ICommandHandler CreateHandler(ICommand[] commands)
+    public ICommandHandler CreateHandler(ReadOnlySpan<ICommand> commands)
     {
         var handler = new TCommandHandler();
         handler.Init(commands);

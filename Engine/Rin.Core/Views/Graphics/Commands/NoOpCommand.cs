@@ -15,7 +15,7 @@ public class NoOpCommand : ICommand
         throw new NotImplementedException();
     }
 
-    public ICommandHandler CreateHandler(ICommand[] commands)
+    public ICommandHandler CreateHandler(ReadOnlySpan<ICommand> commands)
     {
         throw new NotImplementedException();
     }

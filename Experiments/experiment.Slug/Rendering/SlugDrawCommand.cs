@@ -29,9 +29,9 @@ public partial class SlugDrawHandler : ICommandHandler
     private SlugDrawCommand[] _commands = [];
     private uint[] _bufferIds = [];
 
-    public void Init(ICommand[] commands)
+    public void Init(ReadOnlySpan<ICommand> commands)
     {
-        _commands = commands.Cast<SlugDrawCommand>().ToArray();
+        _commands = commands.CastToArray<SlugDrawCommand>();
     }
 
     public void Configure(IPassConfig passConfig, SurfaceContext surfaceContext, IGraphConfig config)
