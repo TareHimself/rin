@@ -132,7 +132,7 @@ public partial class VulkanGraphicsModule
 
         if (graph != null)
         {
-            frame.OnReset += _ => graph.Dispose();
+            frame.DisposeOnReset(graph);
             Profiling.Begin("Engine.Rendering.Graph.Execute");
             graph.Execute(frame.ExecutionContext);
             Profiling.End("Engine.Rendering.Graph.Execute");

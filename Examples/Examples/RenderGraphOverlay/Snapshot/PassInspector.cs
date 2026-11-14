@@ -24,8 +24,8 @@ internal static partial class PassInspector
 
             var value = field.GetValue(pass);
             lines.Add($"{name} = {Format(value)}");
-            if (value is Array { Length: > 0 } array && IsDescribable(array.GetValue(0)!))
-                lines.AddRange(array.Cast<object>().Take(MaxElements).Select(e => $"    {DescribeElement(e)}"));
+            if (value is IList { Count: > 0 } list && IsDescribable(list[0]!))
+                lines.AddRange(list.Cast<object>().Take(MaxElements).Select(e => $"    {DescribeElement(e)}"));
         }
 
         return lines;

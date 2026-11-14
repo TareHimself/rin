@@ -13,7 +13,10 @@ public class GraphBuilder : IGraphBuilder
     private readonly Dictionary<uint, IPass> _passes = [];
     private readonly Dictionary<object, object> _shared = [];
     private readonly HashSet<uint> _terminalResources = [];
-    private List<IDisposable> _disposables = [];
+    private readonly List<IDisposable> _disposables = [];
+    private readonly GraphCompileState _state = new();
+    private readonly GraphConfig _config;
+    private CompiledGraph? _spareGraph;
     private uint _latestId;
     private readonly IResourcePool _resourcePool;
     private readonly Frame _frame;
@@ -28,6 +31,7 @@ public class GraphBuilder : IGraphBuilder
         _pendingActions = pendingActions;
         _staging = staging;
         ExternalResources = externalResources;
+        _config = new GraphConfig(this);
     }
 
     internal IExternalResourceSource ExternalResources { get; }
@@ -56,8 +60,9 @@ public class GraphBuilder : IGraphBuilder
         _externalImageIds.Clear();
         _externalBufferIds.Clear();
 
-        var roots = CollectRoots(config);
-        if (roots.Count == 0)
+        _state.Clear();
+        CollectRoots(config);
+        if (_state.Roots.Count == 0)
         {
             foreach (var pass in _passes.Values) (pass as IDisposable)?.Dispose();
             foreach (var disposable in _disposables) disposable.Dispose();
@@ -67,32 +72,51 @@ public class GraphBuilder : IGraphBuilder
             return null;
         }
 
-        var (nodes, passParents) = CollectLivePasses(config, roots);
+        CollectLivePasses(config);
 
-        foreach (var passId in _passes.Keys)
-            if (!nodes.ContainsKey(passId))
-                (_passes[passId] as IDisposable)?.Dispose();
+        foreach (var (passId, pass) in _passes)
+            if (!_state.IsLive(passId))
+                (pass as IDisposable)?.Dispose();
 
-        TakeUploads(uploads, nodes);
+        TakeUploads(uploads);
 
-        foreach (var actions in config.ResourceActions.Values) actions.RemoveAll(a => !nodes.ContainsKey(a.PassId));
+        foreach (var actions in config.ResourceActions.Values) RemoveDeadActions(actions);
 
-        var syncGroups = BuildSyncs(config);
-        var executionGroups = BuildExecutionGroups(ScheduleLevels(nodes, passParents), syncGroups);
-        var resources = CollectLiveResources(config);
+        BuildSyncs(config);
+        var levelCount = ScheduleLevels();
+
+        var graph = TakeGraph();
+        BuildExecutionGroups(graph, levelCount);
+        CollectLiveResources(config, graph.Descriptors);
 
         // The builder is reused every frame, so ownership of this frame's disposables moves to the graph.
-        var disposables = _disposables;
-        _disposables = [];
-        return new CompiledGraph(_resourcePool, _frame, resources, executionGroups, disposables);
+        graph.Disposables.AddRange(_disposables);
+        _disposables.Clear();
+        return graph;
+    }
+
+    private CompiledGraph TakeGraph()
+    {
+        var graph = _spareGraph ?? new CompiledGraph(_resourcePool, _frame, this);
+        _spareGraph = null;
+        graph.Reopen();
+        return graph;
+    }
+
+    /// <summary>
+    ///     Takes back a disposed graph, to fill again on the next compile.
+    /// </summary>
+    internal void Recycle(CompiledGraph graph)
+    {
+        _spareGraph = graph;
     }
 
     /// <summary>
     ///     The pruning roots: terminal passes and every pass that writes a terminal resource.
     /// </summary>
-    private HashSet<uint> CollectRoots(GraphConfig config)
+    private void CollectRoots(GraphConfig config)
     {
-        HashSet<uint> roots = [];
+        var roots = _state.Roots;
         foreach (var pass in _passes.Values)
             if (pass is ITerminalPass)
                 roots.Add(pass.Id);
@@ -104,55 +128,41 @@ public class GraphBuilder : IGraphBuilder
                 if (action.Operation == ResourceOperation.Write)
                     roots.Add(action.PassId);
         }
-
-        return roots;
     }
 
     /// <summary>
-    ///     Walks back from the roots; anything not reached is pruned. Returns each live pass's
+    ///     Walks back from the roots; anything not reached is pruned. Records each live pass's
     ///     dependencies and, inverted, the passes that depend on it.
     /// </summary>
-    private (Dictionary<uint, HashSet<uint>> Nodes, Dictionary<uint, HashSet<uint>> Parents) CollectLivePasses(
-        GraphConfig config, HashSet<uint> roots)
+    private void CollectLivePasses(GraphConfig config)
     {
-        Dictionary<uint, HashSet<uint>> nodes = [];
-        Dictionary<uint, HashSet<uint>> passParents = [];
-        var toCheck = new Queue<uint>(roots);
-        var visited = new HashSet<uint>(roots);
-
-        while (toCheck.NotEmpty())
+        var toCheck = _state.Pending;
+        foreach (var root in _state.Roots)
         {
-            var passId = toCheck.Dequeue();
-            HashSet<uint> dependencies = [];
-            nodes[passId] = dependencies;
+            toCheck.Enqueue(root);
+            _state.Visited.Add(root);
+        }
 
-            void DependOn(uint dependencyId)
-            {
-                dependencies.Add(dependencyId);
-                if (!passParents.TryGetValue(dependencyId, out var parents))
-                    passParents[dependencyId] = parents = [];
-                parents.Add(passId);
-                if (visited.Add(dependencyId)) toCheck.Enqueue(dependencyId);
-            }
-
+        while (toCheck.TryDequeue(out var passId))
+        {
+            var dependencies = _state.AddLivePass(passId);
             if (!config.PassDependencies.TryGetValue(passId, out var passDependencies)) continue;
 
             foreach (var dependency in passDependencies)
                 switch (dependency.Type)
                 {
                     case GraphConfig.DependencyType.Pass:
-                        DependOn(dependency.Id);
+                        DependOn(passId, dependencies, dependency.Id);
                         break;
                     case GraphConfig.DependencyType.Read:
                     {
                         // A read depends on the last write before it.
                         var resourceActions = config.ResourceActions[dependency.Id];
-                        var readIdx = resourceActions.FindLastIndex(c =>
-                            c.PassId == passId && c.Operation == ResourceOperation.Read);
+                        var readIdx = LastActionIndex(resourceActions, passId, ResourceOperation.Read);
                         for (var i = readIdx - 1; i > -1; i--)
                             if (resourceActions[i].Operation == ResourceOperation.Write)
                             {
-                                DependOn(resourceActions[i].PassId);
+                                DependOn(passId, dependencies, resourceActions[i].PassId);
                                 break;
                             }
                     }
@@ -163,11 +173,10 @@ public class GraphBuilder : IGraphBuilder
                         var resourceActions = config.ResourceActions[dependency.Id];
                         if (resourceActions[0].PassId == passId) break;
 
-                        var writeIdx = resourceActions.FindLastIndex(c =>
-                            c.PassId == passId && c.Operation == ResourceOperation.Write);
+                        var writeIdx = LastActionIndex(resourceActions, passId, ResourceOperation.Write);
                         for (var i = writeIdx - 1; i > -1; i--)
                         {
-                            DependOn(resourceActions[i].PassId);
+                            DependOn(passId, dependencies, resourceActions[i].PassId);
                             if (resourceActions[i].Operation == ResourceOperation.Write) break;
                         }
                     }
@@ -176,106 +185,105 @@ public class GraphBuilder : IGraphBuilder
                         throw new ArgumentOutOfRangeException();
                 }
         }
+    }
 
-        return (nodes, passParents);
+    private void DependOn(uint passId, HashSet<uint> dependencies, uint dependencyId)
+    {
+        dependencies.Add(dependencyId);
+        _state.AddDependent(dependencyId, passId);
+        if (_state.Visited.Add(dependencyId)) _state.Pending.Enqueue(dependencyId);
+    }
+
+    private static int LastActionIndex(List<GraphConfig.ResourceAction> actions, uint passId,
+        ResourceOperation operation)
+    {
+        for (var i = actions.Count - 1; i > -1; i--)
+            if (actions[i].PassId == passId && actions[i].Operation == operation)
+                return i;
+        return -1;
+    }
+
+    private void RemoveDeadActions(List<GraphConfig.ResourceAction> actions)
+    {
+        var kept = 0;
+        for (var i = 0; i < actions.Count; i++)
+            if (_state.IsLive(actions[i].PassId))
+                actions[kept++] = actions[i];
+        actions.RemoveRange(kept, actions.Count - kept);
     }
 
     /// <summary>
     ///     The barriers each live pass needs before it runs, from consecutive actions on each resource.
     /// </summary>
-    private Dictionary<uint, List<PassResourceSync>> BuildSyncs(GraphConfig config)
+    private void BuildSyncs(GraphConfig config)
     {
-        var syncGroups = new Dictionary<uint, List<PassResourceSync>>();
-
-        void Add(PassResourceSync sync)
-        {
-            if (!syncGroups.TryGetValue(sync.PassId, out var group)) syncGroups[sync.PassId] = group = [];
-            group.Add(sync);
-        }
-
         foreach (var (resourceId, actions) in config.ResourceActions)
         {
-            var externalBuffer = (config.Resources[resourceId] as ExternalVulkanBufferResourceDescriptor)?.Resource;
-            GraphConfig.ResourceAction? lastAction = null;
+            var descriptor = config.Resources[resourceId];
+            var externalBuffer = (descriptor as ExternalVulkanBufferResourceDescriptor)?.Resource;
+            var hasLast = false;
+            GraphConfig.ResourceAction last = default;
             foreach (var action in actions)
             {
                 if (action.Type == GraphResourceKind.Buffer)
                 {
-                    if (lastAction != null &&
-                        (action.Operation != lastAction.Operation || action.Operation == ResourceOperation.Write))
-                        Add(new BufferResourceSync
-                        {
-                            PreviousUsage = lastAction.BufferUsage,
-                            NextUsage = action.BufferUsage,
-                            PreviousOperation = lastAction.Operation,
-                            NextOperation = action.Operation,
-                            ResourceId = resourceId,
-                            PassId = action.PassId
-                        });
-                    else if (lastAction == null && externalBuffer is { GraphState: { } previous } &&
+                    if (hasLast && (action.Operation != last.Operation || action.Operation == ResourceOperation.Write))
+                        _state.AddSync(action.PassId, new BufferResourceSync(
+                            resourceId,
+                            PreviousUsage: last.BufferUsage,
+                            NextUsage: action.BufferUsage,
+                            PreviousOperation: last.Operation,
+                            NextOperation: action.Operation));
+                    else if (!hasLast && externalBuffer is { GraphState: { } previous } &&
                              (action.Operation == ResourceOperation.Write || previous.Operation == ResourceOperation.Write))
                         // External buffers carry their last usage over from earlier graphs.
-                        Add(new BufferResourceSync
-                        {
-                            PreviousUsage = previous.Usage,
-                            NextUsage = action.BufferUsage,
-                            PreviousOperation = previous.Operation,
-                            NextOperation = action.Operation,
-                            ResourceId = resourceId,
-                            PassId = action.PassId
-                        });
+                        _state.AddSync(action.PassId, new BufferResourceSync(
+                            resourceId,
+                            PreviousUsage: previous.Usage,
+                            NextUsage: action.BufferUsage,
+                            PreviousOperation: previous.Operation,
+                            NextOperation: action.Operation));
                 }
-                else if (lastAction == null && action.ImageLayout != ImageLayout.Undefined)
+                else if (!hasLast && action.ImageLayout != ImageLayout.Undefined)
                 {
                     // External images carry their layout over from earlier frames, unless the write discards it.
-                    Add(new ImageResourceSync
-                    {
-                        PreviousLayout = ImageLayout.Undefined,
-                        FromCurrentLayout = !action.Discard &&
-                                            config.Resources[resourceId] is IExternalResourceDescriptor,
-                        NextLayout = action.ImageLayout,
-                        PreviousOperation = ResourceOperation.Write,
-                        NextOperation = action.Operation,
-                        ResourceId = resourceId,
-                        PassId = action.PassId
-                    });
+                    _state.AddSync(action.PassId, new ImageResourceSync(
+                        resourceId,
+                        PreviousLayout: ImageLayout.Undefined,
+                        NextLayout: action.ImageLayout,
+                        NextOperation: action.Operation,
+                        FromCurrentLayout: !action.Discard && descriptor is IExternalResourceDescriptor));
                 }
-                else if (lastAction != null && (action.Operation == ResourceOperation.Write ||
-                                                action.ImageLayout != lastAction.ImageLayout ||
-                                                action.Operation != lastAction.Operation))
+                else if (hasLast && (action.Operation == ResourceOperation.Write ||
+                                     action.ImageLayout != last.ImageLayout ||
+                                     action.Operation != last.Operation))
                 {
-                    Add(new ImageResourceSync
-                    {
-                        PreviousLayout = lastAction.ImageLayout,
-                        NextLayout = action.ImageLayout,
-                        PreviousOperation = lastAction.Operation,
-                        NextOperation = action.Operation,
-                        ResourceId = resourceId,
-                        PassId = action.PassId
-                    });
+                    _state.AddSync(action.PassId, new ImageResourceSync(
+                        resourceId,
+                        PreviousLayout: last.ImageLayout,
+                        NextLayout: action.ImageLayout,
+                        NextOperation: action.Operation));
                 }
 
-                lastAction = action;
+                last = action;
+                hasLast = true;
             }
 
-            if (externalBuffer != null && lastAction is { Type: GraphResourceKind.Buffer })
-                externalBuffer.GraphState = new BufferGraphState(lastAction.BufferUsage, lastAction.Operation);
+            if (externalBuffer != null && hasLast && last.Type == GraphResourceKind.Buffer)
+                externalBuffer.GraphState = new BufferGraphState(last.BufferUsage, last.Operation);
         }
-
-        return syncGroups;
     }
 
     /// <summary>
     ///     Groups live passes by depth, each one level past its deepest dependency, so a level only depends on
-    ///     earlier levels.
+    ///     earlier levels. Returns the number of levels.
     /// </summary>
-    private List<IPass>[] ScheduleLevels(Dictionary<uint, HashSet<uint>> nodes,
-        Dictionary<uint, HashSet<uint>> passParents)
+    private int ScheduleLevels()
     {
-        var executionLevels = new Dictionary<uint, int>();
-        var queue = new Queue<uint>();
-        var remainingDependencies = new Dictionary<uint, int>(nodes.Count);
-        foreach (var (passId, dependencies) in nodes)
+        var executionLevels = _state.Levels;
+        var queue = _state.Pending;
+        var remainingDependencies = _state.RemainingDependencies;
+        foreach (var (passId, dependencies) in _state.Dependencies)
         {
             remainingDependencies[passId] = dependencies.Count;
             if (dependencies.Count != 0) continue;
@@ -284,10 +292,9 @@ public class GraphBuilder : IGraphBuilder
         }
 
         var maxLevel = 0;
-        while (queue.Count > 0)
+        while (queue.TryDequeue(out var passId))
         {
-            var passId = queue.Dequeue();
-            if (!passParents.TryGetValue(passId, out var parents)) continue;
+            if (!_state.Dependents.TryGetValue(passId, out var parents)) continue;
 
             var nextLevel = executionLevels[passId] + 1;
             foreach (var parentId in parents)
@@ -302,55 +309,44 @@ public class GraphBuilder : IGraphBuilder
             }
         }
 
-        var levels = new List<IPass>[maxLevel + 1];
-        for (var i = 0; i < levels.Length; i++) levels[i] = [];
-        foreach (var (passId, level) in executionLevels) levels[level].Add(_passes[passId]);
-        return levels;
+        var levelCount = maxLevel + 1;
+        var passesByLevel = _state.PassesByLevel;
+        while (passesByLevel.Count < levelCount) passesByLevel.Add([]);
+        foreach (var (passId, level) in executionLevels) passesByLevel[level].Add(_passes[passId]);
+        return levelCount;
     }
 
     /// <summary>
     ///     Puts a <see cref="BarrierPass" /> holding a level's syncs in front of that level.
     /// </summary>
-    private List<ExecutionGroup> BuildExecutionGroups(List<IPass>[] levels,
-        Dictionary<uint, List<PassResourceSync>> syncGroups)
+    private void BuildExecutionGroups(CompiledGraph graph, int levelCount)
     {
-        var executionGroups = new List<ExecutionGroup>();
-        foreach (var level in levels)
+        for (var i = 0; i < levelCount; i++)
         {
-            var bufferSyncs = new List<BufferResourceSync>();
-            var imageSyncs = new List<ImageResourceSync>();
+            var level = _state.PassesByLevel[i];
+            BarrierPass? barrier = null;
             foreach (var pass in level)
             {
-                if (!syncGroups.TryGetValue(pass.Id, out var syncGroup)) continue;
-                bufferSyncs.AddRange(syncGroup.OfType<BufferResourceSync>());
-                imageSyncs.AddRange(syncGroup.OfType<ImageResourceSync>());
+                if (_state.BufferSyncs.TryGetValue(pass.Id, out var bufferSyncs))
+                    (barrier ??= graph.AddBarrier(MakeId())).Buffers.AddRange(bufferSyncs);
+                if (_state.ImageSyncs.TryGetValue(pass.Id, out var imageSyncs))
+                    (barrier ??= graph.AddBarrier(MakeId())).Images.AddRange(imageSyncs);
             }
 
-            if (imageSyncs.NotEmpty() || bufferSyncs.NotEmpty())
-                executionGroups.Add(new ExecutionGroup
-                {
-                    Passes = [new BarrierPass(bufferSyncs.ToArray(), imageSyncs.ToArray()) { Id = MakeId() }]
-                });
-
-            executionGroups.Add(new ExecutionGroup { Passes = level });
+            graph.AddGroup().Passes.AddRange(level);
         }
-
-        return executionGroups;
     }
 
     /// <summary>
     ///     Keeps the descriptors of resources a live pass uses and releases externals nothing uses.
     /// </summary>
-    private static Dictionary<uint, IResourceDescriptor> CollectLiveResources(GraphConfig config)
+    private static void CollectLiveResources(GraphConfig config, Dictionary<uint, IResourceDescriptor> resources)
     {
-        var resources = new Dictionary<uint, IResourceDescriptor>(config.ResourceActions.Count);
         foreach (var id in config.ResourceActions.Keys) resources[id] = config.Resources[id];
 
         foreach (var (id, descriptor) in config.Resources)
             if (descriptor is IExternalResourceDescriptor external && !resources.ContainsKey(id))
                 external.Resource.Dispose();
-
-        return resources;
     }
 
     public uint AddExternalImage(ResourceHandle handle, GraphResourceFlags flags = GraphResourceFlags.None,
@@ -471,8 +467,18 @@ public class GraphBuilder : IGraphBuilder
 
         foreach (var (handle, ids) in _externalBufferIds)
         {
-            var usedIds = ids.Where(config.ResourceActions.ContainsKey).ToArray();
-            if (usedIds.Length != 0) resourceIds[handle] = usedIds;
+            var used = 0;
+            foreach (var id in ids)
+                if (config.ResourceActions.ContainsKey(id))
+                    used++;
+            if (used == 0) continue;
+
+            var usedIds = new uint[used];
+            var next = 0;
+            foreach (var id in ids)
+                if (config.ResourceActions.ContainsKey(id))
+                    usedIds[next++] = id;
+            resourceIds[handle] = usedIds;
         }
 
         return resourceIds;
@@ -542,7 +548,7 @@ public class GraphBuilder : IGraphBuilder
         pass.Configure(config);
     }
 
-    private void TakeUploads(UploadSynthesis? uploads, Dictionary<uint, HashSet<uint>> nodes)
+    private void TakeUploads(UploadSynthesis? uploads)
     {
         if (uploads is null) return;
         var (plan, passes) = uploads;
@@ -557,7 +563,7 @@ public class GraphBuilder : IGraphBuilder
             var count = 0;
             foreach (var index in stepIndices)
             {
-                if (!nodes.ContainsKey(passes[index].Id)) break;
+                if (!_state.IsLive(passes[index].Id)) break;
                 live++;
                 count += plan.Steps[index].Count;
             }
@@ -614,7 +620,8 @@ public class GraphBuilder : IGraphBuilder
 
     private GraphConfig Configure()
     {
-        var config = new GraphConfig(this);
+        var config = _config;
+        config.Reset();
 
         foreach (var (id, externalImageResourceDescriptor) in _externalResources)
             config.Resources.Add(id, externalImageResourceDescriptor);
