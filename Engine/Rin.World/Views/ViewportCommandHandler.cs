@@ -15,7 +15,7 @@ using Rin.World.Views.Shaders;
 
 namespace Rin.World.Views;
 
-internal partial class ViewportCommandHandler : ICommandHandlerWithPreAdd
+internal partial class ViewportCommandHandler : ICommandHandlerWithPreAdd, IDisposable
 {
     [GraphicsShader<ViewportShader>]
     private partial IGraphicsShader Shader { get; }
@@ -40,6 +40,11 @@ internal partial class ViewportCommandHandler : ICommandHandlerWithPreAdd
         }
     }
 
+
+    public void Dispose()
+    {
+        foreach (var command in _commands) command.Dispose();
+    }
 
     public void Init(ReadOnlySpan<ICommand> commands)
     {
@@ -89,7 +94,7 @@ internal class DrawViewportCommand(
     IWorldCollectedData context,
     in Vector2 displaySize,
     in Matrix4x4 transform)
-    : TCommand<MainPassConfig, ViewportCommandHandler>
+    : TCommand<MainPassConfig, ViewportCommandHandler>, IDisposable
 {
     /// <summary>
     ///     Immutable world snapshot taken on the collect thread; render size is baked in.
@@ -102,4 +107,9 @@ internal class DrawViewportCommand(
     public Vector2 DisplaySize { get; } = displaySize;
 
     public Matrix4x4 Transform { get; } = transform;
+
+    public void Dispose()
+    {
+        Context.Dispose();
+    }
 }

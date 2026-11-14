@@ -7,7 +7,7 @@ namespace Rin.World.Graphics.Default;
 
 /// <summary>
 ///     Proxy table fed by a command queue drained once per <see cref="Snapshot" />; the render thread
-///     never touches the live table, only the frozen arrays each snapshot copies out.
+///     never touches the live table, only the frozen copy each scene snapshot holds.
 /// </summary>
 public class DefaultRenderSystem : IRenderSystem
 {
@@ -63,6 +63,7 @@ public class DefaultRenderSystem : IRenderSystem
     private float _interpolationAlpha = 1f;
     private float _time;
     private DefaultWorldSnapshot? _scene;
+    private readonly Stack<DefaultWorldSnapshot> _spareScenes = new();
     private float _sceneAlpha;
 
     public RenderProxyHandle CreateStaticMeshProxy(in StaticMeshProxyDesc desc)
@@ -129,7 +130,10 @@ public class DefaultRenderSystem : IRenderSystem
 
         if (changed || _scene is null || _sceneAlpha != _interpolationAlpha)
         {
-            _scene = BuildScene();
+            var scene = BuildScene();
+            scene.Acquire();
+            _scene?.Release();
+            _scene = scene;
             _sceneAlpha = _interpolationAlpha;
         }
 
@@ -138,46 +142,52 @@ public class DefaultRenderSystem : IRenderSystem
 
     private DefaultWorldSnapshot BuildScene()
     {
-
-        List<StaticMeshInfo> staticMeshes = [];
-        List<SkinnedMeshInfo> skinnedMeshes = [];
-        List<LightInfo> lights = [];
+        var scene = TakeSpareScene() ?? new DefaultWorldSnapshot(this);
         foreach (var slot in _slots)
         {
             if (slot is not { } row) continue;
             switch (row.Kind)
             {
                 case ProxyKind.StaticMesh:
-                    staticMeshes.Add(new StaticMeshInfo
-                    {
-                        Mesh = row.StaticDesc.Mesh,
-                        Transform = InterpolateTransform(row.PreviousTransform, row.Transform, _interpolationAlpha),
-                        SurfaceIndices = row.StaticDesc.SurfaceIndices,
-                        Materials = row.StaticDesc.Materials
-                    });
+                    scene.AddStaticMesh(row.StaticDesc,
+                        InterpolateTransform(row.PreviousTransform, row.Transform, _interpolationAlpha));
                     break;
                 case ProxyKind.SkinnedMesh:
-                    skinnedMeshes.Add(new SkinnedMeshInfo
-                    {
-                        Pose = row.SkinnedDesc.Pose,
-                        Skeleton = row.SkinnedDesc.Skeleton,
-                        Mesh = row.SkinnedDesc.Mesh,
-                        Transform = InterpolateTransform(row.PreviousTransform, row.Transform, _interpolationAlpha),
-                        SurfaceIndices = row.SkinnedDesc.SurfaceIndices,
-                        Materials = row.SkinnedDesc.Materials
-                    });
+                    scene.AddSkinnedMesh(row.SkinnedDesc,
+                        InterpolateTransform(row.PreviousTransform, row.Transform, _interpolationAlpha));
                     break;
                 case ProxyKind.Light:
-                    lights.Add(row.Light);
+                    scene.AddLight(row.Light);
                     break;
             }
         }
 
-        return new DefaultWorldSnapshot(staticMeshes.ToArray(), skinnedMeshes.ToArray(), lights.ToArray());
+        return scene;
+    }
+
+    private DefaultWorldSnapshot? TakeSpareScene()
+    {
+        lock (_spareScenes)
+        {
+            return _spareScenes.TryPop(out var scene) ? scene : null;
+        }
+    }
+
+    /// <summary>
+    ///     Takes back a scene nothing holds any more. Called from whichever thread released it last.
+    /// </summary>
+    internal void Recycle(DefaultWorldSnapshot scene)
+    {
+        scene.Clear();
+        lock (_spareScenes)
+        {
+            _spareScenes.Push(scene);
+        }
     }
 
     public void Dispose()
     {
+        _scene?.Release();
         _scene = null;
     }
 

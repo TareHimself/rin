@@ -55,7 +55,8 @@ public class PooledSkeletalPoseTests
         using var pooled = new PooledSkeletalPose(1);
         pooled.Set(0, new Transform { Position = new Vector3(7, 0, 0) });
 
-        var plain = pooled.ToSkeletalPose();
+        var plain = new SkeletalPose(1);
+        pooled.CopyTo(plain);
 
         Assert.That(plain.IsSet(0), Is.True);
         Assert.That(plain.BoneTransforms[0].Position, Is.EqualTo(new Vector3(7, 0, 0)));

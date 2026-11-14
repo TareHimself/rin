@@ -2,7 +2,8 @@ namespace Rin.World.Mesh.Skinning.Animation;
 
 public class AnimationGraph(Skeleton skeleton) : IPoseSource
 {
-    private SkeletalPose _cachedPose = skeleton.BasePose;
+    // Overwritten every tick. Readers on other threads must copy it first, as the scene snapshot does.
+    private readonly SkeletalPose _pose = new(skeleton.Bones.Length);
     private readonly NotifySink _notifySink = new();
     private readonly List<AnimationNotify> _firedDefinitions = [];
     private readonly List<IAnimationNotify> _firedNotifies = [];
@@ -34,7 +35,7 @@ public class AnimationGraph(Skeleton skeleton) : IPoseSource
         {
             var ctx = new AnimationEvalContext(deltaSeconds, _notifySink, _activeThisTick);
             using var pose = Root.Evaluate(ctx);
-            _cachedPose = pose.ToSkeletalPose();
+            pose.CopyTo(_pose);
         }
 
         _notifySink.CollectFired(_firedDefinitions);
@@ -77,6 +78,6 @@ public class AnimationGraph(Skeleton skeleton) : IPoseSource
 
     public SkeletalPose GetPose()
     {
-        return _cachedPose;
+        return _pose;
     }
 }

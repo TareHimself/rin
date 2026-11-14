@@ -19,8 +19,9 @@ public class DefaultSceneFrame : IDisposable
     public DefaultSceneFrame(DefaultWorldSnapshot snapshot, IGraphBuilder builder)
     {
         Snapshot = snapshot;
+        snapshot.Acquire();
         ProcessMeshes(builder);
-        SkinningMatrices = ComputeSkinningMatrices(snapshot.SkinnedGeometry);
+        SkinningMatrices = ComputeSkinningMatrices(snapshot);
 
         builder.AddPass(new InitSceneResourcesPass(this));
         if (ProcessedSkinnedMeshCount > 0)
@@ -33,7 +34,7 @@ public class DefaultSceneFrame : IDisposable
     }
 
     public DefaultWorldSnapshot Snapshot { get; }
-    public SkinnedMeshInfo[] SkinnedGeometry => Snapshot.SkinnedGeometry;
+    public ReadOnlySpan<SkinnedMeshInfo> SkinnedGeometry => Snapshot.SkinnedGeometry;
     public IReadOnlyList<ProcessedMesh> ProcessedMeshes { get; private set; } = [];
 
     /// <summary>
@@ -72,16 +73,19 @@ public class DefaultSceneFrame : IDisposable
     public void Dispose()
     {
         foreach (var matrices in SkinningMatrices) matrices.Dispose();
+        Snapshot.Release();
     }
 
-    private static PooledMemory<Matrix4x4>[] ComputeSkinningMatrices(SkinnedMeshInfo[] skinnedGeometry)
+    private static PooledMemory<Matrix4x4>[] ComputeSkinningMatrices(DefaultWorldSnapshot snapshot)
     {
+        var skinnedGeometry = snapshot.SkinnedGeometry;
         var matrices = new PooledMemory<Matrix4x4>[skinnedGeometry.Length];
         for (var i = 0; i < skinnedGeometry.Length; i++)
         {
-            var mesh = skinnedGeometry[i];
-            using var globalPose = mesh.Skeleton.ResolvePosePooled(mesh.Pose);
-            matrices[i] = new PooledMemory<Matrix4x4>(globalPose.Count);
+            ref readonly var mesh = ref skinnedGeometry[i];
+            using var globalPose = new PooledMemory<Matrix4x4>(mesh.BoneCount);
+            mesh.Skeleton.ResolvePose(snapshot.BonesOf(mesh), globalPose.AsSpan());
+            matrices[i] = new PooledMemory<Matrix4x4>(mesh.BoneCount);
             mesh.Skeleton.ComputeSkinningMatrices(globalPose.AsSpan(), matrices[i].AsSpan());
         }
 

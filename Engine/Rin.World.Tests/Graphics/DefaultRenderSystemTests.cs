@@ -121,7 +121,7 @@ public class DefaultRenderSystemTests
     private static StaticMeshInfo[] StaticGeometry(DefaultRenderSystem render)
     {
         return ((DefaultWorldViewData)render.Snapshot(TestCameras.Identity, new Extent2D(1, 1))).Snapshot
-            .StaticGeometry;
+            .StaticGeometry.ToArray();
     }
 
     [Test]

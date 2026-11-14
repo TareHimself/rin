@@ -5,7 +5,7 @@ namespace Rin.World.Mesh.Skinning;
 
 // Same shape as SkeletalPose, but pooled: copies of this struct alias the same underlying buffers rather
 // than owning their own, so disposing one copy invalidates every other - dispose exactly once, right after
-// this pose is consumed (blended into a parent, or materialized via ToSkeletalPose).
+// this pose is consumed (blended into a parent, or copied out via CopyTo).
 public struct PooledSkeletalPose : IDisposable
 {
     private PooledMemory<Transform> _transforms;
@@ -53,12 +53,10 @@ public struct PooledSkeletalPose : IDisposable
         return result;
     }
 
-    public readonly SkeletalPose ToSkeletalPose()
+    public readonly void CopyTo(in SkeletalPose into)
     {
-        var result = new SkeletalPose(BoneTransforms.Length);
-        BoneTransforms.CopyTo(result.BoneTransforms);
-        Mask.CopyTo(result.Mask);
-        return result;
+        BoneTransforms.CopyTo(into.BoneTransforms);
+        Mask.CopyTo(into.Mask);
     }
 
     public void Dispose()
