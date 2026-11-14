@@ -3,14 +3,16 @@ using JetBrains.Annotations;
 using Rin.Core.Graphics;
 using Rin.Core.Graphics.Graph;
 using Rin.Core.Graphics.Shaders;
+using Rin.Core.Shared;
 using Rin.Core.Views.Graphics.Shaders;
 using Rin.Shade;
 
 namespace Rin.Core.Views.Graphics.Passes;
 
-public partial class StencilWritePass : IPass
+public partial class StencilWritePass : IPass, IDisposable
 {
-    private readonly StencilClip[] _clips;
+    private PooledMemory<StencilClip> _clips;
+    private bool _disposed;
     private readonly uint _mask;
     
     [GraphicsShader<StencilBatchShader>]
@@ -21,11 +23,11 @@ public partial class StencilWritePass : IPass
 
     private uint _clipsBufferId;
 
-    public StencilWritePass(SurfaceContext surfaceContext, uint mask, StencilClip[] clips)
+    public StencilWritePass(SurfaceContext surfaceContext, uint mask, ReadOnlySpan<StencilClip> clips)
     {
         _surfaceContext = surfaceContext;
         _mask = mask;
-        _clips = clips;
+        _clips = PooledMemory<StencilClip>.CopyFrom(clips);
     }
 
     private uint StencilImageId => _surfaceContext.StencilImageId;
@@ -34,7 +36,7 @@ public partial class StencilWritePass : IPass
     public void Configure(IGraphConfig config)
     {
         config.WriteTexture(StencilImageId, ImageLayout.StencilAttachment);
-        _clipsBufferId = config.CreateBuffer<StencilClip>(_clips.Length, GraphBufferUsage.HostThenGraphics);
+        _clipsBufferId = config.CreateBuffer<StencilClip>(_clips.Count, GraphBufferUsage.HostThenGraphics);
     }
 
     public void Execute(ICompiledGraph graph, IExecutionContext ctx)
@@ -55,10 +57,17 @@ public partial class StencilWritePass : IPass
                     Projection = _surfaceContext.ProjectionMatrix,
                     Clips = clipsBuffer.ToDeviceSpan<StencilClip>()
                 })
-                .Draw(6, (uint)_clips.Length);
+                .Draw(6, (uint)_clips.Count);
 
 
             ctx.EndRendering();
         }
+    }
+
+    public void Dispose()
+    {
+        if (_disposed) return;
+        _disposed = true;
+        _clips.Dispose();
     }
 }

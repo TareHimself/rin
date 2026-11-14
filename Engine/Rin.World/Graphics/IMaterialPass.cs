@@ -20,7 +20,7 @@ public interface IMaterialPass
     /// <summary>
     ///     Writes this mesh's data into <paramref name="destination" />, which is <see cref="GetRequiredMemory" /> bytes.
     /// </summary>
-    public void Write(Span<byte> destination, ProcessedMesh mesh);
+    public void Write(Span<byte> destination, in ProcessedMesh mesh);
 
     public IGraphicsBindContext? BindGroup(WorldFrame frame, in DeviceBufferView groupMaterialBuffer);
 
@@ -28,5 +28,5 @@ public interface IMaterialPass
     ///     Registers and reads every graph resource this pass's material uses (e.g. textures), so they stay alive
     ///     until the frame has rendered. Called once per material per frame.
     /// </summary>
-    public void DeclareResources(IGraphConfig config, ProcessedMesh mesh);
+    public void DeclareResources(IGraphConfig config, in ProcessedMesh mesh);
 }

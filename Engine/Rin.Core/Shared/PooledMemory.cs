@@ -1,9 +1,10 @@
 using System.Buffers;
+using System.Runtime.CompilerServices;
 using JetBrains.Annotations;
 
 namespace Rin.Core.Shared;
 
-public struct PooledMemory<T> : IDisposable where T : unmanaged
+public struct PooledMemory<T> : IDisposable
 {
     private readonly ArrayPool<T> _pool;
     private readonly T[] _rentedBuffer;
@@ -28,7 +29,8 @@ public struct PooledMemory<T> : IDisposable where T : unmanaged
 
     public void Dispose()
     {
-        _pool.Return(_rentedBuffer);
+        // References are cleared so the pool does not keep them alive.
+        _pool.Return(_rentedBuffer, RuntimeHelpers.IsReferenceOrContainsReferences<T>());
     }
 
     /// <summary>
@@ -40,11 +42,11 @@ public struct PooledMemory<T> : IDisposable where T : unmanaged
         Count = count;
     }
 
-    public ref T this[int index] => ref _rentedBuffer[index];
+    public readonly ref T this[int index] => ref _rentedBuffer[index];
 
-    public Span<T> AsSpan() => _rentedBuffer.AsSpan(0, Count);
+    public readonly Span<T> AsSpan() => _rentedBuffer.AsSpan(0, Count);
 
-    public Memory<T> AsMemory() => _rentedBuffer.AsMemory(0, Count);
+    public readonly Memory<T> AsMemory() => _rentedBuffer.AsMemory(0, Count);
 
     /// <summary>
     ///     Rents a buffer and copies <paramref name="source" /> into it.

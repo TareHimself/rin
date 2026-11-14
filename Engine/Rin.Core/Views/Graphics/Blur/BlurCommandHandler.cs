@@ -19,9 +19,9 @@ internal class BlurInitCommandHandler : ICommandHandler
     private const float ScaleFactor = 7f;
     private BlurInitCommand[] _commands = [];
 
-    public void Init(ICommand[] commands)
+    public void Init(ReadOnlySpan<ICommand> commands)
     {
-        _commands = commands.Cast<BlurInitCommand>().ToArray();
+        _commands = commands.CastToArray<BlurInitCommand>();
     }
 
     public void Configure(IPassConfig passConfig, SurfaceContext surfaceContext, IGraphConfig config)
@@ -79,9 +79,9 @@ internal partial class BlurFirstPassCommandHandler : ICommandHandler
     private uint[] _bufferIds = [];
     private BlurFirstPassCommand[] _commands = [];
 
-    public void Init(ICommand[] commands)
+    public void Init(ReadOnlySpan<ICommand> commands)
     {
-        _commands = commands.Cast<BlurFirstPassCommand>().ToArray();
+        _commands = commands.CastToArray<BlurFirstPassCommand>();
     }
 
     public void Configure(IPassConfig passConfig, SurfaceContext surfaceContext, IGraphConfig config)
@@ -149,9 +149,9 @@ internal partial class BlurSecondPassCommandHandler : ICommandHandler
     private uint[] _bufferIds = [];
     private BlurSecondPassCommand[] _commands = [];
 
-    public void Init(ICommand[] commands)
+    public void Init(ReadOnlySpan<ICommand> commands)
     {
-        _commands = commands.Cast<BlurSecondPassCommand>().ToArray();
+        _commands = commands.CastToArray<BlurSecondPassCommand>();
     }
 
     public void Configure(IPassConfig passConfig, SurfaceContext surfaceContext, IGraphConfig config)

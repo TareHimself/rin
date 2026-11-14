@@ -37,8 +37,8 @@ public class SkinnedProxyPoseTests
 
         var context = (DefaultWorldViewData)render.Snapshot(TestCameras.Identity, new Extent2D(1, 1));
 
-        Assert.That(context.Snapshot.SkinnedGeometry[0].Pose.IsSet(0), Is.True,
+        var bones = context.Snapshot.BonesOf(context.Snapshot.SkinnedGeometry[0]);
+        Assert.That(bones[0].Position, Is.EqualTo(new Vector3(1, 2, 3)),
             "before this method existed, a proxy's pose was frozen at whatever Start() pushed and never refreshed");
-        Assert.That(context.Snapshot.SkinnedGeometry[0].Pose.BoneTransforms[0].Position, Is.EqualTo(new Vector3(1, 2, 3)));
     }
 }

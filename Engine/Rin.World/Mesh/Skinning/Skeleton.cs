@@ -11,6 +11,7 @@ namespace Rin.World.Mesh.Skinning;
 public class Skeleton
 {
     private const int MaxStackResolvedFlags = 1024;
+    private const int MaxStackLocalTransforms = 128;
 
     [PublicAPI] public readonly Bone[] Bones;
 
@@ -54,25 +55,29 @@ public class Skeleton
     /// </summary>
     public void ResolvePose(in SkeletalPose pose, Span<Matrix4x4> into)
     {
+        using var locals = new ScratchSpan<Transform>(Bones.Length,
+            Bones.Length <= MaxStackLocalTransforms ? stackalloc Transform[Bones.Length] : default);
+        CompleteLocalPose(pose, locals.Span);
+        ResolvePose(locals.Span, into);
+    }
+
+    /// <summary>
+    ///     Writes every bone's model-space matrix from a local transform per bone.
+    /// </summary>
+    public void ResolvePose(ReadOnlySpan<Transform> locals, Span<Matrix4x4> into)
+    {
         using var scratch = new ScratchSpan<bool>(Bones.Length,
             Bones.Length <= MaxStackResolvedFlags ? stackalloc bool[Bones.Length] : default);
-        for (var i = 0; i < Bones.Length; i++) ResolveBone(i, pose, into, scratch.Span);
+        for (var i = 0; i < Bones.Length; i++) ResolveBone(i, locals, into, scratch.Span);
     }
-    
-    public PooledMemory<Matrix4x4> ResolvePosePooled(in SkeletalPose pose)
+
+    /// <summary>
+    ///     Writes a local transform per bone: the pose's where it sets the bone, the skeleton's own elsewhere.
+    /// </summary>
+    public void CompleteLocalPose(in SkeletalPose pose, Span<Transform> into)
     {
-        var result = new PooledMemory<Matrix4x4>(Bones.Length);
-        var resolved = new bool[Bones.Length];
-        try
-        {
-            for (var i = 0; i < Bones.Length; i++) ResolveBone(i, pose, result.AsSpan(), resolved.AsSpan());
-            return result;
-        }
-        catch
-        {
-            result.Dispose();
-            throw;
-        }
+        for (var i = 0; i < Bones.Length; i++)
+            into[i] = pose.IsSet(i) ? pose.BoneTransforms[i] : Bones[i].LocalTransform;
     }
 
     public void ComputeSkinningMatrices(ReadOnlySpan<Matrix4x4> globalPose, Span<Matrix4x4> into)
@@ -80,11 +85,12 @@ public class Skeleton
         for (var i = 0; i < Bones.Length; i++) into[i] = globalPose[i].ApplyBefore(Bones[i].Bind);
     }
 
-    private void ResolveBone(int index, in SkeletalPose pose, Span<Matrix4x4> result, Span<bool> resolved)
+    private void ResolveBone(int index, ReadOnlySpan<Transform> locals, Span<Matrix4x4> result,
+        Span<bool> resolved)
     {
         if (resolved[index]) return;
 
-        var local = (pose.IsSet(index) ? pose.BoneTransforms[index] : Bones[index].LocalTransform).ToMatrix();
+        var local = locals[index].ToMatrix();
 
         var parentIndex = ParentIndices[index];
         if (parentIndex < 0)
@@ -93,7 +99,7 @@ public class Skeleton
         }
         else
         {
-            ResolveBone(parentIndex, pose, result, resolved);
+            ResolveBone(parentIndex, locals, result, resolved);
             result[index] = local.ChildOf(result[parentIndex]);
         }
 

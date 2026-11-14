@@ -13,9 +13,12 @@ namespace Rin.World.Graphics.Default;
 /// </summary>
 public class DefaultWorldViewData : IWorldCollectedData
 {
+    private bool _disposed;
+
     public DefaultWorldViewData(in CameraView viewer, in Extent2D extent, DefaultWorldSnapshot snapshot)
     {
         Snapshot = snapshot;
+        snapshot.Acquire();
         ViewTransform = Transform.From(viewer.World) with { Scale = Vector3.One };
         View = ViewTransform.ToMatrix().Inverse();
         FieldOfView = viewer.FieldOfView;
@@ -49,7 +52,7 @@ public class DefaultWorldViewData : IWorldCollectedData
     [PublicAPI] public Extent2D Extent { get; }
     [PublicAPI] public RenderChannel Channel { get; }
 
-    public LightInfo[] Lights => Snapshot.Lights;
+    public ReadOnlySpan<LightInfo> Lights => Snapshot.Lights;
 
     public uint DepthImageId { get; set; }
     public uint OutputImageId { get; set; }
@@ -80,6 +83,16 @@ public class DefaultWorldViewData : IWorldCollectedData
         config.ReadBuffer(DirectionalLightsBufferId, GraphBufferUsage.Graphics);
         config.ReadBuffer(LightBinsBufferId, GraphBufferUsage.Graphics);
         config.ReadBuffer(TileMasksBufferId, GraphBufferUsage.Graphics);
+    }
+
+    /// <summary>
+    ///     Lets go of the snapshot, once this view's frame has rendered or been dropped.
+    /// </summary>
+    public void Dispose()
+    {
+        if (_disposed) return;
+        _disposed = true;
+        Snapshot.Release();
     }
 
     public void Write(IGraphBuilder builder)

@@ -4,31 +4,30 @@ using Rin.Core.Graphics.Graph;
 
 namespace Rin.Graphics.Vulkan.Graph;
 
-internal class PassResourceSync
+internal readonly record struct ImageResourceSync(
+    uint ResourceId,
+    ImageLayout PreviousLayout,
+    ImageLayout NextLayout,
+    ResourceOperation NextOperation,
+    bool FromCurrentLayout = false);
+
+internal readonly record struct BufferResourceSync(
+    uint ResourceId,
+    GraphBufferUsage PreviousUsage,
+    GraphBufferUsage NextUsage,
+    ResourceOperation PreviousOperation,
+    ResourceOperation NextOperation);
+
+/// <summary>
+///     Applies the barriers one level of passes needs. A compiled graph reuses its barrier passes across frames.
+/// </summary>
+internal class BarrierPass : IPass, IResettable
 {
-    public required uint ResourceId { get; set; }
-    public required uint PassId { get; set; }
+    private const int MaxStackBarriers = 6;
 
-    public required ResourceOperation PreviousOperation { get; set; }
+    public List<BufferResourceSync> Buffers { get; } = [];
+    public List<ImageResourceSync> Images { get; } = [];
 
-    public required ResourceOperation NextOperation { get; set; }
-}
-
-internal class ImageResourceSync : PassResourceSync
-{
-    public required ImageLayout PreviousLayout { get; set; }
-    public required ImageLayout NextLayout { get; set; }
-    public bool FromCurrentLayout { get; init; }
-}
-
-internal class BufferResourceSync : PassResourceSync
-{
-    public required GraphBufferUsage PreviousUsage { get; set; }
-    public required GraphBufferUsage NextUsage { get; set; }
-}
-
-internal class BarrierPass(BufferResourceSync[] buffers, ImageResourceSync[] images) : IPass
-{
     public uint Id { get; set; }
 
     public void Configure(IGraphConfig config)
@@ -36,29 +35,34 @@ internal class BarrierPass(BufferResourceSync[] buffers, ImageResourceSync[] ima
         throw new Exception("HOW HAVE YOU DONE THIS?");
     }
 
-    private const int MaxStackBarriers = 6;
+    public void Reset()
+    {
+        Buffers.Clear();
+        Images.Clear();
+    }
 
     public void Execute(ICompiledGraph graph, IExecutionContext ctx)
     {
         if (ctx is VulkanExecutionContext vkCtx)
         {
-            using var bufferScratch = new ScratchSpan<BufferBarrier>(buffers.Length,
-                buffers.Length <= MaxStackBarriers ? stackalloc BufferBarrier[buffers.Length] : default);
-            using var imageScratch = new ScratchSpan<TextureBarrier>(images.Length,
-                images.Length <= MaxStackBarriers ? stackalloc TextureBarrier[images.Length] : default);
+            using var bufferScratch = new ScratchSpan<BufferBarrier>(Buffers.Count,
+                Buffers.Count <= MaxStackBarriers ? stackalloc BufferBarrier[Buffers.Count] : default);
+            using var imageScratch = new ScratchSpan<TextureBarrier>(Images.Count,
+                Images.Count <= MaxStackBarriers ? stackalloc TextureBarrier[Images.Count] : default);
             var bufferBarriers = bufferScratch.Span;
             var imageBarriers = imageScratch.Span;
 
-            for (var i = 0; i < buffers.Length; i++)
+            for (var i = 0; i < Buffers.Count; i++)
             {
-                bufferBarriers[i].View = graph.GetBufferOrException(buffers[i].ResourceId);
-                bufferBarriers[i].From = buffers[i].PreviousUsage;
-                bufferBarriers[i].To = buffers[i].NextUsage;
-                bufferBarriers[i].FromOperation = buffers[i].PreviousOperation;
-                bufferBarriers[i].ToOperation = buffers[i].NextOperation;
+                var sync = Buffers[i];
+                bufferBarriers[i].View = graph.GetBufferOrException(sync.ResourceId);
+                bufferBarriers[i].From = sync.PreviousUsage;
+                bufferBarriers[i].To = sync.NextUsage;
+                bufferBarriers[i].FromOperation = sync.PreviousOperation;
+                bufferBarriers[i].ToOperation = sync.NextOperation;
             }
             var imageCount = 0;
-            foreach (var sync in images)
+            foreach (var sync in Images)
             {
                 var texture = graph.GetImageOrException(sync.ResourceId);
                 var from = sync.PreviousLayout;

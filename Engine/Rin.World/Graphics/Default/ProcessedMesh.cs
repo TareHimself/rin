@@ -9,9 +9,10 @@ using Rin.World.Graphics.Mesh;
 namespace Rin.World.Graphics.Default;
 
 /// <summary>
-///     Final mesh after processing i.e. skinning or static meshes, split into surfaces
+///     One surface of a static or skinned mesh, as a frame draws it. A frame keeps them in one array and
+///     its batches refer to them by index.
 /// </summary>
-public class ProcessedMesh
+public struct ProcessedMesh
 {
     public required int AbsoluteMeshIndex;
     /// <summary>
@@ -32,7 +33,7 @@ public class ProcessedMesh
     public required DeviceBufferView VertexBuffer { get; set; }
     public required IMeshMaterial Material { get; set; }
 
-    public MeshInstance ToInstance() => new()
+    public readonly MeshInstance ToInstance() => new()
     {
         Transform = Transform,
         Vertices = VertexBuffer.ToDeviceSpan<Vertex>()

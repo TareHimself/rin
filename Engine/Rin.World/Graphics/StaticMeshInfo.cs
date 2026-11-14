@@ -6,7 +6,7 @@ namespace Rin.World.Graphics;
 /// <summary>
 ///     Contains info about a static mesh to be drawn in the scene
 /// </summary>
-public class StaticMeshInfo
+public struct StaticMeshInfo
 {
     public required Matrix4x4 Transform;
 

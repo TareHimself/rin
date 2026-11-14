@@ -51,10 +51,9 @@ public partial class SkinningPass(DefaultSceneFrame sceneFrame) : IComputePass, 
         }
         
         // Execution infos and distinct meshes
-        for (var i = sceneFrame.SkinnedMeshStartIndex; i < sceneFrame.ProcessedMeshes.Count; i++)
+        for (var i = sceneFrame.SkinnedMeshStartIndex; i < sceneFrame.TotalMeshCount; i++)
         {
-
-            var processedMesh = sceneFrame.ProcessedMeshes[i];
+            ref readonly var processedMesh = ref sceneFrame.ProcessedMeshes[i];
             if (sourceVertexReads.Add(processedMesh.SourceVertexBufferId))
                 config.ReadBuffer(processedMesh.SourceVertexBufferId, GraphBufferUsage.Compute);
             var geometry = sceneFrame.SkinnedGeometry[processedMesh.GeometryId];
@@ -120,10 +119,10 @@ public partial class SkinningPass(DefaultSceneFrame sceneFrame) : IComputePass, 
                     Output = output.ToDeviceSpan<Vertex>()
                 })
                 .Invoke(TotalVerticesToSkin);
-            for (var i = sceneFrame.SkinnedMeshStartIndex; i < sceneFrame.ProcessedMeshes.Count; i++)
+            for (var i = sceneFrame.SkinnedMeshStartIndex; i < sceneFrame.TotalMeshCount; i++)
             {
-                var mesh = sceneFrame.ProcessedMeshes[i];
-                mesh.VertexBuffer = output.GetView(mesh.VertexBuffer.Offset, mesh.VertexBuffer.Size);
+                var skinned = sceneFrame.ProcessedMeshes[i].VertexBuffer;
+                sceneFrame.RepointVertexBuffer(i, output.GetView(skinned.Offset, skinned.Size));
             }
         }
     }

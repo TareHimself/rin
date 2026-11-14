@@ -1,11 +1,14 @@
 ﻿using System.Diagnostics;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using Rin.Core.Graphics;
 using Rin.Core.Graphics.Graph;
+using Rin.Core.Shared.Pooling;
 using TerraFX.Interop.Vulkan;
 
 namespace Rin.Graphics.Vulkan.Graph;
 
-public class GraphConfig(GraphBuilder builder) : IGraphConfig
+public class GraphConfig(GraphBuilder builder) : IGraphConfig, IResettable
 {
     public enum ActionType
     {
@@ -20,7 +23,9 @@ public class GraphConfig(GraphBuilder builder) : IGraphConfig
         Write
     }
 
+    private readonly CollectionPool<List<ResourceAction>, ResourceAction> _actionLists = new();
     private readonly Dictionary<uint, GraphConfigBuffer> _buffers = [];
+    private readonly CollectionPool<List<Dependency>, Dependency> _dependencyLists = new();
 
     private readonly Dictionary<uint, GraphConfigImage> _images = [];
     private readonly Dictionary<uint, int> _prependedWrites = [];
@@ -30,6 +35,17 @@ public class GraphConfig(GraphBuilder builder) : IGraphConfig
     public readonly Dictionary<uint, IResourceDescriptor> Resources = [];
 
     public uint CurrentPassId { get; set; }
+
+    public void Reset()
+    {
+        _dependencyLists.ReturnAll(PassDependencies);
+        _actionLists.ReturnAll(ResourceActions);
+        _buffers.Clear();
+        _images.Clear();
+        _prependedWrites.Clear();
+        Resources.Clear();
+        CurrentPassId = 0;
+    }
 
     public uint AddExternalImage(ResourceHandle handle, GraphResourceFlags flags = GraphResourceFlags.None,
         Action? onDispose = null)
@@ -91,41 +107,17 @@ public class GraphConfig(GraphBuilder builder) : IGraphConfig
     public uint UseTexture(uint id, ImageLayout layout, ResourceOperation operation)
     {
         Debug.Assert(id != 0, "Invalid Image Id");
+        AddDependency(DependencyTypeOf(operation), id);
+        AddAction(id, new ResourceAction
         {
-            var dep = new Dependency
-            {
-                Type = operation switch
-                {
-                    ResourceOperation.Write => DependencyType.Write,
-                    ResourceOperation.Read => DependencyType.Read,
-                    _ => throw new ArgumentOutOfRangeException(nameof(operation), operation, null)
-                },
-                Id = id
-            };
+            Operation = operation,
+            PassId = CurrentPassId,
+            Type = GraphResourceKind.Image,
+            ImageLayout = layout
+        });
 
-            if (PassDependencies.TryGetValue(CurrentPassId, out var dependencies))
-                dependencies.Add(dep);
-            else
-                PassDependencies.Add(CurrentPassId, [dep]);
-        }
-        {
-            var action = new ResourceAction
-            {
-                Operation = operation,
-                PassId = CurrentPassId,
-                Type = GraphResourceKind.Image,
-                ImageLayout = layout
-            };
-
-            if (ResourceActions.TryGetValue(id, out var passes))
-                passes.Add(action);
-            else
-                ResourceActions.Add(id, [action]);
-        }
-
-        {
-            if (_images.TryGetValue(id, out var image)) image.Usage |= DeriveImageUsage(layout);
-        }
+        ref var image = ref CollectionsMarshal.GetValueRefOrNullRef(_images, id);
+        if (!Unsafe.IsNullRef(ref image)) image.Usage |= DeriveImageUsage(layout);
 
         return id;
     }
@@ -143,67 +135,56 @@ public class GraphConfig(GraphBuilder builder) : IGraphConfig
     public uint UseBuffer(uint id, GraphBufferUsage usage, ResourceOperation operation)
     {
         Debug.Assert(id != 0, "Invalid Buffer Id");
+        AddDependency(DependencyTypeOf(operation), id);
+        AddAction(id, new ResourceAction
         {
-            var dep = new Dependency
-            {
-                Type = operation switch
-                {
-                    ResourceOperation.Write => DependencyType.Write,
-                    ResourceOperation.Read => DependencyType.Read,
-                    _ => throw new ArgumentOutOfRangeException(nameof(operation), operation, null)
-                },
-                Id = id
-            };
+            Operation = operation,
+            PassId = CurrentPassId,
+            Type = GraphResourceKind.Buffer,
+            BufferUsage = usage
+        });
 
-            if (PassDependencies.TryGetValue(CurrentPassId, out var dependencies))
-                dependencies.Add(dep);
-            else
-                PassDependencies.Add(CurrentPassId, [dep]);
-        }
-        {
-            var action = new ResourceAction
-            {
-                Operation = operation,
-                PassId = CurrentPassId,
-                Type = GraphResourceKind.Buffer,
-                BufferUsage = usage
-            };
-
-            if (ResourceActions.TryGetValue(id, out var passes))
-                passes.Add(action);
-            else
-                ResourceActions.Add(id, [action]);
-        }
-
-        if (_buffers.TryGetValue(id, out var configBuffer))
-            configBuffer.Usage |= GraphBufferUsageToDeviceUsageFlags(usage);
+        ref var buffer = ref CollectionsMarshal.GetValueRefOrNullRef(_buffers, id);
+        if (!Unsafe.IsNullRef(ref buffer)) buffer.Usage |= GraphBufferUsageToDeviceUsageFlags(usage);
         return id;
     }
 
     public uint DependOn(uint passId)
     {
         Debug.Assert(passId != 0, "Invalid Pass Id");
-
-        {
-            var dep = new Dependency
-            {
-                Type = DependencyType.Pass,
-                Id = passId
-            };
-
-            if (PassDependencies.TryGetValue(CurrentPassId, out var dependencies))
-                dependencies.Add(dep);
-            else
-                PassDependencies.Add(CurrentPassId, [dep]);
-        }
+        AddDependency(DependencyType.Pass, passId);
         return passId;
+    }
+
+    private static DependencyType DependencyTypeOf(ResourceOperation operation)
+    {
+        return operation switch
+        {
+            ResourceOperation.Write => DependencyType.Write,
+            ResourceOperation.Read => DependencyType.Read,
+            _ => throw new ArgumentOutOfRangeException(nameof(operation), operation, null)
+        };
+    }
+
+    private void AddDependency(DependencyType type, uint id)
+    {
+        if (!PassDependencies.TryGetValue(CurrentPassId, out var dependencies))
+            PassDependencies.Add(CurrentPassId, dependencies = _dependencyLists.Rent());
+        dependencies.Add(new Dependency { Type = type, Id = id });
+    }
+
+    private void AddAction(uint resourceId, in ResourceAction action)
+    {
+        if (!ResourceActions.TryGetValue(resourceId, out var actions))
+            ResourceActions.Add(resourceId, actions = _actionLists.Rent());
+        actions.Add(action);
     }
 
 
     internal void PrependTextureWrite(uint id, bool discard)
     {
         UseTexture(id, ImageLayout.TransferDst, ResourceOperation.Write);
-        MoveLastActionToPrepended(id).Discard = discard;
+        MoveLastActionToPrepended(id, discard);
     }
 
     internal void PrependBufferWrite(uint id)
@@ -224,15 +205,15 @@ public class GraphConfig(GraphBuilder builder) : IGraphConfig
         MoveLastActionToPrepended(id);
     }
 
-    private ResourceAction MoveLastActionToPrepended(uint id)
+    private void MoveLastActionToPrepended(uint id, bool discard = false)
     {
         var actions = ResourceActions[id];
         var action = actions[^1];
+        action.Discard = discard;
         actions.RemoveAt(actions.Count - 1);
         var index = _prependedWrites.GetValueOrDefault(id);
         actions.Insert(index, action);
         _prependedWrites[id] = index + 1;
-        return action;
     }
 
     private uint CreateImage(in Extent2D extent, ImageFormat format, ImageLayout layout, uint count, ResourceType type,
@@ -307,19 +288,19 @@ public class GraphConfig(GraphBuilder builder) : IGraphConfig
     {
         foreach (var (key, image) in _images)
         {
-            if (!image.Usage.HasFlag(ImageCreateFlags.ColorAttachment) &&
-                !image.Usage.HasFlag(ImageCreateFlags.StencilAttachment) &&
-                !image.Usage.HasFlag(ImageCreateFlags.DepthAttachment) && !image.Usage.HasFlag(ImageCreateFlags.Sampled) &&
-                !image.Usage.HasFlag(ImageCreateFlags.Storage))
-                // We add this because vulkan images require one of the above at minimum
-                image.Usage |= ImageCreateFlags.Sampled;
+            const ImageCreateFlags attachable = ImageCreateFlags.ColorAttachment | ImageCreateFlags.StencilAttachment |
+                                                ImageCreateFlags.DepthAttachment | ImageCreateFlags.Sampled |
+                                                ImageCreateFlags.Storage;
+            var usage = image.Usage;
+            // We add this because vulkan images require one of the above at minimum
+            if ((usage & attachable) == 0) usage |= ImageCreateFlags.Sampled;
 
             IResourceDescriptor descriptor = image.Type switch
             {
-                ResourceType.Texture => new TextureResourceDescriptor(image.Extent, image.Format, image.Usage),
-                ResourceType.Cubemap => new CubemapResourceDescriptor(image.Extent, image.Format, image.Usage),
+                ResourceType.Texture => new TextureResourceDescriptor(image.Extent, image.Format, usage),
+                ResourceType.Cubemap => new CubemapResourceDescriptor(image.Extent, image.Format, usage),
                 ResourceType.TextureArray => new TextureArrayResourceDescriptor(image.Extent, image.Format,
-                    image.Usage, image.Count),
+                    usage, image.Count),
                 _ => throw new ArgumentOutOfRangeException(nameof(image.Type), image.Type, null)
             };
             Resources.Add(key, descriptor);
@@ -329,13 +310,13 @@ public class GraphConfig(GraphBuilder builder) : IGraphConfig
             Resources.Add(key, new BufferResourceDescriptor(buffer.Size, buffer.Usage));
     }
 
-    public class Dependency
+    public struct Dependency
     {
         public DependencyType Type { get; set; }
         public uint Id { get; set; }
     }
 
-    public class ResourceAction
+    public struct ResourceAction
     {
         public required ResourceOperation Operation { get; set; }
         public required uint PassId { get; set; }

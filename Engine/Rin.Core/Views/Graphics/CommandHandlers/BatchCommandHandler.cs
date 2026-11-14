@@ -11,18 +11,21 @@ public class BatchCommandHandler : ICommandHandler, IDisposable
     private readonly List<IBatch> _batches = [];
     private readonly List<uint> _masks = [];
     private ulong[] _batchSizes = [];
+    private ulong _memoryNeeded;
     private uint _bufferId;
 
-    public void Init(ICommand[] commands)
+    public void Init(ReadOnlySpan<ICommand> commands)
     {
-        foreach (var cmd in commands.Cast<IBatchedCommand>())
+        foreach (var command in commands)
         {
-            var canBeBatchedWithPrevious = _batches.LastOrDefault() is { } batch &&
-                                           batch.GetBatcher() == cmd.GetBatcher() &&
-                                           _masks.Last() == cmd.StencilMask;
+            var cmd = (IBatchedCommand)command;
+            var last = _batches.Count - 1;
+            var canBeBatchedWithPrevious = last >= 0 &&
+                                           _batches[last].GetBatcher() == cmd.GetBatcher() &&
+                                           _masks[last] == cmd.StencilMask;
             if (canBeBatchedWithPrevious)
             {
-                _batches.Last().AddFromCommand(cmd);
+                _batches[last].AddFromCommand(cmd);
             }
             else
             {
@@ -33,16 +36,19 @@ public class BatchCommandHandler : ICommandHandler, IDisposable
             }
         }
 
-        _batchSizes = _batches.Select(c => c.GetMemoryNeeded()).ToArray();
+        _batchSizes = new ulong[_batches.Count];
+        for (var i = 0; i < _batchSizes.Length; i++)
+        {
+            _batchSizes[i] = _batches[i].GetMemoryNeeded();
+            _memoryNeeded += _batchSizes[i];
+        }
     }
 
     public void Configure(IPassConfig passConfig, SurfaceContext surfaceContext, IGraphConfig config)
     {
         Debug.Assert(passConfig is MainPassConfig);
 
-        var memoryNeeded = _batchSizes.Aggregate<ulong, ulong>(0, (t, c) => t + c);
-
-        if (memoryNeeded > 0) _bufferId = config.CreateBuffer(memoryNeeded, GraphBufferUsage.HostThenGraphics);
+        if (_memoryNeeded > 0) _bufferId = config.CreateBuffer(_memoryNeeded, GraphBufferUsage.HostThenGraphics);
         foreach (var batch in _batches) batch.DeclareResources(config);
     }
 

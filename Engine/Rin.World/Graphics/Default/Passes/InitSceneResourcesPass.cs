@@ -11,14 +11,14 @@ public class InitSceneResourcesPass(DefaultSceneFrame sceneFrame) : IPass
     public void Configure(IGraphConfig config)
     {
         sceneFrame.BoundsBufferId =
-            config.CreateBuffer<Bounds3D>(sceneFrame.ProcessedMeshes.Count, GraphBufferUsage.Host);
+            config.CreateBuffer<Bounds3D>(sceneFrame.TotalMeshCount, GraphBufferUsage.Host);
     }
 
     public void Execute(ICompiledGraph graph, IExecutionContext ctx)
     {
         var meshes = sceneFrame.ProcessedMeshes;
-        using var bounds = new PooledMemory<Bounds3D>(meshes.Count);
-        for (var i = 0; i < meshes.Count; i++) bounds[i] = meshes[i].Surface.Bounds.Expand(meshes[i].Material.MaxVertexOffset);
+        using var bounds = new PooledMemory<Bounds3D>(meshes.Length);
+        for (var i = 0; i < meshes.Length; i++) bounds[i] = meshes[i].Surface.Bounds.Expand(meshes[i].Material.MaxVertexOffset);
         graph.GetBufferOrException(sceneFrame.BoundsBufferId).Write(bounds);
     }
 }

@@ -33,7 +33,7 @@ public class AnimationClipTests
         var tipIndex = skeleton.BoneNameToIndex["tip"];
 
         Assert.That(pose.IsSet(rootIndex), Is.True);
-        Assert.That(pose.BoneTransforms.Span[rootIndex].Position, Is.EqualTo(new Vector3(5, 0, 0)));
+        Assert.That(pose.BoneTransforms[rootIndex].Position, Is.EqualTo(new Vector3(5, 0, 0)));
         Assert.That(pose.IsSet(tipIndex), Is.False, "clip never authored a curve for 'tip'");
     }
 }

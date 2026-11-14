@@ -28,9 +28,9 @@ internal partial class VideoCommandHandler : ICommandHandlerWithPreAdd
         builder.AddPass(_resourcesPass);
     }
 
-    public void Init(ICommand[] commands)
+    public void Init(ReadOnlySpan<ICommand> commands)
     {
-        _commands = commands.Cast<VideoCommand>().ToArray();
+        _commands = commands.CastToArray<VideoCommand>();
         _resourcesPass = new CreateVideoResourcesPass(_commands);
     }
 

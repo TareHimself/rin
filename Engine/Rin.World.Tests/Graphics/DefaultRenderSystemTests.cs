@@ -118,6 +118,54 @@ public class DefaultRenderSystemTests
         Assert.That(after.Snapshot, Is.Not.SameAs(before.Snapshot));
     }
 
+    private static StaticMeshInfo[] StaticGeometry(DefaultRenderSystem render)
+    {
+        return ((DefaultWorldViewData)render.Snapshot(TestCameras.Identity, new Extent2D(1, 1))).Snapshot
+            .StaticGeometry.ToArray();
+    }
+
+    [Test]
+    public void DestroyedProxyLeavesTheScene()
+    {
+        var render = new DefaultRenderSystem();
+        var handle = CreateProxy(render, Matrix4x4.Identity);
+
+        render.DestroyProxy(handle);
+
+        Assert.That(StaticGeometry(render), Is.Empty);
+    }
+
+    [Test]
+    public void CommandsApplyInTheOrderTheyWereQueued()
+    {
+        var render = new DefaultRenderSystem();
+        var handle = CreateProxy(render, Matrix4x4.Identity);
+        var last = Matrix4x4.CreateTranslation(2, 0, 0);
+
+        render.UpdateProxyTransform(handle, Matrix4x4.CreateTranslation(1, 0, 0));
+        render.UpdateProxyTransform(handle, last);
+
+        Assert.That(StaticGeometry(render)[0].Transform, Is.EqualTo(last));
+    }
+
+    [Test]
+    public void AStaleHandleDoesNotTouchTheProxyThatReusedItsSlot()
+    {
+        var render = new DefaultRenderSystem();
+        var stale = CreateProxy(render, Matrix4x4.Identity);
+        render.DestroyProxy(stale);
+        StaticGeometry(render);
+        var start = Matrix4x4.CreateTranslation(5, 0, 0);
+        CreateProxy(render, start);
+
+        render.UpdateProxyTransform(stale, Matrix4x4.CreateTranslation(9, 0, 0));
+        render.DestroyProxy(stale);
+
+        var geometry = StaticGeometry(render);
+        Assert.That(geometry, Has.Length.EqualTo(1));
+        Assert.That(geometry[0].Transform, Is.EqualTo(start));
+    }
+
     [Test]
     public void InterpolationAlphaChangesProduceANewScene()
     {

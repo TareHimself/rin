@@ -1,3 +1,4 @@
+using System.Reflection;
 using Rin.Core.Graphics;
 using Rin.Core.Graphics.Graph;
 using Rin.Graphics.Vulkan.Graph;
@@ -354,11 +355,118 @@ public class GraphBuilderTests
         });
     }
 
+    [Test]
+    public void Compile_AfterReset_MatchesAFreshBuilder()
+    {
+        AddChain(_builder, 2);
+        _builder.Compile()!.Dispose();
+        _builder.Reset();
+        AddChain(_builder, 3);
+        var reused = Describe(_builder.Compile()!);
+
+        var fresh = new GraphBuilder(new UnusedPool(), null!, new UploadLanes(), _staging, _resources);
+        AddChain(fresh, 3);
+
+        Assert.That(reused, Is.EqualTo(Describe(fresh.Compile()!)));
+    }
+
+    [Test]
+    public void Compile_ReusesADisposedGraph()
+    {
+        AddChain(_builder, 2);
+        var first = _builder.Compile()!;
+        first.Dispose();
+        _builder.Reset();
+        AddChain(_builder, 2);
+
+        Assert.That(_builder.Compile(), Is.SameAs(first));
+    }
+
+    [Test]
+    public void Compile_LeavesAGraphThatIsStillInUseAlone()
+    {
+        AddChain(_builder, 2);
+        var first = (CompiledGraph)_builder.Compile()!;
+        var before = Describe(first);
+        _builder.Reset();
+        AddChain(_builder, 3);
+
+        var second = _builder.Compile();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(second, Is.Not.SameAs(first));
+            Assert.That(Describe(first), Is.EqualTo(before));
+        });
+    }
+
+    [Test]
+    public void Dispose_Twice_DisposesItsPassesOnce()
+    {
+        var pass = new ImagePass(GraphResourceFlags.Terminal);
+        _builder.AddPass(pass);
+        var graph = _builder.Compile()!;
+
+        graph.Dispose();
+        graph.Dispose();
+
+        Assert.That(pass.Disposals, Is.EqualTo(1));
+    }
+
+    /// <summary>
+    ///     The render graph overlay example reads these private fields by name.
+    /// </summary>
+    [Test]
+    public void TheFieldsTheOverlayReadsByReflection_KeepTheirNamesAndShapes()
+    {
+        AddChain(_builder, 2);
+        var graph = _builder.Compile()!;
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(ReadField(graph, "_nodes"), Is.InstanceOf<IEnumerable<ExecutionGroup>>());
+            Assert.That(ReadField(graph, "_descriptors"), Is.InstanceOf<IDictionary<uint, IResourceDescriptor>>());
+            Assert.That(ReadField(_builder, "_passes"), Is.InstanceOf<IDictionary<uint, IPass>>());
+        });
+    }
+
+    private static object? ReadField(object target, string name)
+    {
+        return target.GetType().GetField(name, BindingFlags.Instance | BindingFlags.NonPublic)?.GetValue(target);
+    }
+
+    /// <summary>
+    ///     Adds passes that each read the image the one before wrote, ending in a terminal write.
+    /// </summary>
+    private static void AddChain(GraphBuilder builder, int length)
+    {
+        ImagePass? previous = null;
+        for (var i = 0; i < length; i++)
+        {
+            var flags = i == length - 1 ? GraphResourceFlags.Terminal : GraphResourceFlags.None;
+            previous = new ImagePass(flags, previous);
+            builder.AddPass(previous);
+        }
+    }
+
+    private static List<string> Describe(ICompiledGraph graph)
+    {
+        List<string> lines = [];
+        foreach (var group in ((CompiledGraph)graph).Groups)
+        foreach (var pass in group.Passes)
+            if (pass is BarrierPass barrier)
+                lines.Add($"barrier {pass.Id}: {string.Join(", ", barrier.Buffers)} | {string.Join(", ", barrier.Images)}");
+            else
+                lines.Add($"{pass.GetType().Name} {pass.Id}");
+        return lines;
+    }
+
     private sealed class ImagePass(GraphResourceFlags flags = GraphResourceFlags.None, ImagePass? reads = null)
         : IPass, IDisposable
     {
         public uint ImageId { get; private set; }
-        public bool Disposed { get; private set; }
+        public bool Disposed => Disposals > 0;
+        public int Disposals { get; private set; }
         public uint Id { get; set; }
 
         public void Configure(IGraphConfig config)
@@ -373,7 +481,7 @@ public class GraphBuilderTests
 
         public void Dispose()
         {
-            Disposed = true;
+            Disposals++;
         }
     }
 

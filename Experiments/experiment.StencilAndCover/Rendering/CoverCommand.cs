@@ -67,9 +67,9 @@ public partial class CoverCommandHandler : ICommandHandler
 
     private CoverCommand[] _commands = [];
 
-    public void Init(ICommand[] commands)
+    public void Init(ReadOnlySpan<ICommand> commands)
     {
-        _commands = commands.Cast<CoverCommand>().ToArray();
+        _commands = commands.CastToArray<CoverCommand>();
     }
 
     public void Configure(IPassConfig passConfig, SurfaceContext surfaceContext, IGraphConfig config)

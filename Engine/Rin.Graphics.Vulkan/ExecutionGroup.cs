@@ -1,11 +1,10 @@
 ﻿using Rin.Core.Graphics.Graph;
 using Rin.Graphics.Vulkan.Graph;
-using Rin.Graphics.Vulkan.Graph;
 
 namespace Rin.Graphics.Vulkan;
 
 public class ExecutionGroup
 {
-    public required List<IPass> Passes { get; init; }
-    public bool IsBarrier => Passes.FirstOrDefault() is BarrierPass;
+    public List<IPass> Passes { get; } = [];
+    public bool IsBarrier => Passes.Count > 0 && Passes[0] is BarrierPass;
 }

@@ -2,7 +2,7 @@
 
 namespace Rin.Graphics.Vulkan.Graph;
 
-public class GraphConfigImage
+public struct GraphConfigImage
 {
     public required Extent2D Extent { get; set; }
     public required ImageCreateFlags Usage { get; set; }

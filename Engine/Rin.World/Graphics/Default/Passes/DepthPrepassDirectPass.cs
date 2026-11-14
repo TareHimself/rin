@@ -24,7 +24,7 @@ public class DepthPrepassDirectPass(DefaultWorldViewData view) : IPass
         if (sceneFrame.SkinningOutputBufferId > 0)
             config.ReadBuffer(sceneFrame.SkinningOutputBufferId, GraphBufferUsage.Graphics);
 
-        sceneFrame.DeclareDrawResources(config, sceneFrame.DepthIndirectGroups, material => material.DepthPass);
+        sceneFrame.DeclareDrawResources(config, sceneFrame.DepthBatches, material => material.DepthPass);
         foreach (var id in sceneFrame.DepthMaterialBufferIds)
             if (id != 0)
                 config.ReadBuffer(id, GraphBufferUsage.Graphics);
@@ -48,16 +48,16 @@ public class DepthPrepassDirectPass(DefaultWorldViewData view) : IPass
             Time = view.Time
         });
 
-        var i = 0;
-        foreach (var group in sceneFrame.DepthIndirectGroups.Values)
+        var meshes = sceneFrame.ProcessedMeshes;
+        var batches = sceneFrame.DepthBatches;
+        for (var i = 0; i < batches.Count; i++)
         {
             var materialDataBuffer = graph.GetBufferOrNull(sceneFrame.DepthMaterialBufferIds[i]);
-            i++;
-
-            var first = group[0];
+            var batch = batches[i];
+            ref readonly var first = ref meshes[batch[0]];
             ctx.BindIndexBuffer(first.IndexBuffer);
             if (first.Material.DepthPass.BindGroup(worldFrame, materialDataBuffer) is { } bindContext)
-                DirectMeshDraw.DrawGroup(bindContext, group);
+                DirectMeshDraw.DrawBatch(bindContext, meshes, batch);
         }
 
         ctx.EndRendering();

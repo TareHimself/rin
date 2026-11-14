@@ -15,6 +15,7 @@ public class Frame : IDisposable
     private readonly VkCommandPool _commandPool;
     private readonly DescriptorAllocator _descriptorAllocator;
     private readonly VkDevice _device;
+    private readonly List<IDisposable> _releasedOnReset = [];
     private readonly VkFence _renderFence;
     private bool _rendering;
 
@@ -47,14 +48,29 @@ public class Frame : IDisposable
     public void Dispose()
     {
         WaitForLastDraw();
-        OnReset?.Invoke(this);
-        OnReset = null;
+        ReleaseLastFrame();
         _descriptorAllocator.Dispose();
         _device.DestroyFence(_renderFence);
         _device.DestroyCommandPool(_commandPool);
     }
 
     public event Action<Frame>? OnReset;
+
+    /// <summary>
+    ///     Disposes the object when the slot is next reset, without the delegate an <see cref="OnReset" /> hook needs.
+    /// </summary>
+    public void DisposeOnReset(IDisposable disposable)
+    {
+        _releasedOnReset.Add(disposable);
+    }
+
+    private void ReleaseLastFrame()
+    {
+        OnReset?.Invoke(this);
+        OnReset = null;
+        foreach (var disposable in _releasedOnReset) disposable.Dispose();
+        _releasedOnReset.Clear();
+    }
 
     public VkFence GetRenderFence()
     {
@@ -91,8 +107,7 @@ public class Frame : IDisposable
     /// </summary>
     public void Reset()
     {
-        OnReset?.Invoke(this);
-        OnReset = null;
+        ReleaseLastFrame();
         _descriptorAllocator.ClearPools();
         _device.ResetFences(_renderFence);
     }

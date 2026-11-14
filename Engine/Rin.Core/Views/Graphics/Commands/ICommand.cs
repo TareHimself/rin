@@ -11,5 +11,5 @@ public interface ICommand
     public Type PassConfigType { get; }
     public Type HandlerType { get; }
     public IPassConfig CreateConfig(SurfaceContext context);
-    public ICommandHandler CreateHandler(ICommand[] commands);
+    public ICommandHandler CreateHandler(ReadOnlySpan<ICommand> commands);
 }

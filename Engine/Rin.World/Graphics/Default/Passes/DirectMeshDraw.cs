@@ -8,11 +8,12 @@ namespace Rin.World.Graphics.Default.Passes;
 /// </summary>
 internal static class DirectMeshDraw
 {
-    public static void DrawGroup(IGraphicsBindContext bindContext, List<ProcessedMesh> group)
+    public static void DrawBatch(IGraphicsBindContext bindContext, ReadOnlySpan<ProcessedMesh> meshes,
+        ReadOnlySpan<int> batch)
     {
-        for (var instance = 0; instance < group.Count; instance++)
+        for (var instance = 0; instance < batch.Length; instance++)
         {
-            var surface = group[instance].Surface;
+            var surface = meshes[batch[instance]].Surface;
             bindContext.DrawIndexed(surface.IndicesCount, 1, surface.IndicesStart, surface.VertexStart,
                 (uint)instance);
         }

@@ -18,9 +18,9 @@ public class PooledSkeletalPoseTests
         using var blended = PooledSkeletalPose.Blend(a, b, 0.5f);
 
         Assert.That(blended.IsSet(0), Is.True);
-        Assert.That(blended.BoneTransforms.Span[0].Position, Is.EqualTo(new Vector3(1, 0, 0)));
+        Assert.That(blended.BoneTransforms[0].Position, Is.EqualTo(new Vector3(1, 0, 0)));
         Assert.That(blended.IsSet(1), Is.True);
-        Assert.That(blended.BoneTransforms.Span[1].Position, Is.EqualTo(new Vector3(0, 2, 0)));
+        Assert.That(blended.BoneTransforms[1].Position, Is.EqualTo(new Vector3(0, 2, 0)));
     }
 
     [Test]
@@ -35,7 +35,7 @@ public class PooledSkeletalPoseTests
         using var blended = PooledSkeletalPose.Blend(a, b, 0.5f);
 
         Assert.That(blended.IsSet(0), Is.True);
-        Assert.That(blended.BoneTransforms.Span[0].Position, Is.EqualTo(new Vector3(3, 0, 0)));
+        Assert.That(blended.BoneTransforms[0].Position, Is.EqualTo(new Vector3(3, 0, 0)));
     }
 
     [Test]
@@ -55,7 +55,8 @@ public class PooledSkeletalPoseTests
         using var pooled = new PooledSkeletalPose(1);
         pooled.Set(0, new Transform { Position = new Vector3(7, 0, 0) });
 
-        var plain = pooled.ToSkeletalPose();
+        var plain = new SkeletalPose(1);
+        pooled.CopyTo(plain);
 
         Assert.That(plain.IsSet(0), Is.True);
         Assert.That(plain.BoneTransforms[0].Position, Is.EqualTo(new Vector3(7, 0, 0)));

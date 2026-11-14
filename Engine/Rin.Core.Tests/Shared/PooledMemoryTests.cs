@@ -1,3 +1,4 @@
+using System.Buffers;
 using Rin.Core.Shared;
 
 namespace Rin.Core.Tests.Shared;
@@ -22,5 +23,17 @@ public class PooledMemoryTests
 
         Assert.Throws<ArgumentOutOfRangeException>(() => memory.Truncate(3));
         memory.Dispose();
+    }
+
+    [Test]
+    public void DisposeClearsReferencesBeforeReturningTheBuffer()
+    {
+        var pool = ArrayPool<object>.Create();
+        var memory = new PooledMemory<object>(1, pool);
+        memory[0] = new object();
+
+        memory.Dispose();
+
+        Assert.That(pool.Rent(1)[0], Is.Null);
     }
 }

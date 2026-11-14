@@ -41,7 +41,7 @@ public partial class BoundsUpdatePass(DefaultSceneFrame sceneFrame) : IComputePa
         {
             for (var i = 0; i < skinnedCount; i++)
             {
-                var mesh = sceneFrame.ProcessedMeshes[sceneFrame.SkinnedMeshStartIndex + i];
+                ref readonly var mesh = ref sceneFrame.ProcessedMeshes[sceneFrame.SkinnedMeshStartIndex + i];
                 skinnedMeshes[i] = new BoundsUpdateShader.SkinnedMesh
                 {
                     Index = mesh.AbsoluteMeshIndex,
