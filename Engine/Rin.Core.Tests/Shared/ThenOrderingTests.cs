@@ -1,3 +1,4 @@
+using System.Runtime.CompilerServices;
 using Rin.Core.Extensions;
 
 namespace Rin.Core.Tests.Shared;
@@ -46,33 +47,21 @@ public class ThenOrderingTests
             "inner continuation should only run once the upload task completed");
     }
 
-    private sealed class Box<T>
-    {
-        public T? Value;
-    }
-
     /// <summary>
-    ///     Then must not run its continuation inline during <c>SetResult</c>, or the continuation sees state the
-    ///     producer updates right after completing the task. The continuation reads <c>resource</c> live so the test
-    ///     can tell inline execution from deferred execution.
+    ///     Then must not run its continuation inline during <c>SetResult</c>, because producers do bookkeeping
+    ///     right after completing the task.
     /// </summary>
     [Test]
-    public void ThenDoesNotObserveBookkeepingThatRunsAfterSetResult()
+    public void ThenDoesNotRunItsContinuationInlineDuringSetResult()
     {
-        var resource = new Box<string> { Value = "Uploading" };
-        var observed = new Box<string>();
+        var continuationThread = new StrongBox<int>();
         var completionSource = new TaskCompletionSource<int>();
-
-        var continuation = completionSource.Task.Then(static (_, s) => s.observed.Value = s.resource.Value,
-            (resource, observed));
+        var continuation = completionSource.Task.Then(
+            static (_, thread) => thread.Value = Environment.CurrentManagedThreadId, continuationThread);
 
         completionSource.SetResult(0);
-        resource.Value = "Ready"; // the producer's bookkeeping after SetResult
-
         continuation.Wait();
 
-        Assert.That(observed.Value, Is.EqualTo("Ready"),
-            "continuation observed the resource mid-transition (still \"Uploading\") - Then must not run inline " +
-            "during SetResult, or it races the producer's post-completion bookkeeping");
+        Assert.That(continuationThread.Value, Is.Not.EqualTo(Environment.CurrentManagedThreadId));
     }
 }

@@ -32,4 +32,65 @@ public class ControlFlowTests
         Assert.That(slang, Does.Contain("float double(float x)"));
         Assert.That(slang, Does.Contain("sum = double(sum);"));
     }
+
+    [Test]
+    public void IfElseChainsKeepEveryBranch()
+    {
+        const string source = """
+            using Rin.Shade;
+            using Rin.Shade.Tests;
+
+            namespace IfElseCheck;
+
+            public struct IfElsePush
+            {
+                public float Value;
+                public TestBuffer<float> Output;
+            }
+
+            [Shader]
+            public class IfElseShader : Shader
+            {
+                [Push] protected IfElsePush Push;
+
+                [Compute(1, 1, 1)]
+                public void Compute()
+                {
+                    if (Push.Value < 0f)
+                    {
+                        Push.Output[0] = -1f;
+                    }
+                    else if (Push.Value > 0f)
+                    {
+                        Push.Output[0] = 1f;
+                    }
+                    else
+                    {
+                        Push.Output[0] = 0f;
+                    }
+                }
+            }
+            """;
+
+        var result = ShadeEmitter.Emit(CompilationBuilder.Build(source));
+
+        Assert.That(result.Diagnostics, Is.Empty);
+        var slang = result.Shaders["IfElseShader"].Replace("\r\n", "\n");
+        Assert.That(slang, Does.Contain(
+            "    if (push.value < 0)\n" +
+            "    {\n" +
+            "        push.output.setItem(0, -1);\n" +
+            "    }\n" +
+            "    else\n" +
+            "    {\n" +
+            "        if (push.value > 0)\n" +
+            "        {\n" +
+            "            push.output.setItem(0, 1);\n" +
+            "        }\n" +
+            "        else\n" +
+            "        {\n" +
+            "            push.output.setItem(0, 0);\n" +
+            "        }\n" +
+            "    }\n"));
+    }
 }
