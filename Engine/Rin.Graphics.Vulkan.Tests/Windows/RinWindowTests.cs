@@ -1,3 +1,5 @@
+using Rin.Core;
+using Rin.Graphics.Null;
 using System.Numerics;
 using System.Runtime.InteropServices;
 using Rin.Core.Graphics;
@@ -44,7 +46,27 @@ public class RinWindowTests
     }
 
     [Test]
-    public void DisposeDestroysTheNativeWindowOnce()
+    public void DisposingAParentDisposesEachOfItsChildren()
+    {
+        Global.Provider.AddSingle<IGraphicsModule>(new NullGraphicsModule());
+        try
+        {
+            var disposedChildren = 0;
+            for (var i = 0; i < 3; i++)
+                _window.CreateChild("child", new Extent2D(1, 1)).OnDispose += () => disposedChildren++;
+
+            _window.Dispose();
+
+            Assert.That(disposedChildren, Is.EqualTo(3));
+        }
+        finally
+        {
+            Global.Provider.RemoveSingle<IGraphicsModule>();
+        }
+    }
+
+    [Test]
+    public void DisposeDestroysTheNativeWindowAndRaisesOnDisposeOnce()
     {
         var disposed = 0;
         _window.OnDispose += () => disposed++;
@@ -56,7 +78,7 @@ public class RinWindowTests
         {
             Assert.That(FakeNative.WindowCount(), Is.Zero);
             Assert.That(_window.GetHandle(), Is.Zero);
-            Assert.That(disposed, Is.EqualTo(2));
+            Assert.That(disposed, Is.EqualTo(1));
         });
     }
 

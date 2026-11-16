@@ -28,11 +28,12 @@ public class RinWindow : IWindow
 
     public void Dispose()
     {
+        if (_handle == 0) return;
+
         foreach (var window in _children) window.Dispose();
         _children.Clear();
 
         OnDispose?.Invoke();
-        if (_handle == 0) return;
         Native.platformWindowClearDropCallbacks(_handle);
         Native.platformWindowDestroy(_handle);
         _handle = 0;

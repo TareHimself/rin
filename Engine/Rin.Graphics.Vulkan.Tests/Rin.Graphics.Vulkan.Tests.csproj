@@ -21,6 +21,7 @@
 
     <ItemGroup>
         <ProjectReference Include="$(EngineDir)Rin.Graphics.Vulkan\Rin.Graphics.Vulkan.csproj" />
+        <ProjectReference Include="$(EngineDir)Rin.Graphics.Null\Rin.Graphics.Null.csproj" />
     </ItemGroup>
 
     <ItemGroup>

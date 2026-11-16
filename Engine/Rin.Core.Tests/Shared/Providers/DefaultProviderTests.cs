@@ -17,9 +17,9 @@ public class DefaultProviderTests
     [Test]
     public void GetThrowsWhenNothingRegistered()
     {
-        // VSTest intercepts the Debug.Assert that fires first and rewraps it, not the real NullReferenceException.
         var provider = new DefaultProvider();
-        Assert.That(() => provider.Get<IFoo>(), Throws.Exception);
+
+        Assert.That(() => provider.Get<IFoo>(), Throws.InvalidOperationException.With.Message.Contains(nameof(IFoo)));
     }
 
     [Test]
@@ -109,6 +109,6 @@ public class DefaultProviderTests
 
         provider.RemoveSingle<IFoo>();
 
-        Assert.That(() => provider.Get<IFoo>(), Throws.Exception);
+        Assert.That(() => provider.Get<IFoo>(), Throws.InvalidOperationException);
     }
 }
