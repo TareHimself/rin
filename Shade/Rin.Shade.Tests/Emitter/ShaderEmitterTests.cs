@@ -45,7 +45,7 @@ public class ShaderEmitterTests
 
         var result = ShadeEmitter.Emit(CompilationBuilder.Build(source));
 
-        Assert.That(result.Diagnostics.Any(d => d.Id == Diagnostics.Emitter.UnsupportedConstruct.Id), Is.True);
+        DiagnosticAssert.Rejected(result, Diagnostics.Emitter.UnsupportedConstruct, "'Try'");
     }
 
     [Test]

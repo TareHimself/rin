@@ -68,7 +68,7 @@ public class RejectionCoverageTests
 
         var result = ShadeEmitter.Emit(CompilationBuilder.Build(source));
 
-        Assert.That(result.Diagnostics.Any(d => d.Id == Diagnostics.Emitter.UnsupportedConstruct.Id), Is.True);
+        DiagnosticAssert.Rejected(result, Diagnostics.Emitter.UnsupportedConstruct, "DelegateCreation");
     }
 
     [Test]
@@ -98,7 +98,7 @@ public class RejectionCoverageTests
         // no source, so this can surface as either "unsupported construct" or "no source for
         // method" depending on which operation the walk reaches first - what matters is that LINQ
         // is never silently accepted, and emission finishes rather than crashing.
-        Assert.That(result.Diagnostics, Is.Not.Empty);
+        DiagnosticAssert.Rejected(result, Diagnostics.Emitter.NoSourceForMethod, "'Range'");
     }
 
     [Test]
@@ -129,7 +129,7 @@ public class RejectionCoverageTests
 
         var result = ShadeEmitter.Emit(CompilationBuilder.Build(source));
 
-        Assert.That(result.Diagnostics.Any(d => d.Id == Diagnostics.Emitter.UnsupportedConstruct.Id), Is.True);
+        DiagnosticAssert.Rejected(result, Diagnostics.Emitter.UnsupportedConstruct, "ref return on 'Identity'");
     }
 
     [Test]
@@ -153,7 +153,7 @@ public class RejectionCoverageTests
 
         var result = ShadeEmitter.Emit(CompilationBuilder.Build(source));
 
-        Assert.That(result.Diagnostics.Any(d => d.Id == Diagnostics.Emitter.UnsupportedConstruct.Id), Is.True);
+        DiagnosticAssert.Rejected(result, Diagnostics.Emitter.UnsupportedConstruct, "generic shader class 'GenericShader'");
     }
 
     [Test]

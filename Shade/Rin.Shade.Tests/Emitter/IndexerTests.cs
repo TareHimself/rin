@@ -59,6 +59,6 @@ public class IndexerTests
     {
         var result = ShadeEmitter.Emit(CompilationBuilder.Build(Source("Push.Sizes[0] += 1;")));
 
-        Assert.That(result.Diagnostics.Any(d => d.Id == Diagnostics.Emitter.UnsupportedConstruct.Id), Is.True);
+        DiagnosticAssert.Rejected(result, Diagnostics.Emitter.UnsupportedConstruct, "compound assignment or increment of a computed property");
     }
 }

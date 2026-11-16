@@ -133,7 +133,7 @@ public class ShaderUnionTests
             Push.Output[0] = alias;
             """)));
 
-        Assert.That(result.Diagnostics.Any(d => d.Id == Diagnostics.Emitter.UnsupportedConstruct.Id), Is.True);
+        DiagnosticAssert.Rejected(result, Diagnostics.Emitter.UnsupportedConstruct, "ref local");
     }
 
     [Test]

@@ -39,3 +39,16 @@ internal static class CompilationBuilder
             new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
     }
 }
+
+internal static class DiagnosticAssert
+{
+    /// <summary>
+    /// Passes when a diagnostic of that kind names the rejected construct, since one descriptor has many raise sites.
+    /// </summary>
+    public static void Rejected(Rin.Shade.Transpiler.ShadeEmitResult result, DiagnosticDescriptor descriptor,
+        string messageFragment)
+    {
+        var messages = result.Diagnostics.Where(d => d.Id == descriptor.Id).Select(d => d.GetMessage()).ToArray();
+        Assert.That(messages, Has.Some.Contains(messageFragment), $"no {descriptor.Id} mentioning '{messageFragment}'");
+    }
+}
