@@ -46,6 +46,8 @@ public class ShaderEmitterTests
         var result = ShadeEmitter.Emit(CompilationBuilder.Build(source));
 
         DiagnosticAssert.Rejected(result, Diagnostics.Emitter.UnsupportedConstruct, "'Try'");
+        var tryLine = Array.IndexOf(source.Split('\n').Select(line => line.Trim()).ToArray(), "try");
+        Assert.That(result.Diagnostics.Single().Location.GetLineSpan().StartLinePosition.Line, Is.EqualTo(tryLine));
     }
 
     [Test]
