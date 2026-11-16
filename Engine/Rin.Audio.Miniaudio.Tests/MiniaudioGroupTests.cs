@@ -110,11 +110,12 @@ public class MiniaudioGroupTests
     [Test]
     public void ControllerWritesParametersIntoTheSharedBuffer()
     {
-        var controller = _group.AddEffect(new FakeEffectDescriptor());
+        var descriptor = new FakeEffectDescriptor();
+        var controller = _group.AddEffect(descriptor);
 
         controller.Parameters = new FakeEffectParameters { Gain = 2f };
 
-        Assert.That(controller.Parameters.Gain, Is.EqualTo(2f));
+        Assert.That(descriptor.ReadSharedParameters().Gain, Is.EqualTo(2f));
         _group.RemoveEffect(controller.Id);
     }
 

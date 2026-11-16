@@ -109,13 +109,8 @@ public class BepuPhysicsSystem : IPhysicsSystem
         if (index >= _slots.Count || _versions[(int)index] != handle.Version || _slots[(int)index] is not { } body)
             return;
 
-        if (body.BodyHandle is { } bodyHandle)
-        {
-            _timeDilation.Remove(bodyHandle.Value);
-            _bodyHandleLookup.Remove(bodyHandle.Value);
-        }
-
-        if (body.StaticHandle is { } staticHandle) _staticHandleLookup.Remove(staticHandle.Value);
+        if (body.BodyHandle is { } bodyHandle) _timeDilation.Remove(bodyHandle.Value);
+        RemoveFromLookups(body);
         body.Dispose();
         _slots[(int)index] = null;
         _versions[(int)index]++;
@@ -179,7 +174,15 @@ public class BepuPhysicsSystem : IPhysicsSystem
 
     public void SetState(PhysicsBodyHandle handle, PhysicsState state)
     {
-        Resolve(handle).SetState(state);
+        var body = Resolve(handle);
+        if (body.GetState() == state) return;
+
+        var timeScale = GetTimeScale(handle);
+        SetTimeScale(handle, 1f);
+        RemoveFromLookups(body);
+        body.SetState(state);
+        AddToLookups(body);
+        SetTimeScale(handle, timeScale);
     }
 
     public float GetMass(PhysicsBodyHandle handle)
@@ -554,9 +557,20 @@ public class BepuPhysicsSystem : IPhysicsSystem
         var version = _versions[(int)index] += 1;
         var handle = new PhysicsBodyHandle(index, version);
         body.Handle = handle;
+        AddToLookups(body);
+        return handle;
+    }
+
+    private void AddToLookups(BepuBody body)
+    {
         if (body.BodyHandle is { } bodyHandle) _bodyHandleLookup[bodyHandle.Value] = body;
         if (body.StaticHandle is { } staticHandle) _staticHandleLookup[staticHandle.Value] = body;
-        return handle;
+    }
+
+    private void RemoveFromLookups(BepuBody body)
+    {
+        if (body.BodyHandle is { } bodyHandle) _bodyHandleLookup.Remove(bodyHandle.Value);
+        if (body.StaticHandle is { } staticHandle) _staticHandleLookup.Remove(staticHandle.Value);
     }
 
     private BepuBody? ResolveCollidable(CollidableReference collidable)
