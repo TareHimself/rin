@@ -25,6 +25,12 @@ public interface IExecutionContext
         ReadOnlySpan<ResourceHandle> attachments, ResourceHandle depthAttachment = default,
         ResourceHandle stencilAttachment = default, Vector4? clearColor = null);
 
+    /// <summary>
+    ///     Begins rendering into one mip level of one layer of a texture, texture array or cubemap, with no depth or
+    ///     stencil. The viewport is the region's extent.
+    /// </summary>
+    public IExecutionContext BeginRendering(ResourceHandle target, in ImageRegion region, Vector4? clearColor = null);
+
     public IExecutionContext EndRendering();
 
     public IExecutionContext EnableDepthTest();

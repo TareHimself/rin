@@ -120,26 +120,31 @@ public sealed class NullGraphicsModule : IGraphicsModule
         return Task.CompletedTask;
     }
 
-    public ResourceHandle CreateTexture(in Extent2D extent, ImageFormat format, bool mips = false,
+    public ResourceHandle CreateTexture(in Extent2D extent, ImageFormat format, uint mipLevels = 1,
         ImageCreateFlags flags = ImageCreateFlags.None)
     {
         return TrackTexture(ResourceType.Texture, extent, format);
     }
 
     public ResourceHandle CreateTextureArray(in Extent2D extent, ImageFormat format, uint count,
-        bool mips = false, ImageCreateFlags flags = ImageCreateFlags.None)
+        uint mipLevels = 1, ImageCreateFlags flags = ImageCreateFlags.None)
     {
         return TrackTexture(ResourceType.TextureArray, extent, format);
     }
 
-    public ResourceHandle CreateCubemap(in Extent2D extent, ImageFormat format, bool mips = false,
+    public ResourceHandle CreateCubemap(in Extent2D extent, ImageFormat format, uint mipLevels = 1,
         ImageCreateFlags flags = ImageCreateFlags.None)
     {
         return TrackTexture(ResourceType.Cubemap, extent, format);
     }
 
-    public Task QueueTextureUpload(ResourceHandle handle, ReadOnlyMemory<byte> data, Extent2D extent,
-        Offset2D offset = default, int mipLevel = -1)
+    public Task QueueImageUpload(ResourceHandle handle, ReadOnlySpan<byte> data, in ImageRegion region,
+        bool rebuildLowerMips = false)
+    {
+        return Task.CompletedTask;
+    }
+
+    public Task QueueImageChainUpload(ResourceHandle handle, ReadOnlySpan<byte> data)
     {
         return Task.CompletedTask;
     }

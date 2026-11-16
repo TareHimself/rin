@@ -3,24 +3,50 @@ using Rin.Core.Shared;
 
 namespace Rin.Graphics.Vulkan;
 
-internal sealed class PendingTextureWrite(
-    PooledMemory<byte> data,
-    Offset2D offset,
-    Extent2D extent,
-    Extent2D imageExtent,
-    int mipLevel = -1) : PendingWrite(data)
+internal sealed class PendingTextureWrite : PendingWrite
 {
-    public Offset2D Offset { get; } = offset;
-    public Extent2D Extent { get; } = extent;
-    public Extent2D ImageExtent { get; } = imageExtent;
+    public PendingTextureWrite(PooledMemory<byte> data, in ImageRegion region, in ImageShape image,
+        bool rebuildsMipChain = false) : base(data)
+    {
+        Offset = region.Offset;
+        Extent = region.Extent;
+        Level = region.Mip;
+        Layer = region.Layer;
+        RebuildsMipChain = rebuildsMipChain && image.MipLevels > 1;
+
+        var fillsLevelZero = Level == 0 && Offset == default && Extent == image.Extent;
+        var leavesNoOtherLevel = image.MipLevels == 1 || RebuildsMipChain;
+        CoversWholeImage = image.LayerCount == 1 && fillsLevelZero && leavesNoOtherLevel;
+    }
+
+    private PendingTextureWrite(PooledMemory<byte> data) : base(data)
+    {
+        IsWholeChain = true;
+        CoversWholeImage = true;
+    }
+
+    public Offset2D Offset { get; }
+    public Extent2D Extent { get; }
+    public uint Level { get; }
+    public uint Layer { get; }
 
     /// <summary>
-    ///     The level written, where a negative <c>mipLevel</c> means level 0.
+    ///     Whether the levels below level 0 of <see cref="Layer" /> are refilled from it after the write.
     /// </summary>
-    public uint Level { get; } = (uint)int.Max(mipLevel, 0);
+    public bool RebuildsMipChain { get; }
 
-    public bool RebuildsMipChain { get; } = mipLevel < 0;
+    /// <summary>
+    ///     Whether the data holds every level of every layer, packed level by level.
+    /// </summary>
+    public bool IsWholeChain { get; }
 
-    // A write to one explicit level leaves the other levels' contents in place, so it never covers the image.
-    public bool CoversWholeImage => RebuildsMipChain && Offset == default && Extent == ImageExtent;
+    /// <summary>
+    ///     Whether nothing of the old contents survives, so they can be discarded and earlier queued writes dropped.
+    /// </summary>
+    public bool CoversWholeImage { get; }
+
+    public static PendingTextureWrite WholeChain(PooledMemory<byte> data)
+    {
+        return new PendingTextureWrite(data);
+    }
 }

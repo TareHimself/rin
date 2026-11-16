@@ -166,6 +166,6 @@ public sealed class SlugAtlas : IDisposable
 
         var graphics = IGraphicsModule.Get();
         handle = graphics.CreateTexture(extent, format, flags: ImageCreateFlags.Sampled | ImageCreateFlags.TransferDst);
-        graphics.QueueTextureUpload(handle, byteSpan.ToArray(), extent);
+        graphics.QueueImageUpload(handle, byteSpan, ImageRegion.Whole(extent));
     }
 }

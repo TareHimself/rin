@@ -26,8 +26,8 @@ public class ResourceLanesTests
 
     private PendingTextureWrite TextureWrite(uint id)
     {
-        var write = new PendingTextureWrite(PooledMemory<byte>.CopyFrom(new byte[16]), default, new Extent2D(2, 2),
-            new Extent2D(4, 4));
+        var write = new PendingTextureWrite(PooledMemory<byte>.CopyFrom(new byte[16]),
+            ImageRegion.Whole(new Extent2D(2, 2)), new ImageShape(new Extent2D(4, 4)));
         _lanes.EnqueueTexture(Texture(id), write);
         return write;
     }
@@ -273,8 +273,8 @@ public class ResourceLanesTests
     {
         TextureWrite(1);
         BufferToTexture(1, 1);
-        var wholeImage = new PendingTextureWrite(PooledMemory<byte>.CopyFrom(new byte[16]), default, new Extent2D(4, 4),
-            new Extent2D(4, 4));
+        var wholeImage = new PendingTextureWrite(PooledMemory<byte>.CopyFrom(new byte[16]),
+            ImageRegion.Whole(new Extent2D(4, 4)), new ImageShape(new Extent2D(4, 4)));
 
         _lanes.EnqueueTexture(Texture(1), wholeImage);
 

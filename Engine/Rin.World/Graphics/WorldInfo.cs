@@ -16,4 +16,5 @@ public struct WorldInfo
     public float Time;
     public DeviceSpan<LightGridInfo> Grid;
     public RenderChannel Channel;
+    public EnvironmentInfo Environment;
 }

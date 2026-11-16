@@ -6,10 +6,9 @@ namespace Rin.Graphics.Vulkan.Images;
 public class BindlessTexture : BindlessResource, IDisposableVulkanTexture
 {
     public IDisposableVulkanTexture? Source { get; set; }
-    public bool DescriptorPending { get; set; }
-    public bool HasUpload { get; set; }
     public Extent2D Extent => Source?.Extent ?? throw new NullReferenceException();
-    public bool Mips => Source?.Mips ?? throw new NullReferenceException();
+    public uint MipLevels => Source?.MipLevels ?? throw new NullReferenceException();
+    public uint LayerCount => Source?.LayerCount ?? throw new NullReferenceException();
     public ImageCreateFlags Usage => Source?.Usage ?? throw new NullReferenceException();
     public ImageFormat Format => Source?.Format ?? throw new NullReferenceException();
     public VkImage VulkanImage => Source?.VulkanImage ?? throw new NullReferenceException();

@@ -13,6 +13,10 @@ public static class CameraExtensions
     {
         ref readonly var settings = ref world.Get<Camera>(camera);
         var matrix = world.Has<WorldTransform>(camera) ? world.Get<WorldTransform>(camera).Matrix : Matrix4x4.Identity;
-        return new CameraView(matrix, settings.FieldOfView, settings.NearClipPlane, settings.FarClipPlane);
+        return new CameraView(matrix, settings.FieldOfView, settings.NearClipPlane, settings.FarClipPlane)
+        {
+            Exposure = settings.Exposure,
+            ToneMapCurve = settings.ToneMapCurve
+        };
     }
 }

@@ -74,8 +74,10 @@ public abstract class SurfaceShader<TMaterial> : Shader where TMaterial : unmana
         surfaceInput.WorldNormal = Normalize(input.WorldNormal);
 
         var surface = TMaterial.Evaluate(Push.Draws[input.InstanceId].Material, surfaceInput);
-        var lighting = LightGrid.Light(surface, input.WorldPosition, scene.CameraPosition,
-            new Vector2(input.Position.X, input.Position.Y), scene.Grid[0]);
+        var pixel = new Vector2(input.Position.X, input.Position.Y);
+        var lighting = LightGrid.Light(surface, input.WorldPosition, scene.CameraPosition, pixel, scene.Grid[0]);
+        lighting.Color += EnvironmentLighting.Ambient(surface, input.WorldPosition,
+            Normalize(scene.CameraPosition - input.WorldPosition), pixel, scene.Environment, scene.Grid[0]);
 
         return scene.Channel switch
         {
@@ -86,7 +88,7 @@ public abstract class SurfaceShader<TMaterial> : Shader where TMaterial : unmana
             RenderChannel.Emissive => new Vector4(new Vector3(surface.Emissive), 1f),
             RenderChannel.Radiance => new Vector4(lighting.Radiance, 1f),
             RenderChannel.LightCount => new Vector4(LightGrid.Heatmap(lighting.LightCount, 32f), 1f),
-            _ => new Vector4(LightMath.Lin2Rgb(lighting.Color), 1f)
+            _ => new Vector4(lighting.Color, 1f)
         };
     }
 }

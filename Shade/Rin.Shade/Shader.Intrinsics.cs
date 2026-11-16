@@ -146,23 +146,23 @@ public abstract partial class Shader
     /// Reinterprets the bits of a float as a uint.
     /// </summary>
     [SlangExpression("asuint(@0)")]
-    public static extern uint AsUInt(float value);
+    public static uint AsUInt(float value) => BitConverter.SingleToUInt32Bits(value);
 
     /// <summary>
     /// Marks a descriptor index as non-uniform across the wave.
     /// </summary>
     [SlangExpression("NonUniformResourceIndex(@0)")]
-    public static extern uint NonUniformResourceIndex(uint index);
+    public static uint NonUniformResourceIndex(uint index) => index;
 
     /// <summary>
     /// The index of the lowest set bit of <paramref name="value" />, or 0xFFFFFFFF when no bit is set.
     /// </summary>
     [SlangExpression("firstbitlow(@0)")]
-    public static extern uint FirstBitLow(uint value);
+    public static uint FirstBitLow(uint value) => value == 0u ? uint.MaxValue : (uint)BitOperations.TrailingZeroCount(value);
 
     /// <summary>
     /// The number of set bits in <paramref name="value" />.
     /// </summary>
     [SlangExpression("countbits(@0)")]
-    public static extern uint CountBits(uint value);
+    public static uint CountBits(uint value) => (uint)BitOperations.PopCount(value);
 }

@@ -11,7 +11,7 @@ dotnet test Shade/Rin.Shade.Tests/Rin.Shade.Tests.csproj
 | `Emitter/` | The transpiler, one file per language area, with the golden Slang under `Emitter/Snapshots/`. |
 | `SourceGenerator/` | The descriptor and `[ShadeExport]` generators, driven in memory. |
 | `Fixtures/` | Shader sources the tests compile. |
-| root | `SlangDiagnosticTests`, the `Snapshot` helper and `TestDoubles` (also linked into `Rin.Shade.CpuTests`). |
+| root | `SlangDiagnosticTests`, `ShaderIntrinsicTests` (the C# bodies of the bit helpers and the edge cases of the math builtins), the `Snapshot` helper and `TestDoubles` (also linked into `Rin.Shade.CpuTests`). |
 
 `Snapshot.Verify` compares emitted Slang with `Snapshots/<TestFile>.<TestName>.slang` next to the test. A mismatch writes a `.received.slang` file beside it and fails. To accept new output, run the tests with `RIN_SHADE_SNAPSHOTS=update` and review the diff.
 

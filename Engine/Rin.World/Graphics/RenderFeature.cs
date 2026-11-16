@@ -4,6 +4,7 @@ using Rin.World.Animation;
 using Rin.World.Scheduling;
 using Rin.World.Transforms;
 using Rin.World.Graphics.Default;
+using Rin.World.Graphics.ImageBasedLighting;
 using Rin.World.Graphics.Mesh;
 
 namespace Rin.World.Graphics;
@@ -11,7 +12,7 @@ namespace Rin.World.Graphics;
 /// <summary>
 ///     Connects an <see cref="World" /> to an <see cref="IRenderSystem" />. Hooks create a render proxy and a
 ///     <see cref="RenderProxy" /> component when a <see cref="StaticMesh" />, <see cref="SkinnedMesh" />,
-///     <see cref="PointLight" /> or <see cref="DirectionalLight" /> is added and destroy both when it is removed or
+///     <see cref="PointLight" />, <see cref="DirectionalLight" /> or <see cref="EnvironmentLight" /> is added and destroy both when it is removed or
 ///     despawned. <see cref="FramePhase.Update" /> systems advance pose sources and bone sockets, and a
 ///     <see cref="FramePhase.Extract" /> system added after transform propagation pushes the changes every frame.
 /// </summary>
@@ -36,13 +37,15 @@ public sealed class RenderFeature : IWorldRestoreListener
         world.OnAdd<SkinnedMesh>(CreateSkinnedMeshProxy);
         world.OnAdd<PointLight>(CreatePointLightProxy);
         world.OnAdd<DirectionalLight>(CreateDirectionalLightProxy);
+        world.OnAdd<EnvironmentLight>(CreateEnvironmentLightProxy);
         world.OnRemove<StaticMesh>(DestroyProxy);
         world.OnRemove<SkinnedMesh>(DestroyProxy);
         world.OnRemove<PointLight>(DestroyProxy);
         world.OnRemove<DirectionalLight>(DestroyProxy);
+        world.OnRemove<EnvironmentLight>(DestroyProxy);
         world.AddSystem(FramePhase.Update, new AnimationSystem(world, PoseSources));
         world.AddSystem(FramePhase.Update, new BoneSocketSync(world, PoseSources));
-        world.AddSystem(FramePhase.Extract, new RenderExtract(world, renderSystem, PoseSources));
+        world.AddSystem(FramePhase.Extract, new RenderExtract(world, renderSystem, PoseSources, Environments));
         world.AddRestoreListener(this);
         _proxies = world.Query<RenderProxy>();
     }
@@ -54,6 +57,8 @@ public sealed class RenderFeature : IWorldRestoreListener
     public MaterialSets Materials { get; } = new();
 
     public PoseSources PoseSources { get; } = new();
+
+    public EnvironmentMaps Environments { get; } = new();
 
     /// <summary>
     ///     Parents <paramref name="child" /> to <paramref name="parent" /> and attaches it to the named bone of the
@@ -108,6 +113,7 @@ public sealed class RenderFeature : IWorldRestoreListener
         else if (World.Has<SkinnedMesh>(entity)) handle = CreateSkinnedMeshHandle(World.Get<SkinnedMesh>(entity), transform.Matrix);
         else if (World.Has<PointLight>(entity)) handle = CreateLightHandle(ref World.Get<PointLight>(entity), transform.Matrix);
         else if (World.Has<DirectionalLight>(entity)) handle = CreateLightHandle(ref World.Get<DirectionalLight>(entity), transform.Matrix);
+        else if (World.Has<EnvironmentLight>(entity)) handle = CreateEnvironmentHandle(ref World.Get<EnvironmentLight>(entity), transform.Matrix);
         else handle = default;
         return handle.IsValid;
     }
@@ -141,6 +147,17 @@ public sealed class RenderFeature : IWorldRestoreListener
         EnsureNoProxy(entity);
         var transform = CurrentWorldTransform(entity);
         AddProxy(entity, CreateLightHandle(ref light, transform.Matrix), transform.Version);
+    }
+
+    private void CreateEnvironmentLightProxy(Entity entity, ref EnvironmentLight light)
+    {
+        EnsureNoProxy(entity);
+        var transform = CurrentWorldTransform(entity);
+        var handle = CreateEnvironmentHandle(ref light, transform.Matrix);
+        if (!handle.IsValid)
+            throw new InvalidOperationException($"The map of {entity} is not a live map of {nameof(Environments)}.");
+
+        AddProxy(entity, handle, transform.Version);
     }
 
     private RenderProxyHandle CreateStaticMeshHandle(in StaticMesh staticMesh, in Matrix4x4 transform)
@@ -184,6 +201,14 @@ public sealed class RenderFeature : IWorldRestoreListener
     {
         light.IsDirty = false;
         return RenderSystem.CreateLightProxy(light.ToLightInfo(transform));
+    }
+
+    private RenderProxyHandle CreateEnvironmentHandle(ref EnvironmentLight light, in Matrix4x4 transform)
+    {
+        if (!Environments.TryDescribe(light, transform, out var volume)) return default;
+
+        light.IsDirty = false;
+        return RenderSystem.CreateEnvironmentProxy(volume);
     }
 
     private void DestroyProxy<T>(Entity entity, ref T component) where T : struct, IComponentData

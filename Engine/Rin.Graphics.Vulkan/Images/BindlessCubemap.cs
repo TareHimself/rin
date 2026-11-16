@@ -7,7 +7,8 @@ public class BindlessCubemap : BindlessResource, IDisposableVulkanCubemap
 {
     public IDisposableVulkanCubemap? Source { get; set; }
     public Extent2D Extent => Source?.Extent ?? throw new NullReferenceException();
-    public bool Mips => Source?.Mips ?? throw new NullReferenceException();
+    public uint MipLevels => Source?.MipLevels ?? throw new NullReferenceException();
+    public uint LayerCount => Source?.LayerCount ?? throw new NullReferenceException();
     public ImageFormat Format => Source?.Format ?? throw new NullReferenceException();
     public VkImage VulkanImage => Source?.VulkanImage ?? throw new NullReferenceException();
     public VkImageView VulkanView => Source?.VulkanView ?? throw new NullReferenceException();

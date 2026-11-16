@@ -244,7 +244,7 @@ public static class UiGalleryScene
         var extent = new Extent2D(size);
         var handle = graphics.CreateTexture(extent, ImageFormat.RGBA8,
             flags: ImageCreateFlags.Sampled | ImageCreateFlags.TransferDst);
-        graphics.QueueTextureUpload(handle, data, extent);
+        graphics.QueueImageUpload(handle, data, ImageRegion.Whole(extent));
         return handle;
     }
 }

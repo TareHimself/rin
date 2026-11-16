@@ -4,6 +4,7 @@ using Rin.Core.Graphics;
 using Rin.Core.Graphics.Graph;
 using Rin.Core.Shared;
 using Rin.World.Graphics.Default.Passes;
+using Rin.World.Graphics.ImageBasedLighting;
 using Rin.World.Graphics.Mesh;
 
 namespace Rin.World.Graphics.Default;
@@ -25,6 +26,7 @@ public class DefaultSceneFrame : IDisposable
         ProcessMeshes(builder);
         SkinningMatrices = ComputeSkinningMatrices(snapshot);
 
+        AddEnvironmentFilterPasses(builder);
         builder.AddPass(new InitSceneResourcesPass(this));
         if (ProcessedSkinnedMeshCount > 0)
         {
@@ -36,6 +38,26 @@ public class DefaultSceneFrame : IDisposable
     }
 
     public DefaultWorldSnapshot Snapshot { get; }
+
+    // Each map is blurred once, by the first frame that uses it.
+    private void AddEnvironmentFilterPasses(IGraphBuilder builder)
+    {
+        var environments = Snapshot.Environments;
+        for (var i = 0; i < environments.Length; i++)
+        {
+            var map = environments[i].Map;
+            if (map.IsFiltered || IsEarlierMap(environments, i)) continue;
+            builder.AddPass(new EnvironmentFilterPass(map));
+        }
+    }
+
+    private static bool IsEarlierMap(ReadOnlySpan<EnvironmentVolume> environments, int index)
+    {
+        for (var earlier = 0; earlier < index; earlier++)
+            if (ReferenceEquals(environments[earlier].Map, environments[index].Map))
+                return true;
+        return false;
+    }
     public ReadOnlySpan<SkinnedMeshInfo> SkinnedGeometry => Snapshot.SkinnedGeometry;
     /// <summary>
     ///     Every surface the frame draws, static ones first. Batches index into it.

@@ -396,7 +396,8 @@ public class WindowRenderer : IWindowRenderer
         public ImageLayout Layout { get; set; }
         public IntPtr Allocation { get; } = IntPtr.Zero;
         public Extent2D Extent { get; set; }
-        public bool Mips { get; } = false;
+        public uint MipLevels => 1;
+        public uint LayerCount => 1;
         public ImageCreateFlags Usage => ImageCreateFlags.TransferDst | ImageCreateFlags.ColorAttachment;
         public ImageFormat Format { get; set; }
         public ResourceHandle Handle { get; set; } = ResourceHandle.InvalidTexture;

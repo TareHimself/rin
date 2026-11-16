@@ -10,7 +10,7 @@ dotnet test Engine/Rin.Core.Tests/Rin.Core.Tests.csproj -p:RinShadeSkipCompile=t
 | Folder | What it is |
 | --- | --- |
 | root | `Application` (main and render thread loop), `IModule`, `Global` |
-| `Graphics/` | Graphics backend interfaces: renderers, the frame graph, resource handles, shaders, windows and input |
+| `Graphics/` | Graphics backend interfaces: renderers, the frame graph, resource handles, shaders, windows and input, plus host image loading (including Radiance `.hdr`) |
 | `Views/` | The UI: view tree, layouts, events, MTSDF text, and the shaders that draw it |
 | `Audio/` | Audio backend interfaces: samples, groups, channels, push streams, effects |
 | `Animation/` | Transitions and sequences for views |

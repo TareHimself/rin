@@ -19,8 +19,9 @@ public class ForwardDirectPass(DefaultWorldViewData view) : IPass
     {
         var sceneFrame = view.SceneFrame;
         config.ReadTexture(view.DepthImageId, ImageLayout.DepthAttachment);
-        config.WriteTexture(view.OutputImageId, ImageLayout.ColorAttachment);
+        config.WriteTexture(view.SceneColorImageId, ImageLayout.ColorAttachment);
         view.ReadLightGrid(config);
+        view.ReadEnvironment(config);
         if (sceneFrame.SkinningOutputBufferId > 0)
             config.ReadBuffer(sceneFrame.SkinningOutputBufferId, GraphBufferUsage.Graphics);
 
@@ -35,7 +36,7 @@ public class ForwardDirectPass(DefaultWorldViewData view) : IPass
     public void Execute(ICompiledGraph graph, IExecutionContext ctx)
     {
         var sceneFrame = view.SceneFrame;
-        var outputImage = graph.GetImageOrException(view.OutputImageId);
+        var outputImage = graph.GetImageOrException(view.SceneColorImageId);
         var depthImage = graph.GetImageOrException(view.DepthImageId);
         var worldBuffer = graph.GetBufferOrException(_worldBufferId);
 
@@ -46,15 +47,7 @@ public class ForwardDirectPass(DefaultWorldViewData view) : IPass
 
         var worldFrame = new WorldFrame(view.View, view.Projection, worldBuffer, ctx);
 
-        worldBuffer.WriteSingle(new WorldInfo
-        {
-            View = worldFrame.View,
-            Projection = worldFrame.Projection,
-            CameraPosition = view.ViewTransform.Position,
-            Time = view.Time,
-            Grid = graph.GetBufferOrException(view.LightGridBufferId).ToDeviceSpan<LightGridInfo>(),
-            Channel = view.Channel
-        });
+        worldBuffer.WriteSingle(view.CreateWorldInfo(graph));
 
         var meshes = sceneFrame.ProcessedMeshes;
         var batches = sceneFrame.ColorBatches;

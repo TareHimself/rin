@@ -75,22 +75,34 @@ public interface IGraphicsModule : IModule, IUpdatable, IProviderResolvable<IGra
     public Task QueueTextureToBufferCopy(ResourceHandle src, ResourceHandle dst, Offset2D srcOffset, Extent2D extent,
         ulong dstOffset);
 
-    public ResourceHandle CreateTexture(in Extent2D extent, ImageFormat format, bool mips = false,
+    /// <summary>
+    ///     A mip level count that asks for every level down to 1 x 1.
+    /// </summary>
+    public const uint FullMipChain = 0;
+
+    public ResourceHandle CreateTexture(in Extent2D extent, ImageFormat format, uint mipLevels = 1,
         ImageCreateFlags flags = ImageCreateFlags.None);
 
     public ResourceHandle CreateTextureArray(in Extent2D extent, ImageFormat format, uint count,
-        bool mips = false, ImageCreateFlags flags = ImageCreateFlags.None);
+        uint mipLevels = 1, ImageCreateFlags flags = ImageCreateFlags.None);
 
-    public ResourceHandle CreateCubemap(in Extent2D extent, ImageFormat format, bool mips = false,
+    public ResourceHandle CreateCubemap(in Extent2D extent, ImageFormat format, uint mipLevels = 1,
         ImageCreateFlags flags = ImageCreateFlags.None);
 
     /// <summary>
-    ///     Ordered like <see cref="QueueBufferUpload" />. A <paramref name="mipLevel" /> of -1 writes level 0 and rebuilds
-    ///     the levels below it; any other value writes only that level. A sampled texture reads as the default texture
-    ///     until its first upload runs. The task completes on the render thread, so never block the update thread on it.
+    ///     Writes one region of a texture, texture array or cubemap, ordered like <see cref="QueueBufferUpload" />.
+    ///     <paramref name="rebuildLowerMips" /> also refills the levels below a level 0 write in that layer. A sampled
+    ///     image reads as the default until its first upload runs. The task completes on the render thread, so never
+    ///     block the update thread on it.
     /// </summary>
-    public Task QueueTextureUpload(ResourceHandle handle, ReadOnlyMemory<byte> data, Extent2D extent,
-        Offset2D offset = default, int mipLevel = -1);
+    public Task QueueImageUpload(ResourceHandle handle, ReadOnlySpan<byte> data, in ImageRegion region,
+        bool rebuildLowerMips = false);
+
+    /// <summary>
+    ///     Writes every level of every layer, ordered like <see cref="QueueImageUpload" />. The data is packed level by
+    ///     level, each level holding its layers in order.
+    /// </summary>
+    public Task QueueImageChainUpload(ResourceHandle handle, ReadOnlySpan<byte> data);
 
     public bool IsValidResourceHandle(in ResourceHandle handle);
 

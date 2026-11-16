@@ -68,7 +68,7 @@ public class MtsdfPageManager : IDisposable
 
             var rect = PackRect(extent);
             var atlas = _pages[_pageIndex].TextureHandle;
-            _graphicsModule.QueueTextureUpload(atlas, data, rect.Extent, rect.Offset);
+            _graphicsModule.QueueImageUpload(atlas, data.Span, ImageRegion.Rect(rect.Offset, rect.Extent));
             return new MtsdfInfo { Atlas = atlas, Rect = rect };
         }
     }

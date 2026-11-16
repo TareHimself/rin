@@ -17,7 +17,7 @@ public class HostImage : IHostImage
         // resulting HostImage never depends on the caller keeping a stream/buffer alive.
         using (image)
         {
-            var rgba = image.Bands == 3 ? image.Bandjoin(255) : image;
+            var rgba = image.Bands == 3 ? image.Bandjoin(OpaqueAlpha(image.Format)) : image;
             try
             {
                 _image = rgba.CopyMemory();
@@ -41,9 +41,9 @@ public class HostImage : IHostImage
     public ResourceHandle CreateTexture(bool mips = false, IGraphicsModule? graphicsModule = null)
     {
         var graphics = graphicsModule ?? IGraphicsModule.Get();
-        var handle = graphics.CreateTexture(Extent, Format.ToDeviceFormat(), mips,
+        var handle = graphics.CreateTexture(Extent, Format.ToDeviceFormat(), mips ? IGraphicsModule.FullMipChain : 1,
             ImageCreateFlags.Sampled | ImageCreateFlags.TransferDst);
-        graphics.QueueTextureUpload(handle, _image.RawsaveBuffer(), Extent);
+        graphics.QueueImageUpload(handle, _image.RawsaveBuffer(), ImageRegion.Whole(Extent), mips);
         return handle;
     }
 
@@ -103,6 +103,25 @@ public class HostImage : IHostImage
         return new HostImage(_image.Mutate(image => mutator(new MutationContext(image))));
     }
 
+
+    private static double OpaqueAlpha(Enums.BandFormat format)
+    {
+        return format switch
+        {
+            Enums.BandFormat.Float or Enums.BandFormat.Double => 1,
+            Enums.BandFormat.Ushort => ushort.MaxValue,
+            _ => byte.MaxValue
+        };
+    }
+
+    private static IHostImage CreateFromRadiance(ReadOnlySpan<byte> data)
+    {
+        var extent = RadianceImage.ReadExtent(data);
+        var pixels = new float[extent.Width * extent.Height * 4];
+        RadianceImage.Decode(data, pixels);
+        return new HostImage(VipsImage.NewFromMemory(pixels, (int)extent.Width, (int)extent.Height, 4,
+            Enums.BandFormat.Float));
+    }
 
     private static bool ChangeCache()
     {
@@ -175,11 +194,13 @@ public class HostImage : IHostImage
     }
 
     /// <summary>
-    ///     Decodes an encoded image (png, jpeg, ...) from <paramref name="data" />. The bytes are
+    ///     Decodes an encoded image (png, jpeg, hdr, ...) from <paramref name="data" />. The bytes are
     ///     copied and decoded before this returns, so the caller keeps ownership of the span.
     /// </summary>
     public static IHostImage Create(ReadOnlySpan<byte> data)
     {
+        if (RadianceImage.IsRadiance(data)) return CreateFromRadiance(data);
+
         return new HostImage(VipsImage.NewFromBuffer(data.ToArray()));
     }
 

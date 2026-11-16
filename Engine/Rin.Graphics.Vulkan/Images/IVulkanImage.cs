@@ -6,7 +6,8 @@ namespace Rin.Graphics.Vulkan.Images;
 public interface IVulkanImage
 {
     public Extent2D Extent { get; }
-    public bool Mips { get; }
+    public uint MipLevels { get; }
+    public uint LayerCount { get; }
     public ImageFormat Format { get; }
     public ResourceHandle Handle { get; }
     public VkImage VulkanImage { get; }

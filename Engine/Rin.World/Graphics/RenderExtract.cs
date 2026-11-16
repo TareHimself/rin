@@ -1,5 +1,6 @@
 using System.Numerics;
 using Rin.World.Animation;
+using Rin.World.Graphics.ImageBasedLighting;
 using Rin.World.Scheduling;
 using Rin.World.Transforms;
 
@@ -7,7 +8,7 @@ namespace Rin.World.Graphics;
 
 /// <summary>
 ///     Pushes mesh transforms whose <see cref="WorldTransform.Version" /> changed, every skinned pose, dirty or moved
-///     lights, and the world's interpolation alpha to the render system.
+///     lights and environment lights, and the world's interpolation alpha to the render system.
 /// </summary>
 internal sealed class RenderExtract : FrameSystem
 {
@@ -19,10 +20,15 @@ internal sealed class RenderExtract : FrameSystem
     private readonly Query<SkinnedMesh, RenderProxy> _skinnedMeshPoses;
     private readonly Query<PointLight, RenderProxy> _pointLights;
     private readonly Query<DirectionalLight, RenderProxy> _directionalLights;
+    private readonly Query<EnvironmentLight, RenderProxy> _environmentLights;
+    private readonly EnvironmentMaps _environments;
     private float _time;
 
-    public RenderExtract(World world, IRenderSystem renderSystem, PoseSources poseSources)
+    public RenderExtract(World world, IRenderSystem renderSystem, PoseSources poseSources,
+        EnvironmentMaps environments)
     {
+        _environments = environments;
+        _environmentLights = world.Query<EnvironmentLight, RenderProxy>();
         _world = world;
         _renderSystem = renderSystem;
         _poseSources = poseSources;
@@ -40,6 +46,7 @@ internal sealed class RenderExtract : FrameSystem
         PushSkinnedPoses();
         PushPointLights();
         PushDirectionalLights();
+        PushEnvironmentLights();
         _renderSystem.SetInterpolationAlpha(context.InterpolationAlpha);
         _time += context.DeltaSeconds;
         _renderSystem.SetTime(_time);
@@ -95,6 +102,23 @@ internal sealed class RenderExtract : FrameSystem
                 if (!light.IsDirty && version == proxy.LastPushedVersion) continue;
 
                 _renderSystem.UpdateLightProxy(proxy.Handle, light.ToLightInfo(matrix));
+                light.IsDirty = false;
+                proxy.LastPushedVersion = version;
+            }
+    }
+
+    private void PushEnvironmentLights()
+    {
+        foreach (var (lights, proxies, entities) in _environmentLights)
+            for (var i = 0; i < lights.Length; i++)
+            {
+                ref var light = ref lights[i];
+                ref var proxy = ref proxies[i];
+                var (matrix, version) = TransformOf(entities[i]);
+                if (!light.IsDirty && version == proxy.LastPushedVersion) continue;
+
+                if (_environments.TryDescribe(light, matrix, out var volume))
+                    _renderSystem.UpdateEnvironmentProxy(proxy.Handle, volume);
                 light.IsDirty = false;
                 proxy.LastPushedVersion = version;
             }

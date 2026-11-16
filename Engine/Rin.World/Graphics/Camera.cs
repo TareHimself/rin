@@ -16,4 +16,8 @@ public struct Camera() : IComponentData
     ///     How far the view frustum reaches for culling. The projection is infinite reversed-Z, so it does not clip.
     /// </summary>
     public float FarClipPlane = 50.0f;
+
+    public float Exposure = 1.0f;
+
+    public ToneMapCurve ToneMapCurve = ToneMapCurve.AgX;
 }

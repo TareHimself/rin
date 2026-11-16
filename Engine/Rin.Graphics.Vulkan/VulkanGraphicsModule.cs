@@ -418,8 +418,49 @@ public partial class VulkanGraphicsModule : IGraphicsModule, IExternalResourceSo
     }
 
 
+    private readonly Dictionary<VkImage, List<SubresourceView>> _subresourceViews = [];
+
+    private readonly record struct SubresourceView(uint Mip, uint Layer, VkImageView View);
+
+    /// <summary>
+    ///     A 2D view of one mip level of one layer, for rendering into it. Created on first use and destroyed with the
+    ///     image.
+    /// </summary>
+    internal VkImageView GetSubresourceView(IVulkanImage image, uint mip, uint layer)
+    {
+        lock (_subresourceViews)
+        {
+            if (!_subresourceViews.TryGetValue(image.VulkanImage, out var views))
+                _subresourceViews[image.VulkanImage] = views = [];
+            foreach (var existing in views)
+                if (existing.Mip == mip && existing.Layer == layer)
+                    return existing.View;
+
+            var createInfo = MakeImageViewCreateInfo(image.Format, image.VulkanImage, image.Format.ToAspectFlags());
+            createInfo.viewType = VkImageViewType.VK_IMAGE_VIEW_TYPE_2D;
+            createInfo.subresourceRange.baseMipLevel = mip;
+            createInfo.subresourceRange.levelCount = 1;
+            createInfo.subresourceRange.baseArrayLayer = layer;
+            createInfo.subresourceRange.layerCount = 1;
+
+            var view = CreateImageView(createInfo);
+            views.Add(new SubresourceView(mip, layer, view));
+            return view;
+        }
+    }
+
+    private unsafe void DestroySubresourceViews(VkImage image)
+    {
+        lock (_subresourceViews)
+        {
+            if (!_subresourceViews.Remove(image, out var views)) return;
+            foreach (var view in views) vkDestroyImageView(_device, view.View, null);
+        }
+    }
+
     public void FreeImage(IVulkanImage image)
     {
+        DestroySubresourceViews(image.VulkanImage);
         unsafe
         {
             vkDestroyImageView(_device, image.VulkanView, null);
@@ -501,7 +542,19 @@ public partial class VulkanGraphicsModule : IGraphicsModule, IExternalResourceSo
         }
     }
 
-    public IDisposableVulkanTexture CreateVulkanTexture(in Extent2D extent, ImageFormat format, bool mips = false,
+    private static uint ResolveMipLevels(in Extent2D extent, uint mipLevels)
+    {
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(mipLevels, extent.FullMipLevels);
+        return mipLevels == IGraphicsModule.FullMipChain ? extent.FullMipLevels : mipLevels;
+    }
+
+    // Rebuilding a chain blits each level into the next one.
+    private static ImageCreateFlags WithMipUsage(ImageCreateFlags usage, uint mipLevels)
+    {
+        return mipLevels > 1 ? usage | ImageCreateFlags.TransferSrc | ImageCreateFlags.TransferDst : usage;
+    }
+
+    public IDisposableVulkanTexture CreateVulkanTexture(in Extent2D extent, ImageFormat format, uint mipLevels = 1,
         ImageCreateFlags usage = ImageCreateFlags.None)
     {
         unsafe
@@ -513,11 +566,11 @@ public partial class VulkanGraphicsModule : IGraphicsModule, IExternalResourceSo
                 Dimensions = 1
             };
 
-            // Building the chain blits each level into the next one.
-            if (mips) usage |= ImageCreateFlags.TransferSrc | ImageCreateFlags.TransferDst;
+            mipLevels = ResolveMipLevels(extent, mipLevels);
+            usage = WithMipUsage(usage, mipLevels);
 
             var imageCreateInfo = MakeImageCreateInfo(format, extent3D, usage);
-            if (mips) imageCreateInfo.mipLevels = extent.FullMipLevels;
+            imageCreateInfo.mipLevels = mipLevels;
             VkImage image = new();
             var allocation = IntPtr.Zero;
             Native.NewImage(ref image, ref allocation, &imageCreateInfo, _allocator, "Texture");
@@ -534,7 +587,7 @@ public partial class VulkanGraphicsModule : IGraphicsModule, IExternalResourceSo
                 Extent = extent,
                 Format = format,
                 Usage = usage,
-                Mips = mips
+                MipLevels = mipLevels
             };
 
             //_images.Add(vkImage);
@@ -543,7 +596,7 @@ public partial class VulkanGraphicsModule : IGraphicsModule, IExternalResourceSo
     }
 
     public IDisposableVulkanTextureArray CreateVulkanTextureArray(in Extent2D extent, ImageFormat format, uint count,
-        bool mips = false,
+        uint mipLevels = 1,
         ImageCreateFlags usage = ImageCreateFlags.None)
     {
         unsafe
@@ -555,9 +608,13 @@ public partial class VulkanGraphicsModule : IGraphicsModule, IExternalResourceSo
                 Dimensions = 1
             };
 
+            mipLevels = ResolveMipLevels(extent, mipLevels);
+            usage = WithMipUsage(usage, mipLevels);
+
             var imageCreateInfo = MakeImageCreateInfo(format, extent3D, usage);
             //imageCreateInfo.flags |= VkImageCreateFlags.VK_IMAGE_CREATE_2D_ARRAY_COMPATIBLE_BIT;
             imageCreateInfo.arrayLayers = count;
+            imageCreateInfo.mipLevels = mipLevels;
             imageCreateInfo.imageType = VkImageType.VK_IMAGE_TYPE_2D;
             VkImage image = new();
             var allocation = IntPtr.Zero;
@@ -575,12 +632,13 @@ public partial class VulkanGraphicsModule : IGraphicsModule, IExternalResourceSo
                 Allocation = allocation,
                 Extent = extent,
                 Format = format,
-                Count = count
+                Count = count,
+                MipLevels = mipLevels
             };
         }
     }
 
-    public IDisposableVulkanCubemap CreateVulkanCubemap(in Extent2D extent, ImageFormat format, bool mips = false,
+    public IDisposableVulkanCubemap CreateVulkanCubemap(in Extent2D extent, ImageFormat format, uint mipLevels = 1,
         ImageCreateFlags usage = ImageCreateFlags.None)
     {
         unsafe
@@ -592,9 +650,13 @@ public partial class VulkanGraphicsModule : IGraphicsModule, IExternalResourceSo
                 Dimensions = 1
             };
 
+            mipLevels = ResolveMipLevels(extent, mipLevels);
+            usage = WithMipUsage(usage, mipLevels);
+
             var imageCreateInfo = MakeImageCreateInfo(format, extent3D, usage);
             imageCreateInfo.flags |= VkImageCreateFlags.VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT;
-            imageCreateInfo.arrayLayers = 6;
+            imageCreateInfo.arrayLayers = VulkanCubemap.FaceCount;
+            imageCreateInfo.mipLevels = mipLevels;
             imageCreateInfo.imageType = VkImageType.VK_IMAGE_TYPE_2D;
             VkImage image = new();
             var allocation = IntPtr.Zero;
@@ -611,7 +673,8 @@ public partial class VulkanGraphicsModule : IGraphicsModule, IExternalResourceSo
                 VulkanView = CreateImageView(viewCreateInfo),
                 Allocation = allocation,
                 Extent = extent,
-                Format = format
+                Format = format,
+                MipLevels = mipLevels
             };
         }
     }

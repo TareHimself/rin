@@ -93,10 +93,10 @@ public class UploadPlanTests
     [Test]
     public void Build_PlansEachTextureWriteAsItsOwnStep_AndAWholeRunOfBufferWritesAsOne()
     {
-        _lanes.EnqueueTexture(Texture(1), new PendingTextureWrite(PooledMemory<byte>.CopyFrom(new byte[16]), default,
-            new Extent2D(2, 2), new Extent2D(4, 4)));
         _lanes.EnqueueTexture(Texture(1), new PendingTextureWrite(PooledMemory<byte>.CopyFrom(new byte[16]),
-            new Offset2D(2, 2), new Extent2D(2, 2), new Extent2D(4, 4)));
+            ImageRegion.Whole(new Extent2D(2, 2)), new ImageShape(new Extent2D(4, 4))));
+        _lanes.EnqueueTexture(Texture(1), new PendingTextureWrite(PooledMemory<byte>.CopyFrom(new byte[16]),
+            ImageRegion.Rect(new Offset2D(2, 2), new Extent2D(2, 2)), new ImageShape(new Extent2D(4, 4))));
         Write(2, 0);
         Write(2, 32);
 
@@ -152,8 +152,8 @@ public class UploadPlanTests
     [Test]
     public void Build_ImportsTheTextureOfATextureToBufferCopy_WhenTheGraphOnlyTouchesTheBuffer()
     {
-        _lanes.EnqueueTexture(Texture(1), new PendingTextureWrite(PooledMemory<byte>.CopyFrom(new byte[16]), default,
-            new Extent2D(2, 2), new Extent2D(4, 4)));
+        _lanes.EnqueueTexture(Texture(1), new PendingTextureWrite(PooledMemory<byte>.CopyFrom(new byte[16]),
+            ImageRegion.Whole(new Extent2D(2, 2)), new ImageShape(new Extent2D(4, 4))));
         _lanes.EnqueueShared(new SharedWrite(new TextureToBufferCopy(Texture(1), Buffer(2), default,
             new Extent2D(2, 2), 0, 16)));
         List<ResourceHandle> imported = [];
