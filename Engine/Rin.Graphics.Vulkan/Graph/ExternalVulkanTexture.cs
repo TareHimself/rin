@@ -14,7 +14,8 @@ public class ExternalVulkanTexture(IVulkanTexture source, Action? onDispose = nu
     }
 
     public Extent2D Extent => source.Extent;
-    public bool Mips => source.Mips;
+    public uint MipLevels => source.MipLevels;
+    public uint LayerCount => source.LayerCount;
     public ImageCreateFlags Usage => source.Usage;
     public ImageFormat Format => source.Format;
     public ResourceHandle Handle => source.Handle;

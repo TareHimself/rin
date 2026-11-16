@@ -15,7 +15,10 @@ public class VulkanCubemap : IDisposableVulkanCubemap
     public ImageLayout Layout { get; set; }
     public required IntPtr Allocation { get; set; }
     public required Extent2D Extent { get; set; }
-    public bool Mips { get; set; }
+    public const uint FaceCount = 6;
+
+    public uint MipLevels { get; init; } = 1;
+    public uint LayerCount => FaceCount;
     public required ImageFormat Format { get; set; }
     public ResourceHandle Handle { get; internal set; } = ResourceHandle.InvalidCubemap;
 }

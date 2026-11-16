@@ -29,10 +29,10 @@ internal sealed class TextureUploadPass(ResourceHandle texture, uint resourceId,
         if (_write is null) return;
 
         var module = VulkanGraphicsModule.Get();
-        var image = module.GetTexture(graph.GetImageOrException(resourceId));
+        var image = module.GetImage(graph.GetImageOrException(resourceId));
         Debug.Assert(image is not null, "Upload target is not resolvable");
         WriteRecorder.RecordTextureCopy(((VulkanExecutionContext)ctx).CommandBuffer, image!, _staging, _write);
-        module.BindPendingTexture(texture);
+        module.BindPendingImage(texture);
     }
 
     public void Assign(PendingTextureWrite write, in DeviceBufferView staging)

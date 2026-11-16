@@ -32,8 +32,8 @@ public class UploadBatchTests
 
     private PendingTextureWrite QueueTexture(uint id, int bytes = 16)
     {
-        var write = new PendingTextureWrite(PooledMemory<byte>.CopyFrom(new byte[bytes]), default, new Extent2D(2, 2),
-            new Extent2D(2, 2));
+        var write = new PendingTextureWrite(PooledMemory<byte>.CopyFrom(new byte[bytes]),
+            ImageRegion.Whole(new Extent2D(2, 2)), new ImageShape(new Extent2D(2, 2)));
         _lanes.EnqueueTexture(Texture(id), write);
         return write;
     }

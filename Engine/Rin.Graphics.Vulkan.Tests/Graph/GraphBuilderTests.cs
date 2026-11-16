@@ -53,6 +53,35 @@ public class GraphBuilderTests
         _builder.AddPass(new BufferReaderPass(Buffer(id)));
     }
 
+    private void QueueImageWrite(in ResourceHandle image)
+    {
+        var extent = new Extent2D(2, 2);
+        _lanes.EnqueueTexture(image, new PendingTextureWrite(PooledMemory<byte>.CopyFrom(new byte[16]),
+            ImageRegion.Whole(extent), new ImageShape(extent, 1, 6)));
+    }
+
+    [TestCase(ResourceType.Texture)]
+    [TestCase(ResourceType.TextureArray)]
+    [TestCase(ResourceType.Cubemap)]
+    public void Compile_TakesTheWritesOfAnImageTheGraphReads_WhateverItsKind(ResourceType type)
+    {
+        var read = new ResourceHandle(type, 1);
+        var unread = new ResourceHandle(type, 2);
+        QueueImageWrite(read);
+        QueueImageWrite(unread);
+        _builder.AddPass(new ImageReaderPass(read));
+
+        var graph = _builder.Compile();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(graph, Is.Not.Null);
+            Assert.That(_lanes.Count(read), Is.Zero);
+            Assert.That(_lanes.Count(unread), Is.EqualTo(1));
+            Assert.That(_staging.Allocated, Is.EqualTo(new[] { 16ul }));
+        });
+    }
+
     [Test]
     public void Compile_TakesTheWritesOfAResourceTheGraphReads_AndLeavesTheOthersQueued()
     {
@@ -236,6 +265,36 @@ public class GraphBuilderTests
         }
     }
 
+    private sealed class ImageReaderPass(ResourceHandle image) : ITerminalPass
+    {
+        public uint Id { get; set; }
+
+        public void Configure(IGraphConfig config)
+        {
+            var id = config.AddExternalImage(image);
+            config.UseTexture(id, ImageLayout.ShaderReadOnly, ResourceOperation.Read);
+        }
+
+        public void Execute(ICompiledGraph graph, IExecutionContext ctx)
+        {
+        }
+    }
+
+    private sealed class FakeImage(ResourceHandle handle) : IVulkanTexture, IVulkanCubemap, IVulkanTextureArray
+    {
+        public Extent2D Extent => new(2, 2);
+        public uint MipLevels => 1;
+        public uint LayerCount => 6;
+        public uint Count => 6;
+        public ImageCreateFlags Usage => ImageCreateFlags.Sampled | ImageCreateFlags.TransferDst;
+        public ImageFormat Format => ImageFormat.RGBA8;
+        public ResourceHandle Handle => handle;
+        public VkImage VulkanImage => default;
+        public VkImageView VulkanView => default;
+        public ImageLayout Layout { get; set; }
+        public IntPtr Allocation => IntPtr.Zero;
+    }
+
     private sealed class FakeStaging : IStagingAllocator
     {
         public List<ulong> Allocated { get; } = [];
@@ -264,9 +323,9 @@ public class GraphBuilderTests
         }
 
         public void ReleaseResource(in ResourceHandle handle) => Released.Add(handle);
-        public IVulkanTexture? GetTexture(in ResourceHandle handle) => null;
-        public IVulkanCubemap? GetCubemap(in ResourceHandle handle) => null;
-        public IVulkanTextureArray? GetTextureArray(in ResourceHandle handle) => null;
+        public IVulkanTexture? GetTexture(in ResourceHandle handle) => new FakeImage(handle);
+        public IVulkanCubemap? GetCubemap(in ResourceHandle handle) => new FakeImage(handle);
+        public IVulkanTextureArray? GetTextureArray(in ResourceHandle handle) => new FakeImage(handle);
         public IVulkanDeviceBuffer? ResolveBuffer(in ResourceHandle handle) => new FakeBuffer(handle);
     }
 

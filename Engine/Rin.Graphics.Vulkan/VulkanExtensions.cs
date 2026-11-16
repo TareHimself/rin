@@ -737,7 +737,7 @@ internal static class VulkanExtensions
     }
 
     public static VkCommandBuffer CopyBufferToImage(this in VkCommandBuffer cmd, in DeviceBufferView buffer,
-        IVulkanTexture image,
+        IVulkanImage image,
         Span<VkBufferImageCopy> regions, ImageLayout layout = ImageLayout.TransferDst)
     {
         Debug.Assert(buffer.IsValid, "Buffer buffer is not valid");
@@ -870,10 +870,23 @@ internal static class VulkanExtensions
     private static VkRenderingAttachmentInfo MakeAttachmentInfo(this IVulkanTexture image, ImageLayout newLayout,
         VkClearValue? clearValue = null)
     {
+        return MakeAttachmentInfo(image.VulkanView, newLayout, clearValue);
+    }
+
+    public static VkRenderingAttachmentInfo MakeColorAttachmentInfo(VkImageView view, Vector4? clearValue = null)
+    {
+        return MakeAttachmentInfo(view, ImageLayout.ColorAttachment, clearValue.HasValue
+            ? new VkClearValue { color = VulkanGraphicsModule.MakeClearColorValue(clearValue.Value) }
+            : null);
+    }
+
+    private static VkRenderingAttachmentInfo MakeAttachmentInfo(VkImageView view, ImageLayout newLayout,
+        VkClearValue? clearValue)
+    {
         var attachment = new VkRenderingAttachmentInfo
         {
             sType = VkStructureType.VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
-            imageView = image.VulkanView,
+            imageView = view,
             imageLayout = newLayout.ToVk(),
             loadOp = clearValue == null
                 ? VkAttachmentLoadOp.VK_ATTACHMENT_LOAD_OP_LOAD

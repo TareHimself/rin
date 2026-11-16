@@ -366,10 +366,28 @@ public class VulkanExecutionContext(
             attachmentsSpan[i] = vkAttachment!.MakeColorAttachmentInfo(clearColor);
         }
 
+        Begin(extent, attachmentsSpan, vkDepthAttachment?.MakeDepthAttachmentInfo(),
+            vkStencilAttachment?.MakeStencilAttachmentInfo());
+        return this;
+    }
+
+    public IExecutionContext BeginRendering(ResourceHandle target, in ImageRegion region, Vector4? clearColor = null)
+    {
+        var module = VulkanGraphicsModule.Get();
+        var image = module.GetImage(target);
+        Debug.Assert(image is not null, "Invalid image resource handle");
+
+        var view = module.GetSubresourceView(image!, region.Mip, region.Layer);
+        Span<VkRenderingAttachmentInfo> attachment = [VulkanExtensions.MakeColorAttachmentInfo(view, clearColor)];
+        Begin(region.Extent, attachment, null, null);
+        return this;
+    }
+
+    private void Begin(in Extent2D extent, Span<VkRenderingAttachmentInfo> colorAttachments,
+        VkRenderingAttachmentInfo? depthAttachment, VkRenderingAttachmentInfo? stencilAttachment)
+    {
         CommandBuffer
-            .BeginRendering(extent, attachmentsSpan,
-                vkDepthAttachment?.MakeDepthAttachmentInfo(),
-                vkStencilAttachment?.MakeStencilAttachmentInfo())
+            .BeginRendering(extent, colorAttachments, depthAttachment, stencilAttachment)
             .SetViewports([
                 new VkViewport
                 {
@@ -394,7 +412,7 @@ public class VulkanExecutionContext(
             ]);
         
 
-        if (vkDepthAttachment != null)
+        if (depthAttachment != null)
         {
             vkCmdSetDepthTestEnable(CommandBuffer, 1);
             vkCmdSetDepthWriteEnable(CommandBuffer, 1);
@@ -404,7 +422,7 @@ public class VulkanExecutionContext(
             vkCmdSetDepthTestEnable(CommandBuffer, 0);
         }
 
-        if (vkStencilAttachment != null)
+        if (stencilAttachment != null)
         {
             vkCmdSetStencilTestEnable(CommandBuffer, 1);
             vkCmdSetStencilReference(CommandBuffer, StencilFaceFlags, 255);
@@ -418,8 +436,6 @@ public class VulkanExecutionContext(
         {
             vkCmdSetStencilTestEnable(CommandBuffer, 0);
         }
-
-        return this;
     }
 
     public IExecutionContext EndRendering()

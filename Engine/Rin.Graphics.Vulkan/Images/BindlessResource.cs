@@ -24,4 +24,11 @@ public class BindlessResource : IBindlessResource
     ///     Set once the owner frees it - no new references can be taken after that.
     /// </summary>
     public bool Retired { get; set; }
+
+    public bool HasUpload { get; set; }
+
+    /// <summary>
+    ///     Set while a sampled image shows the default in its bindless slot, waiting for its first upload to be recorded.
+    /// </summary>
+    public bool DescriptorPending { get; set; }
 }

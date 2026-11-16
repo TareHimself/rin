@@ -15,7 +15,8 @@ public class VulkanTexture : IDisposableVulkanTexture
     public ImageLayout Layout { get; set; }
     public required IntPtr Allocation { get; set; }
     public required Extent2D Extent { get; set; }
-    public bool Mips { get; set; }
+    public uint MipLevels { get; init; } = 1;
+    public uint LayerCount => 1;
     public ImageCreateFlags Usage { get; init; }
     public required ImageFormat Format { get; set; }
     public ResourceHandle Handle { get; internal set; } = ResourceHandle.InvalidTexture;

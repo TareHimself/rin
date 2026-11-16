@@ -464,7 +464,7 @@ public class GraphBuilder : IGraphBuilder, IResettable
     {
         Dictionary<ResourceHandle, uint[]> resourceIds = [];
         foreach (var (handle, resourceId) in _externalImageIds)
-            if (handle.Type == ResourceType.Texture && config.ResourceActions.ContainsKey(resourceId))
+            if (config.ResourceActions.ContainsKey(resourceId))
                 resourceIds[handle] = [resourceId];
 
         foreach (var (handle, ids) in _externalBufferIds)

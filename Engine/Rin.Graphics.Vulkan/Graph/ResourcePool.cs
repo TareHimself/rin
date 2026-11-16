@@ -209,7 +209,8 @@ public class ResourcePool : IResourcePool
         : IDisposableVulkanTexture
     {
         public Extent2D Extent => resource.Image.Extent;
-        public bool Mips => resource.Image.Mips;
+        public uint MipLevels => resource.Image.MipLevels;
+        public uint LayerCount => resource.Image.LayerCount;
         public ImageCreateFlags Usage => resource.Image.Usage;
         public ImageFormat Format => resource.Image.Format;
         public ResourceHandle Handle => resource.Image.Handle;
@@ -239,7 +240,8 @@ public class ResourcePool : IResourcePool
         : IDisposableVulkanTextureArray
     {
         public Extent2D Extent => resource.Image.Extent;
-        public bool Mips => resource.Image.Mips;
+        public uint MipLevels => resource.Image.MipLevels;
+        public uint LayerCount => resource.Image.LayerCount;
         public ImageFormat Format => resource.Image.Format;
         public ResourceHandle Handle => resource.Image.Handle;
 
@@ -269,7 +271,8 @@ public class ResourcePool : IResourcePool
         : IDisposableVulkanCubemap
     {
         public Extent2D Extent => resource.Image.Extent;
-        public bool Mips => resource.Image.Mips;
+        public uint MipLevels => resource.Image.MipLevels;
+        public uint LayerCount => resource.Image.LayerCount;
         public ImageFormat Format => resource.Image.Format;
         public ResourceHandle Handle => resource.Image.Handle;
 
@@ -296,7 +299,7 @@ public class ResourcePool : IResourcePool
             int key)
         {
             Debug.WriteLine($"Creating resource for pool {nameof(TexturePool)}");
-            var handle = IGraphicsModule.Get().CreateTexture(input.Extent, input.Format, false, input.Usage);
+            var handle = IGraphicsModule.Get().CreateTexture(input.Extent, input.Format, 1, input.Usage);
             var image = VulkanGraphicsModule.Get().GetTexture(handle);
             Debug.Assert(image is not null);
             return new TextureContainer(image!);
@@ -323,7 +326,7 @@ public class ResourcePool : IResourcePool
             int key)
         {
             var handle = IGraphicsModule.Get()
-                .CreateTextureArray(input.Extent, input.Format, input.Count, false, input.Usage);
+                .CreateTextureArray(input.Extent, input.Format, input.Count, 1, input.Usage);
             var image = VulkanGraphicsModule.Get().GetTextureArray(handle);
             Debug.Assert(image is not null);
             return new TextureArrayContainer(image!);
@@ -348,7 +351,7 @@ public class ResourcePool : IResourcePool
         protected override CubemapContainer CreateNew(CubemapResourceDescriptor input,
             int key)
         {
-            var handle = IGraphicsModule.Get().CreateCubemap(input.Extent, input.Format, false, input.Usage);
+            var handle = IGraphicsModule.Get().CreateCubemap(input.Extent, input.Format, 1, input.Usage);
             var image = VulkanGraphicsModule.Get().GetCubemap(handle);
             Debug.Assert(image is not null);
             return new CubemapContainer(image!);

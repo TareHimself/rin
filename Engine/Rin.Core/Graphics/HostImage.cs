@@ -41,9 +41,9 @@ public class HostImage : IHostImage
     public ResourceHandle CreateTexture(bool mips = false, IGraphicsModule? graphicsModule = null)
     {
         var graphics = graphicsModule ?? IGraphicsModule.Get();
-        var handle = graphics.CreateTexture(Extent, Format.ToDeviceFormat(), mips,
+        var handle = graphics.CreateTexture(Extent, Format.ToDeviceFormat(), mips ? IGraphicsModule.FullMipChain : 1,
             ImageCreateFlags.Sampled | ImageCreateFlags.TransferDst);
-        graphics.QueueTextureUpload(handle, _image.RawsaveBuffer(), Extent);
+        graphics.QueueImageUpload(handle, _image.RawsaveBuffer(), ImageRegion.Whole(Extent), mips);
         return handle;
     }
 
