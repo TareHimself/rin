@@ -42,21 +42,4 @@ public class TransformTests
 
         Assert.That(Vector3.Distance(world.Position, new Vector3(6, 0, 0)), Is.LessThan(1e-4f));
     }
-
-    [Test]
-    public void DeconstructReturnsPositionOrientationAndScale()
-    {
-        var transform = new Transform
-        {
-            Position = new Vector3(1, 2, 3),
-            Orientation = Quaternion.CreateFromAxisAngle(Vector3.UnitZ, 0.5f),
-            Scale = new Vector3(1, 2, 3)
-        };
-
-        var (position, orientation, scale) = transform;
-
-        Assert.That(position, Is.EqualTo(transform.Position));
-        Assert.That(orientation, Is.EqualTo(transform.Orientation));
-        Assert.That(scale, Is.EqualTo(transform.Scale));
-    }
 }

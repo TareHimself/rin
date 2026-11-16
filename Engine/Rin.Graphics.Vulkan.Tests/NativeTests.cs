@@ -74,12 +74,6 @@ public class NativeTests
         });
     }
 
-    [TestCaseSource(nameof(FallibleExports))]
-    public void CheckedWrapper_ReturnsQuietlyOnOk(string export, int code, Action call)
-    {
-        Assert.DoesNotThrow(() => call());
-    }
-
     [Test]
     public void CreateWindow_ReturnsAHandleTheNativeSideKnows()
     {

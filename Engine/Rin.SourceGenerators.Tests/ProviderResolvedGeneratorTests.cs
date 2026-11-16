@@ -1,9 +1,5 @@
-using System;
-using System.IO;
 using System.Linq;
 using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.CSharp;
-using Rin.SourceGenerators;
 using Rin.Core.Graphics;
 using Xunit;
 
@@ -11,45 +7,33 @@ namespace Rin.SourceGenerators.Tests;
 
 public class ProviderResolvedGeneratorTests
 {
-    // The full set of reference assemblies (not just System.Private.CoreLib) is needed so custom
-    // attribute base-type resolution (ResolvedAttribute -> Attribute) doesn't fail with CS0012.
-    private static readonly MetadataReference[] References = ((string)AppContext
-            .GetData("TRUSTED_PLATFORM_ASSEMBLIES")!)
-        .Split(Path.PathSeparator)
-        .Select(path => (MetadataReference)MetadataReference.CreateFromFile(path))
-        .Append(MetadataReference.CreateFromFile(typeof(IGraphicsModule).Assembly.Location))
-        .ToArray();
-
-    private static GeneratorDriverRunResult Run(string source)
-    {
-        var generator = new ProviderResolvedGenerator();
-        var driver = CSharpGeneratorDriver.Create(generator);
-        var compilation = CSharpCompilation.Create(nameof(ProviderResolvedGeneratorTests),
-            [CSharpSyntaxTree.ParseText(source)], References);
-        return driver.RunGenerators(compilation).GetRunResult();
-    }
-
-    [Fact]
-    public void GeneratesGetOnlyResolvedProperty()
-    {
-        const string source = @"
+    private const string Usings = @"
 using Rin.Core.Graphics;
 using Rin.Core.Shared.Providers;
 
 namespace TestNamespace;
+";
 
+    private static GeneratorDriverRunResult Run(string moduleUser) =>
+        GeneratorHarness.Run<ProviderResolvedGenerator>(Usings + moduleUser, typeof(IGraphicsModule));
+
+    private static string GeneratedModuleUser(GeneratorDriverRunResult runResult) =>
+        runResult.GeneratedTrees.Single(t => t.FilePath.Contains("ModuleUser")).GetText().ToString();
+
+    [Fact]
+    public void GeneratesGetOnlyResolvedProperty()
+    {
+        var runResult = Run(@"
 public partial class ModuleUser
 {
     [Resolved]
     public partial IGraphicsModule Graphics { get; }
 }
-";
-        var runResult = Run(source);
+");
 
         Assert.Empty(runResult.Diagnostics);
 
-        var generatedText = runResult.GeneratedTrees.Single(t => t.FilePath.Contains("ModuleUser")).GetText()
-            .ToString();
+        var generatedText = GeneratedModuleUser(runResult);
 
         Assert.Contains(
             "public partial global::Rin.Core.Graphics.IGraphicsModule Graphics",
@@ -63,24 +47,17 @@ public partial class ModuleUser
     [Fact]
     public void GeneratesSettableResolvedPropertyForTestOverride()
     {
-        const string source = @"
-using Rin.Core.Graphics;
-using Rin.Core.Shared.Providers;
-
-namespace TestNamespace;
-
+        var runResult = Run(@"
 public partial class ModuleUser
 {
     [Resolved]
     public partial IGraphicsModule Graphics { get; set; }
 }
-";
-        var runResult = Run(source);
+");
 
         Assert.Empty(runResult.Diagnostics);
 
-        var generatedText = runResult.GeneratedTrees.Single(t => t.FilePath.Contains("ModuleUser")).GetText()
-            .ToString();
+        var generatedText = GeneratedModuleUser(runResult);
 
         Assert.Contains(
             "get => field ??= global::Rin.Core.Global.Provider.Get<global::Rin.Core.Graphics.IGraphicsModule>();",
@@ -88,102 +65,16 @@ public partial class ModuleUser
         Assert.Contains("set;", generatedText);
     }
 
-    [Fact]
-    public void ContainingTypeMustBePartial()
+    [Theory]
+    [InlineData("RIN00018", "class", "public partial IGraphicsModule Graphics { get; }")]
+    [InlineData("RIN00019", "partial class", "public IGraphicsModule Graphics { get; }")]
+    [InlineData("RIN00020", "partial class", "public partial IGraphicsModule Graphics { set; }")]
+    [InlineData("RIN00021", "partial class", "public partial int Count { get; }")]
+    [InlineData("RIN00022", "partial class", "public static partial IGraphicsModule Graphics { get; }")]
+    public void InvalidResolvedPropertyIsRejected(string expectedDiagnostic, string typeKeywords, string property)
     {
-        const string source = @"
-using Rin.Core.Graphics;
-using Rin.Core.Shared.Providers;
+        var runResult = Run($"public {typeKeywords} ModuleUser {{ [Resolved] {property} }}");
 
-namespace TestNamespace;
-
-public class ModuleUser
-{
-    [Resolved]
-    public partial IGraphicsModule Graphics { get; }
-}
-";
-        var runResult = Run(source);
-
-        Assert.Contains(runResult.Diagnostics, d => d.Id == "RIN00018");
-    }
-
-    [Fact]
-    public void PropertyMustBePartial()
-    {
-        const string source = @"
-using Rin.Core.Graphics;
-using Rin.Core.Shared.Providers;
-
-namespace TestNamespace;
-
-public partial class ModuleUser
-{
-    [Resolved]
-    public IGraphicsModule Graphics { get; }
-}
-";
-        var runResult = Run(source);
-
-        Assert.Contains(runResult.Diagnostics, d => d.Id == "RIN00019");
-    }
-
-    [Fact]
-    public void PropertyMustHaveGetter()
-    {
-        const string source = @"
-using Rin.Core.Graphics;
-using Rin.Core.Shared.Providers;
-
-namespace TestNamespace;
-
-public partial class ModuleUser
-{
-    [Resolved]
-    public partial IGraphicsModule Graphics { set; }
-}
-";
-        var runResult = Run(source);
-
-        Assert.Contains(runResult.Diagnostics, d => d.Id == "RIN00020");
-    }
-
-    [Fact]
-    public void PropertyMustBeReferenceType()
-    {
-        const string source = @"
-using Rin.Core.Shared.Providers;
-
-namespace TestNamespace;
-
-public partial class ModuleUser
-{
-    [Resolved]
-    public partial int Count { get; }
-}
-";
-        var runResult = Run(source);
-
-        Assert.Contains(runResult.Diagnostics, d => d.Id == "RIN00021");
-    }
-
-    [Fact]
-    public void PropertyMustNotBeStatic()
-    {
-        const string source = @"
-using Rin.Core.Graphics;
-using Rin.Core.Shared.Providers;
-
-namespace TestNamespace;
-
-public partial class ModuleUser
-{
-    [Resolved]
-    public static partial IGraphicsModule Graphics { get; }
-}
-";
-        var runResult = Run(source);
-
-        Assert.Contains(runResult.Diagnostics, d => d.Id == "RIN00022");
+        Assert.Contains(runResult.Diagnostics, d => d.Id == expectedDiagnostic);
     }
 }

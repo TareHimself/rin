@@ -8,44 +8,18 @@ using TerraFX.Interop.Vulkan;
 
 namespace Rin.Graphics.Vulkan.Tests.Graph;
 
-public class GraphBuilderTests
+public class GraphBuilderTests : UploadLanesFixture
 {
     private GraphBuilder _builder = null!;
-    private UploadLanes _lanes = null!;
     private FakeStaging _staging = null!;
     private FakeResources _resources = null!;
 
     [SetUp]
     public void CreateBuilder()
     {
-        _lanes = new UploadLanes();
         _staging = new FakeStaging();
         _resources = new FakeResources();
-        _builder = new GraphBuilder(new UnusedPool(), null!, _lanes, _staging, _resources);
-    }
-
-    [TearDown]
-    public void DisposeQueuedActions()
-    {
-        List<PendingResourceAction> remaining = [];
-        _lanes.TakeAll(remaining);
-        foreach (var action in remaining) action.Dispose();
-    }
-
-    private static ResourceHandle Buffer(uint id) => new(ResourceType.Buffer, id);
-
-    private PendingBufferWrite QueueWrite(uint id, ulong offset, int bytes = 16)
-    {
-        var write = new PendingBufferWrite(PooledMemory<byte>.CopyFrom(new byte[bytes]), offset);
-        _lanes.EnqueueBuffer(Buffer(id), write);
-        return write;
-    }
-
-    private SharedWrite QueueCopy(uint source, uint destination)
-    {
-        var shared = new SharedWrite(new BufferCopy(Buffer(source), Buffer(destination), 0, 0, 16));
-        _lanes.EnqueueShared(shared);
-        return shared;
+        _builder = new GraphBuilder(new UnusedPool(), null!, Lanes, _staging, _resources);
     }
 
     private void ReadBuffer(uint id)
@@ -56,7 +30,7 @@ public class GraphBuilderTests
     private void QueueImageWrite(in ResourceHandle image)
     {
         var extent = new Extent2D(2, 2);
-        _lanes.EnqueueTexture(image, new PendingTextureWrite(PooledMemory<byte>.CopyFrom(new byte[16]),
+        Lanes.EnqueueTexture(image, new PendingTextureWrite(PooledMemory<byte>.CopyFrom(new byte[16]),
             ImageRegion.Whole(extent), new ImageShape(extent, 1, 6)));
     }
 
@@ -76,8 +50,8 @@ public class GraphBuilderTests
         Assert.Multiple(() =>
         {
             Assert.That(graph, Is.Not.Null);
-            Assert.That(_lanes.Count(read), Is.Zero);
-            Assert.That(_lanes.Count(unread), Is.EqualTo(1));
+            Assert.That(Lanes.Count(read), Is.Zero);
+            Assert.That(Lanes.Count(unread), Is.EqualTo(1));
             Assert.That(_staging.Allocated, Is.EqualTo(new[] { 16ul }));
         });
     }
@@ -94,8 +68,8 @@ public class GraphBuilderTests
         Assert.Multiple(() =>
         {
             Assert.That(graph, Is.Not.Null);
-            Assert.That(_lanes.Count(Buffer(1)), Is.Zero);
-            Assert.That(_lanes.Count(Buffer(2)), Is.EqualTo(1));
+            Assert.That(Lanes.Count(Buffer(1)), Is.Zero);
+            Assert.That(Lanes.Count(Buffer(2)), Is.EqualTo(1));
         });
     }
 
@@ -112,8 +86,8 @@ public class GraphBuilderTests
         Assert.Multiple(() =>
         {
             Assert.That(copy.Taken, Is.True);
-            Assert.That(_lanes.Count(Buffer(1)), Is.Zero);
-            Assert.That(_lanes.Count(Buffer(2)), Is.Zero);
+            Assert.That(Lanes.Count(Buffer(1)), Is.Zero);
+            Assert.That(Lanes.Count(Buffer(2)), Is.Zero);
         });
     }
 
@@ -122,7 +96,7 @@ public class GraphBuilderTests
     {
         QueueCopy(1, 2);
         ReadBuffer(1);
-        _lanes.EnqueueBuffer(Buffer(1), new PendingBufferWrite(PooledMemory<byte>.CopyFrom(new byte[16]), 64));
+        Lanes.EnqueueBuffer(Buffer(1), new PendingBufferWrite(PooledMemory<byte>.CopyFrom(new byte[16]), 64));
 
         var graph = _builder.Compile();
         var importedBeforeDispose = _resources.Acquired.Contains(Buffer(2));
@@ -145,7 +119,7 @@ public class GraphBuilderTests
         ReadBuffer(1);
 
         _builder.Compile();
-        var afterFirst = _lanes.Count(Buffer(2));
+        var afterFirst = Lanes.Count(Buffer(2));
         _builder.Reset();
         ReadBuffer(2);
         _builder.Compile();
@@ -153,7 +127,7 @@ public class GraphBuilderTests
         Assert.Multiple(() =>
         {
             Assert.That(afterFirst, Is.EqualTo(1));
-            Assert.That(_lanes.Count(Buffer(2)), Is.Zero);
+            Assert.That(Lanes.Count(Buffer(2)), Is.Zero);
             Assert.That(laterWrite.Data.Count, Is.EqualTo(16));
         });
     }
@@ -176,7 +150,7 @@ public class GraphBuilderTests
         Assert.Multiple(() =>
         {
             Assert.That(late, Is.Not.Null);
-            Assert.That(_lanes.Count(Buffer(1)), Is.EqualTo(1));
+            Assert.That(Lanes.Count(Buffer(1)), Is.EqualTo(1));
         });
     }
 
@@ -215,9 +189,9 @@ public class GraphBuilderTests
         {
             Assert.That(first.Taken, Is.True);
             Assert.That(second.Taken, Is.True);
-            Assert.That(_lanes.Count(Buffer(1)), Is.Zero);
-            Assert.That(_lanes.Count(Buffer(2)), Is.Zero);
-            Assert.That(_lanes.Count(Buffer(3)), Is.Zero);
+            Assert.That(Lanes.Count(Buffer(1)), Is.Zero);
+            Assert.That(Lanes.Count(Buffer(2)), Is.Zero);
+            Assert.That(Lanes.Count(Buffer(3)), Is.Zero);
         });
     }
 
@@ -235,7 +209,7 @@ public class GraphBuilderTests
         {
             Assert.That(graph, Is.Not.Null);
             Assert.That(copy.Taken, Is.True);
-            Assert.That(_lanes.Count(Buffer(1)), Is.Zero);
+            Assert.That(Lanes.Count(Buffer(1)), Is.Zero);
         });
     }
 

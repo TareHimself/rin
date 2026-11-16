@@ -46,6 +46,9 @@ public class GenericBaseShaderTests
 
         Assert.That(result.Diagnostics, Is.Empty);
 
-        Snapshot.Verify(result.Shaders["ConsumerShader"]);
+        var slang = result.Shaders["ConsumerShader"].Replace("\r\n", "\n");
+        Assert.That(slang, Does.Contain("float getValue(ConsumerPush push)\n{\n    return push.value;\n}"));
+        Assert.That(slang, Does.Contain("uniform ConstantBuffer<ConsumerPush, ScalarDataLayout> push;"));
+        Assert.That(slang, Does.Contain("var v = getValue(push);"));
     }
 }

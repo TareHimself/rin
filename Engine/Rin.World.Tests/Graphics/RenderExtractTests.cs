@@ -8,29 +8,8 @@ using SkinnedMesh = Rin.World.Graphics.SkinnedMesh;
 
 namespace Rin.World.Tests.Graphics;
 
-public class RenderExtractTests
+public class RenderExtractTests : RenderFeatureFixture
 {
-    private World _world = null!;
-    private FakeRenderSystem _render = null!;
-    private FakeMeshFactory _meshes = null!;
-    private RenderFeature _feature = null!;
-
-    [SetUp]
-    public void SetUp()
-    {
-        _world = new World();
-        _render = new FakeRenderSystem();
-        _meshes = new FakeMeshFactory();
-        _feature = new RenderFeature(_world, _render, _meshes);
-    }
-
-    [TearDown]
-    public void TearDown()
-    {
-        _render.Dispose();
-        _meshes.Dispose();
-    }
-
     [Test]
     public void AMeshTransformIsPushedOnlyWhenItsVersionChanges()
     {
@@ -244,14 +223,6 @@ public class RenderExtractTests
             Mesh = _meshes.Register(new FakeMesh()),
             PoseSource = _feature.PoseSources.Add(source)
         });
-        return entity;
-    }
-
-    private Entity SpawnMesh(Vector3 position)
-    {
-        var entity = _world.Spawn();
-        _world.SetPosition(entity, position);
-        _world.Add(entity, new StaticMesh { Mesh = _meshes.Register(new FakeMesh()) });
         return entity;
     }
 }

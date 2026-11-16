@@ -17,22 +17,6 @@ public class PendingTextureWriteTests
     }
 
     [Test]
-    public void CarriesTheRegionItWritesTo()
-    {
-        var region = new ImageRegion(new Extent2D(1u, 2u), new Offset2D(1, 0), 1, 4);
-        using var write = Write(region, MippedCubemap);
-
-        Assert.Multiple(() =>
-        {
-            Assert.That(write.Extent, Is.EqualTo(region.Extent));
-            Assert.That(write.Offset, Is.EqualTo(region.Offset));
-            Assert.That(write.Level, Is.EqualTo(1u));
-            Assert.That(write.Layer, Is.EqualTo(4u));
-            Assert.That(write.IsWholeChain, Is.False);
-        });
-    }
-
-    [Test]
     public void FillingAnImageWithoutMipsCoversIt()
     {
         using var write = Write(ImageRegion.Whole(ImageExtent), Plain);

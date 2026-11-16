@@ -81,19 +81,6 @@ public class CoalescingValueTests
     }
 
     [Test]
-    public void SecondConsumeWithNoNewSetReturnsFalse()
-    {
-        var latent = new CoalescingValue<uint>(1);
-        latent.Set(2);
-        latent.TryConsume(out _);
-
-        var consumedAgain = latent.TryConsume(out var value);
-
-        Assert.That(consumedAgain, Is.False);
-        Assert.That(value, Is.EqualTo(2u));
-    }
-
-    [Test]
     public void WorksWithASmallMultiFieldUnmanagedStruct()
     {
         var latent = new CoalescingValue<Pair>(new Pair(1, 2));

@@ -73,10 +73,7 @@ public class MatrixInverseTests
     public void TranspiledInverseMatchesSystemNumerics()
     {
         // The same path the build task takes: MatrixMath's source arrives from Rin.Shade's exported sources.
-        var references = ((string)AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES")!)
-            .Split(Path.PathSeparator)
-            .Select(path => (MetadataReference)MetadataReference.CreateFromFile(path))
-            .Append(MetadataReference.CreateFromFile(typeof(Shader).Assembly.Location))
+        var references = CompilationBuilder.References
             .ToList();
         var scratch = ScratchCompilationBuilder.Build([ShaderSource, CompilationBuilder.TestBufferSource], references, "InverseCheck");
         var result = ShadeEmitter.Emit(scratch.Compilation, scratch.LocalTrees);

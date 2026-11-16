@@ -5,20 +5,8 @@ using Rin.Core.Views.Events;
 
 namespace Rin.Core.Tests.Views.Composite;
 
-public class ButtonViewTests
+public class ButtonViewTests : FakeApplicationFixture
 {
-    [SetUp]
-    public void SetUp()
-    {
-        IApplication.Override = new FakeApplication();
-    }
-
-    [TearDown]
-    public void TearDown()
-    {
-        IApplication.Override = null;
-    }
-
     [Test]
     public void Cursor_down_is_captured_even_without_handlers()
     {

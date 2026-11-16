@@ -9,20 +9,8 @@ using Rin.Core.Views.Graphics;
 
 namespace Rin.Core.Tests.Views;
 
-public class SwitcherViewTests
+public class SwitcherViewTests : FakeApplicationFixture
 {
-    [SetUp]
-    public void SetUp()
-    {
-        IApplication.Override = new FakeApplication();
-    }
-
-    [TearDown]
-    public void TearDown()
-    {
-        IApplication.Override = null;
-    }
-
     [Test]
     public void GetSlots_returns_all_children_GetActiveSlots_returns_the_selected_one()
     {

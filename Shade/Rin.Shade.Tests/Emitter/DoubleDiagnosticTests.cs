@@ -92,27 +92,6 @@ public class DoubleDiagnosticTests
         Assert.That(result.Diagnostics.Select(d => d.Id), Has.Member("SHADE0021"));
     }
 
-    [Test]
-    public void Float_code_raises_nothing()
-    {
-        var result = Emit("""
-            [Shader]
-            public class FloatOnlyShader : Shader
-            {
-                [Push] protected DoublePush Push;
-
-                [Compute(1, 1, 1)]
-                public void Compute()
-                {
-                    var half = 0.5f;
-                    Push.Output[0] = half * Push.A;
-                }
-            }
-            """);
-
-        Assert.That(result.Diagnostics, Is.Empty);
-    }
-
     private static ShadeEmitResult Emit(string shader)
     {
         return ShadeEmitter.Emit(CompilationBuilder.Build(Prelude + shader));

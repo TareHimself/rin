@@ -1,9 +1,5 @@
-using System;
-using System.IO;
 using System.Linq;
 using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.CSharp;
-using Rin.SourceGenerators;
 using Rin.Core.Graphics;
 using Xunit;
 
@@ -11,29 +7,7 @@ namespace Rin.SourceGenerators.Tests;
 
 public class GraphicsShaderGeneratorTests
 {
-    // The full set of reference assemblies (not just System.Private.CoreLib) is needed so custom
-    // attribute base-type resolution (ShaderAttribute -> Attribute) doesn't fail with CS0012.
-    private static readonly MetadataReference[] References = ((string)AppContext
-            .GetData("TRUSTED_PLATFORM_ASSEMBLIES")!)
-        .Split(Path.PathSeparator)
-        .Select(path => (MetadataReference)MetadataReference.CreateFromFile(path))
-        .Append(MetadataReference.CreateFromFile(typeof(IGraphicsModule).Assembly.Location))
-        .Append(MetadataReference.CreateFromFile(typeof(Rin.Shade.Shader).Assembly.Location))
-        .ToArray();
-
-    private static GeneratorDriverRunResult Run(string source)
-    {
-        var generator = new GraphicsShaderGenerator();
-        var driver = CSharpGeneratorDriver.Create(generator);
-        var compilation = CSharpCompilation.Create(nameof(GraphicsShaderGeneratorTests),
-            [CSharpSyntaxTree.ParseText(source)], References);
-        return driver.RunGenerators(compilation).GetRunResult();
-    }
-
-    [Fact]
-    public void GeneratesShaderProperties()
-    {
-        const string source = @"
+    private const string ShaderDefinitions = @"
 using Rin.Core.Graphics;
 using Rin.Core.Graphics.Shaders;
 
@@ -49,6 +23,19 @@ public class BlurShaderDefinition : Rin.Shade.Shader
 {
 }
 
+public class NotAShaderClass : Rin.Shade.Shader
+{
+}
+";
+
+    private static GeneratorDriverRunResult Run(string shaderUser) =>
+        GeneratorHarness.Run<GraphicsShaderGenerator>(ShaderDefinitions + shaderUser, typeof(IGraphicsModule),
+            typeof(Rin.Shade.Shader));
+
+    [Fact]
+    public void GeneratesShaderProperties()
+    {
+        var runResult = Run(@"
 public partial class ShaderUser
 {
     [GraphicsShader<PrettyShaderDefinition>]
@@ -57,8 +44,7 @@ public partial class ShaderUser
     [ComputeShader<BlurShaderDefinition>]
     private partial IComputeShader BlurShader { get; }
 }
-";
-        var runResult = Run(source);
+");
 
         Assert.Empty(runResult.Diagnostics);
 
@@ -73,233 +59,25 @@ public partial class ShaderUser
             generatedText);
     }
 
-    [Fact]
-    public void ContainingTypeMustBePartial()
+    [Theory]
+    [InlineData("RIN00013", "class",
+        "[GraphicsShader<PrettyShaderDefinition>] public partial IGraphicsShader PrettyShader { get; }")]
+    [InlineData("RIN00014", "partial class",
+        "[GraphicsShader<PrettyShaderDefinition>] public IGraphicsShader PrettyShader { get; }")]
+    [InlineData("RIN00015", "partial class",
+        "[GraphicsShader<PrettyShaderDefinition>] public partial IGraphicsShader PrettyShader { get; set; }")]
+    [InlineData("RIN00016", "partial class",
+        "[GraphicsShader<PrettyShaderDefinition>] public partial string PrettyShader { get; }")]
+    [InlineData("RIN00017", "partial class",
+        "[GraphicsShader<PrettyShaderDefinition>] public static partial IGraphicsShader PrettyShader { get; }")]
+    [InlineData("RIN00023", "partial class",
+        "[ComputeShader<NotAShaderClass>] private partial IComputeShader BlurShader { get; }")]
+    [InlineData("RIN00012", "partial class",
+        "[GraphicsShader<PrettyShaderDefinition>] [ComputeShader<BlurShaderDefinition>] public partial IGraphicsShader PrettyShader { get; }")]
+    public void InvalidShaderPropertyIsRejected(string expectedDiagnostic, string typeKeywords, string property)
     {
-        const string source = @"
-using Rin.Core.Graphics.Shaders;
+        var runResult = Run($"public {typeKeywords} ShaderUser {{ {property} }}");
 
-namespace TestNamespace;
-
-[Rin.Shade.Shader]
-public class PrettyShaderDefinition : Rin.Shade.Shader
-{
-}
-
-[Rin.Shade.Shader]
-public class BlurShaderDefinition : Rin.Shade.Shader
-{
-}
-
-public class ShaderUser
-{
-    [GraphicsShader<PrettyShaderDefinition>]
-    public partial IGraphicsShader PrettyShader { get; }
-}
-";
-        var runResult = Run(source);
-
-        Assert.Contains(runResult.Diagnostics, d => d.Id == "RIN00013");
-    }
-
-    [Fact]
-    public void PropertyMustBePartial()
-    {
-        const string source = @"
-using Rin.Core.Graphics.Shaders;
-
-namespace TestNamespace;
-
-[Rin.Shade.Shader]
-public class PrettyShaderDefinition : Rin.Shade.Shader
-{
-}
-
-[Rin.Shade.Shader]
-public class BlurShaderDefinition : Rin.Shade.Shader
-{
-}
-
-public partial class ShaderUser
-{
-    [GraphicsShader<PrettyShaderDefinition>]
-    public IGraphicsShader PrettyShader { get; }
-}
-";
-        var runResult = Run(source);
-
-        Assert.Contains(runResult.Diagnostics, d => d.Id == "RIN00014");
-    }
-
-    [Fact]
-    public void PropertyMustBeGetOnly()
-    {
-        const string source = @"
-using Rin.Core.Graphics.Shaders;
-
-namespace TestNamespace;
-
-[Rin.Shade.Shader]
-public class PrettyShaderDefinition : Rin.Shade.Shader
-{
-}
-
-[Rin.Shade.Shader]
-public class BlurShaderDefinition : Rin.Shade.Shader
-{
-}
-
-public partial class ShaderUser
-{
-    [GraphicsShader<PrettyShaderDefinition>]
-    public partial IGraphicsShader PrettyShader { get; set; }
-}
-";
-        var runResult = Run(source);
-
-        Assert.Contains(runResult.Diagnostics, d => d.Id == "RIN00015");
-    }
-
-    [Fact]
-    public void PropertyTypeMustMatchAttribute()
-    {
-        const string source = @"
-using Rin.Core.Graphics.Shaders;
-
-namespace TestNamespace;
-
-[Rin.Shade.Shader]
-public class PrettyShaderDefinition : Rin.Shade.Shader
-{
-}
-
-[Rin.Shade.Shader]
-public class BlurShaderDefinition : Rin.Shade.Shader
-{
-}
-
-public partial class ShaderUser
-{
-    [GraphicsShader<PrettyShaderDefinition>]
-    public partial string PrettyShader { get; }
-}
-";
-        var runResult = Run(source);
-
-        Assert.Contains(runResult.Diagnostics, d => d.Id == "RIN00016");
-    }
-
-    [Fact]
-    public void PropertyMustNotBeStatic()
-    {
-        const string source = @"
-using Rin.Core.Graphics.Shaders;
-
-namespace TestNamespace;
-
-[Rin.Shade.Shader]
-public class PrettyShaderDefinition : Rin.Shade.Shader
-{
-}
-
-[Rin.Shade.Shader]
-public class BlurShaderDefinition : Rin.Shade.Shader
-{
-}
-
-public partial class ShaderUser
-{
-    [GraphicsShader<PrettyShaderDefinition>]
-    public static partial IGraphicsShader PrettyShader { get; }
-}
-";
-        var runResult = Run(source);
-
-        Assert.Contains(runResult.Diagnostics, d => d.Id == "RIN00017");
-    }
-
-    [Fact]
-    public void GenericArgumentResolvesToGeneratedDescriptor()
-    {
-        const string source = @"
-using Rin.Core.Graphics;
-using Rin.Core.Graphics.Shaders;
-
-namespace TestNamespace;
-
-[Rin.Shade.Shader]
-public class BlurShaderDefinition : Rin.Shade.Shader
-{
-}
-
-public partial class ShaderUser
-{
-    [ComputeShader<BlurShaderDefinition>]
-    private partial IComputeShader BlurShader { get; }
-}
-";
-        var runResult = Run(source);
-
-        Assert.Empty(runResult.Diagnostics);
-
-        var generatedFileSyntax = runResult.GeneratedTrees.Single(t => t.FilePath.Contains("ShaderUser"));
-        var generatedText = generatedFileSyntax.GetText().ToString();
-
-        Assert.Contains(
-            "private partial global::Rin.Core.Graphics.Shaders.IComputeShader BlurShader => field ??= global::Rin.Core.Graphics.IGraphicsModule.Get().MakeCompute(global::TestNamespace.BlurShaderDefinition.Descriptor);",
-            generatedText);
-    }
-
-    [Fact]
-    public void GenericArgumentMissingShaderAttributeIsRejected()
-    {
-        const string source = @"
-using Rin.Core.Graphics.Shaders;
-
-namespace TestNamespace;
-
-public class NotAShaderClass : Rin.Shade.Shader
-{
-}
-
-public partial class ShaderUser
-{
-    [ComputeShader<NotAShaderClass>]
-    private partial IComputeShader BlurShader { get; }
-}
-";
-        var runResult = Run(source);
-
-        Assert.Contains(runResult.Diagnostics, d => d.Id == "RIN00023");
-    }
-
-    [Fact]
-    public void AmbiguousShaderAttributeIsRejected()
-    {
-        const string source = @"
-using Rin.Core.Graphics.Shaders;
-
-namespace TestNamespace;
-
-[Rin.Shade.Shader]
-public class PrettyShaderDefinition : Rin.Shade.Shader
-{
-}
-
-[Rin.Shade.Shader]
-public class BlurShaderDefinition : Rin.Shade.Shader
-{
-}
-
-public partial class ShaderUser
-{
-    [GraphicsShader<PrettyShaderDefinition>]
-    [ComputeShader<BlurShaderDefinition>]
-    public partial IGraphicsShader PrettyShader { get; }
-}
-";
-        var runResult = Run(source);
-
-        Assert.Contains(runResult.Diagnostics, d => d.Id == "RIN00012");
+        Assert.Contains(runResult.Diagnostics, d => d.Id == expectedDiagnostic);
     }
 }

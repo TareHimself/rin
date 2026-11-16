@@ -9,12 +9,6 @@ namespace Rin.SourceGenerators.Tests;
 
 public class ComponentRegistrationGeneratorTests
 {
-    private static readonly MetadataReference[] References = ((string)AppContext
-            .GetData("TRUSTED_PLATFORM_ASSEMBLIES")!)
-        .Split(Path.PathSeparator)
-        .Select(path => (MetadataReference)MetadataReference.CreateFromFile(path))
-        .ToArray();
-
     private const string RinWorldStubs = @"
 namespace Rin.World
 {
@@ -33,7 +27,7 @@ namespace Rin.World
     private static (GeneratorDriverRunResult result, Compilation output) Run(params string[] sources)
     {
         var compilation = CSharpCompilation.Create(nameof(ComponentRegistrationGeneratorTests),
-            sources.Select(source => CSharpSyntaxTree.ParseText(source)), References,
+            sources.Select(source => CSharpSyntaxTree.ParseText(source)), GeneratorHarness.PlatformReferences,
             new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
         var driver = CSharpGeneratorDriver.Create(new ComponentRegistrationGenerator())
             .RunGeneratorsAndUpdateCompilation(compilation, out var output, out _);

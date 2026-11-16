@@ -11,7 +11,7 @@ using Rin.Core.Views.Layouts;
 
 namespace Rin.Core.Tests.Views.Composite;
 
-public class VirtualListViewTests
+public class VirtualListViewTests : FakeApplicationFixture
 {
     private const float ItemSize = 20f;
 
@@ -20,14 +20,7 @@ public class VirtualListViewTests
     [SetUp]
     public void SetUp()
     {
-        IApplication.Override = new FakeApplication();
         _bindCalls.Clear();
-    }
-
-    [TearDown]
-    public void TearDown()
-    {
-        IApplication.Override = null;
     }
 
     [Test]

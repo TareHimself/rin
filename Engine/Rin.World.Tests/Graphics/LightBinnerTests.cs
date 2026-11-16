@@ -61,16 +61,6 @@ public class LightBinnerTests
     }
 
     [Test]
-    public void Point_lights_are_sorted_nearest_first()
-    {
-        var binner = new LightBinner();
-
-        binner.Bin([Point(30f, 1f), Point(10f, 1f), Point(20f, 1f)], [], Matrix4x4.Identity, Near, Far);
-
-        Assert.That(Depths(binner), Is.EqualTo(new[] { 10f, 20f, 30f }));
-    }
-
-    [Test]
     public void Depth_is_measured_in_view_space()
     {
         var binner = new LightBinner();

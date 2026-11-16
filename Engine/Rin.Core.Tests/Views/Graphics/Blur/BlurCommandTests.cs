@@ -19,18 +19,11 @@ public class BlurCommandTests
         return Matrix4x4.Identity.Translate(new Vector2(x, y));
     }
 
-    [Test]
-    public void BlurOnTheSurfaceAddsItsFourCommands()
+    [TestCase(100f, 100f)]
+    [TestCase(700f, 550f)]
+    public void BlurTouchingTheSurfaceAddsItsFourCommands(float x, float y)
     {
-        var list = NewList().AddBlur(At(100f, 100f), new Vector2(200f, 100f));
-
-        Assert.That(list.Commands, Has.Count.EqualTo(CommandsPerBlur));
-    }
-
-    [Test]
-    public void BlurPartlyOffTheSurfaceStillAddsItsCommands()
-    {
-        var list = NewList().AddBlur(At(700f, 550f), new Vector2(200f, 100f));
+        var list = NewList().AddBlur(At(x, y), new Vector2(200f, 100f));
 
         Assert.That(list.Commands, Has.Count.EqualTo(CommandsPerBlur));
     }

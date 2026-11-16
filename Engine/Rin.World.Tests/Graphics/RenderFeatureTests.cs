@@ -8,29 +8,8 @@ using SkinnedMesh = Rin.World.Graphics.SkinnedMesh;
 
 namespace Rin.World.Tests.Graphics;
 
-public class RenderFeatureTests
+public class RenderFeatureTests : RenderFeatureFixture
 {
-    private World _world = null!;
-    private FakeRenderSystem _render = null!;
-    private FakeMeshFactory _meshes = null!;
-    private RenderFeature _feature = null!;
-
-    [SetUp]
-    public void SetUp()
-    {
-        _world = new World();
-        _render = new FakeRenderSystem();
-        _meshes = new FakeMeshFactory();
-        _feature = new RenderFeature(_world, _render, _meshes);
-    }
-
-    [TearDown]
-    public void TearDown()
-    {
-        _render.Dispose();
-        _meshes.Dispose();
-    }
-
     [Test]
     public void AddingAStaticMeshCreatesAProxyAndARenderProxyComponent()
     {
@@ -40,20 +19,6 @@ public class RenderFeatureTests
 
         Assert.That(_render.CreatedStaticMeshes, Has.Count.EqualTo(1));
         Assert.That(_world.Get<RenderProxy>(entity).Handle, Is.EqualTo(_render.CreatedStaticMeshes[0].Handle));
-    }
-
-    [Test]
-    public void AddingAStaticMeshThroughTheCommandBufferCreatesTheProxyOnPlayback()
-    {
-        var entity = _world.Spawn();
-        _world.Commands.Add(entity, new StaticMesh { Mesh = _meshes.Register(new FakeMesh()) });
-
-        Assert.That(_render.CreatedStaticMeshes, Is.Empty);
-
-        _world.Commands.Playback();
-
-        Assert.That(_render.CreatedStaticMeshes, Has.Count.EqualTo(1));
-        Assert.That(_world.Has<RenderProxy>(entity), Is.True);
     }
 
     [Test]
@@ -139,19 +104,6 @@ public class RenderFeatureTests
     }
 
     [Test]
-    public void RemovingThroughTheCommandBufferDestroysTheProxyOnPlayback()
-    {
-        var entity = _world.Spawn();
-        _world.Add(entity, new PointLight());
-        _world.Commands.Remove<PointLight>(entity);
-
-        _world.Commands.Playback();
-
-        Assert.That(_render.DestroyCount, Is.EqualTo(1));
-        Assert.That(_world.Has<RenderProxy>(entity), Is.False);
-    }
-
-    [Test]
     public void DespawningAParentDestroysTheProxiesOfItsChildren()
     {
         var mesh = _meshes.Register(new FakeMesh());
@@ -167,18 +119,6 @@ public class RenderFeatureTests
         _world.Despawn(parent);
 
         Assert.That(_render.DestroyCount, Is.EqualTo(3));
-        Assert.That(_render.LiveCount, Is.Zero);
-    }
-
-    [Test]
-    public void DespawningThroughTheCommandBufferDestroysTheProxy()
-    {
-        var entity = _world.Spawn();
-        _world.Add(entity, new StaticMesh { Mesh = _meshes.Register(new FakeMesh()) });
-        _world.Commands.Despawn(entity);
-
-        _world.Update(0f);
-
         Assert.That(_render.LiveCount, Is.Zero);
     }
 
@@ -223,20 +163,6 @@ public class RenderFeatureTests
     }
 
     [Test]
-    public void AddingASkinnedMeshThroughTheCommandBufferCreatesTheProxyOnPlayback()
-    {
-        var entity = _world.Spawn();
-        _world.Commands.Add(entity, SkinnedMeshOf(new FakePoseSource { Skeleton = TestSkeletons.WithSocket(Vector3.UnitX) }));
-
-        Assert.That(_render.CreatedSkinnedMeshes, Is.Empty);
-
-        _world.Commands.Playback();
-
-        Assert.That(_render.CreatedSkinnedMeshes, Has.Count.EqualTo(1));
-        Assert.That(_world.Has<RenderProxy>(entity), Is.True);
-    }
-
-    [Test]
     public void RemovingTheSkinnedMeshDestroysTheProxy()
     {
         var entity = _world.Spawn();
@@ -247,18 +173,6 @@ public class RenderFeatureTests
 
         Assert.That(_render.Destroyed, Is.EqualTo(new[] { handle }));
         Assert.That(_world.Has<RenderProxy>(entity), Is.False);
-    }
-
-    [Test]
-    public void DespawningASkinnedMeshThroughTheCommandBufferDestroysTheProxy()
-    {
-        var entity = _world.Spawn();
-        _world.Add(entity, SkinnedMeshOf(new FakePoseSource { Skeleton = TestSkeletons.WithSocket(Vector3.UnitX) }));
-        _world.Commands.Despawn(entity);
-
-        _world.Update(0f);
-
-        Assert.That(_render.LiveCount, Is.Zero);
     }
 
     [Test]

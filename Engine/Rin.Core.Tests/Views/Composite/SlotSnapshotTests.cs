@@ -6,20 +6,8 @@ using Rin.Core.Views.Graphics;
 
 namespace Rin.Core.Tests.Views.Composite;
 
-public class SlotSnapshotTests
+public class SlotSnapshotTests : FakeApplicationFixture
 {
-    [SetUp]
-    public void SetUp()
-    {
-        IApplication.Override = new FakeApplication();
-    }
-
-    [TearDown]
-    public void TearDown()
-    {
-        IApplication.Override = null;
-    }
-
     [Test]
     public void GetSlots_returns_the_same_array_until_a_slot_changes()
     {

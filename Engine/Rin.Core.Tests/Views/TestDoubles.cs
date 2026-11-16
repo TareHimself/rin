@@ -11,6 +11,24 @@ using Rin.Core.Views.Window;
 
 namespace Rin.Core.Tests.Views;
 
+/// <summary>
+///     Installs a <see cref="FakeApplication" /> for each test, which views need to be constructed.
+/// </summary>
+public abstract class FakeApplicationFixture
+{
+    [SetUp]
+    public void UseFakeApplication()
+    {
+        IApplication.Override = new FakeApplication();
+    }
+
+    [TearDown]
+    public void ClearFakeApplication()
+    {
+        IApplication.Override = null;
+    }
+}
+
 /// <summary>Minimal <see cref="IApplication" /> so <c>View</c> construction (AnimationRunner) works headlessly.</summary>
 internal sealed class FakeApplication : IApplication
 {

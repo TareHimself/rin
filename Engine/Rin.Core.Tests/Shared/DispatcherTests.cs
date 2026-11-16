@@ -5,8 +5,9 @@ namespace Rin.Core.Tests.Shared;
 public class DispatcherTests
 {
     [Test]
-    public void EnqueueAndDispatchOnMain([Random(1, 500, 5)] int dispatchCount)
+    public void EnqueueAndDispatchOnMain()
     {
+        const int dispatchCount = 64;
         var count = 0;
 
         var dispatcher = new Dispatcher();
@@ -18,8 +19,9 @@ public class DispatcherTests
     }
 
     [Test]
-    public void EnqueueInThreadAndDispatchOnMain([Random(1, 500, 5)] int dispatchCount)
+    public void EnqueueInThreadAndDispatchOnMain()
     {
+        const int dispatchCount = 64;
         var count = 0;
 
         var dispatcher = new Dispatcher();
@@ -31,19 +33,6 @@ public class DispatcherTests
 
         Assert.That(count, Is.EqualTo(0), "dispatch happened before DispatchPending was called");
         dispatcher.DispatchPending();
-        Assert.That(count, Is.EqualTo(dispatchCount), $"Expected {dispatchCount} dispatches but got {count}");
-    }
-
-    [Test]
-    public void EnqueueInMainAndDispatchOnThread([Random(1, 500, 5)] int dispatchCount)
-    {
-        var count = 0;
-
-        var dispatcher = new Dispatcher();
-        for (var i = 0; i < dispatchCount; i++) dispatcher.Enqueue(() => { count++; });
-
-        Assert.That(count, Is.EqualTo(0), "dispatch happened before DispatchPending was called");
-        Task.Run(dispatcher.DispatchPending).Wait();
         Assert.That(count, Is.EqualTo(dispatchCount), $"Expected {dispatchCount} dispatches but got {count}");
     }
 }

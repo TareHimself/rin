@@ -8,40 +8,38 @@ namespace Rin.World.Tests.Physics;
 /// <summary>
 ///     Exercises the real <see cref="BepuPhysicsSystem" />, guarding against the compounding-decay bug.
 /// </summary>
-public class TimeDilationTests
+public class TimeDilationTests : BepuFixture
 {
     private static Transform StartTransform => new() { Position = new Vector3(0, 50, 0), Orientation = Quaternion.Identity, Scale = Vector3.One };
 
     [Test]
     public void FullyDilatedBodyDoesNotDriftWhileNormalBodyFalls()
     {
-        var physics = new BepuPhysicsSystem();
-        var frozen = physics.CreateSphere(0.5f, StartTransform, PhysicsState.Simulated);
+        var frozen = Bepu.CreateSphere(0.5f, StartTransform, PhysicsState.Simulated);
         // Offset so the spheres don't overlap - contact response would move "frozen" too (not a position lock).
-        var normal = physics.CreateSphere(0.5f, StartTransform with { Position = StartTransform.Position + new Vector3(5, 0, 0) }, PhysicsState.Simulated);
-        physics.SetTimeScale(frozen, 0f);
+        var normal = Bepu.CreateSphere(0.5f, StartTransform with { Position = StartTransform.Position + new Vector3(5, 0, 0) }, PhysicsState.Simulated);
+        Bepu.SetTimeScale(frozen, 0f);
 
-        for (var i = 0; i < 30; i++) physics.Update(1f / 60f);
+        for (var i = 0; i < 30; i++) Bepu.Update(1f / 60f);
 
-        Assert.That(physics.GetPosition(frozen).Y, Is.EqualTo(StartTransform.Position.Y).Within(1e-3f),
+        Assert.That(Bepu.GetPosition(frozen).Y, Is.EqualTo(StartTransform.Position.Y).Within(1e-3f),
             "a fully time-scaled-to-zero body should not move even though gravity keeps pulling on it internally");
-        Assert.That(physics.GetPosition(normal).Y, Is.LessThan(StartTransform.Position.Y - 0.1f),
+        Assert.That(Bepu.GetPosition(normal).Y, Is.LessThan(StartTransform.Position.Y - 0.1f),
             "the undilated sibling should have visibly fallen over the same steps");
     }
 
     [Test]
     public void PartiallyDilatedBodyFallsProportionallySlowerWithoutDecayingAcrossManySteps()
     {
-        var physics = new BepuPhysicsSystem();
         const float scale = 0.25f;
-        var slow = physics.CreateSphere(0.5f, StartTransform, PhysicsState.Simulated);
-        var normal = physics.CreateSphere(0.5f, StartTransform with { Position = StartTransform.Position + new Vector3(5, 0, 0) }, PhysicsState.Simulated);
-        physics.SetTimeScale(slow, scale);
+        var slow = Bepu.CreateSphere(0.5f, StartTransform, PhysicsState.Simulated);
+        var normal = Bepu.CreateSphere(0.5f, StartTransform with { Position = StartTransform.Position + new Vector3(5, 0, 0) }, PhysicsState.Simulated);
+        Bepu.SetTimeScale(slow, scale);
 
-        for (var i = 0; i < 40; i++) physics.Update(1f / 60f);
+        for (var i = 0; i < 40; i++) Bepu.Update(1f / 60f);
 
-        var slowSpeed = physics.GetLinearVelocity(slow).Length();
-        var normalSpeed = physics.GetLinearVelocity(normal).Length();
+        var slowSpeed = Bepu.GetLinearVelocity(slow).Length();
+        var normalSpeed = Bepu.GetLinearVelocity(normal).Length();
 
         Assert.That(normalSpeed, Is.GreaterThan(0.1f), "sanity check: the undilated body should actually be falling");
         var ratio = slowSpeed / normalSpeed;
@@ -52,18 +50,17 @@ public class TimeDilationTests
     [Test]
     public void RestoringScaleToOneResumesAccumulatedMotionRatherThanRestartingFromRest()
     {
-        var physics = new BepuPhysicsSystem();
-        var body = physics.CreateSphere(0.5f, StartTransform, PhysicsState.Simulated);
-        physics.SetTimeScale(body, 0f);
+        var body = Bepu.CreateSphere(0.5f, StartTransform, PhysicsState.Simulated);
+        Bepu.SetTimeScale(body, 0f);
 
-        for (var i = 0; i < 20; i++) physics.Update(1f / 60f);
-        Assert.That(physics.GetLinearVelocity(body).Y, Is.EqualTo(0f).Within(1e-4f),
+        for (var i = 0; i < 20; i++) Bepu.Update(1f / 60f);
+        Assert.That(Bepu.GetLinearVelocity(body).Y, Is.EqualTo(0f).Within(1e-4f),
             "reported velocity should be pinned to zero while fully frozen");
 
-        physics.SetTimeScale(body, 1f);
-        physics.Update(1f / 60f);
+        Bepu.SetTimeScale(body, 1f);
+        Bepu.Update(1f / 60f);
 
-        Assert.That(physics.GetLinearVelocity(body).Y, Is.LessThan(-9f * (1f / 60f) * 1.5f),
+        Assert.That(Bepu.GetLinearVelocity(body).Y, Is.LessThan(-9f * (1f / 60f) * 1.5f),
             "unfreezing should immediately reflect the velocity accumulated while frozen, not restart from rest");
     }
 
@@ -78,9 +75,9 @@ public class TimeDilationTests
 
     private static float[] SimulateDilatedGrid()
     {
+        var physics = new BepuPhysicsSystem();
         const int count = 2048;
         const float scale = 0.25f;
-        var physics = new BepuPhysicsSystem();
         var bodies = new PhysicsBodyHandle[count];
         for (var i = 0; i < count; i++)
         {

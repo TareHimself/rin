@@ -122,6 +122,8 @@ public class OperatorPrecedenceTests
     [TestCase("Push.Output[0] = Push.A * Push.B + Push.C * Push.D;", "setItem(0, push.a * push.b + push.c * push.d);")]
     [TestCase("Push.Output[0] = Push.A + Push.B + Push.C;", "setItem(0, push.a + push.b + push.c);")]
     [TestCase("Push.Output[0] = -Push.A + Push.B;", "setItem(0, -push.a + push.b);")]
+    [TestCase("var isSmaller = !(Push.A > Push.B);", "var isSmaller = !(push.a > push.b);")]
+    [TestCase("var total = Push.A; total -= Push.B;", "total -= push.b;")]
     [TestCase("Push.Output[0] = Push.A - Push.B * Push.C;", "setItem(0, push.a - push.b * push.c);")]
     public void LeavesUnnecessaryParenthesesOut(string body, string expected)
     {

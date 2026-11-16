@@ -17,12 +17,14 @@ internal static class CompilationBuilder
 {
     // The full set of reference assemblies (not just System.Private.CoreLib) is needed so custom
     // attribute base-type resolution (e.g. ShaderAttribute -> Attribute) doesn't fail with CS0012.
-    private static readonly MetadataReference[] References = ((string)AppContext
+    public static readonly MetadataReference[] PlatformReferences = ((string)AppContext
             .GetData("TRUSTED_PLATFORM_ASSEMBLIES")!)
         .Split(Path.PathSeparator)
         .Select(path => (MetadataReference)MetadataReference.CreateFromFile(path))
-        .Append(MetadataReference.CreateFromFile(typeof(Shader).Assembly.Location))
         .ToArray();
+
+    public static readonly MetadataReference[] References =
+        [..PlatformReferences, MetadataReference.CreateFromFile(typeof(Shader).Assembly.Location)];
 
     public static Compilation Build(string source, string name = "RinShadeTests") =>
         Build([source], name);

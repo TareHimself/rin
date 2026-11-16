@@ -10,19 +10,17 @@ using Rin.Core.Views.Window;
 
 namespace Rin.Core.Tests.Views.Content;
 
-public class TextInputBoxViewTests
+public class TextInputBoxViewTests : FakeApplicationFixture
 {
     [SetUp]
     public void SetUp()
     {
-        IApplication.Override = new FakeApplication();
         IViewsModule.Override = new FakeViewsModule();
     }
 
     [TearDown]
     public void TearDown()
     {
-        IApplication.Override = null;
         IViewsModule.Override = null;
     }
 

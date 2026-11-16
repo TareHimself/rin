@@ -7,20 +7,8 @@ using Rin.Core.Views.Layouts;
 
 namespace Rin.Core.Tests.Views.Layouts;
 
-public class FlexLayoutTests
+public class FlexLayoutTests : FakeApplicationFixture
 {
-    [SetUp]
-    public void SetUp()
-    {
-        IApplication.Override = new FakeApplication();
-    }
-
-    [TearDown]
-    public void TearDown()
-    {
-        IApplication.Override = null;
-    }
-
     [Test]
     public void Column_with_finite_width_fills_it_even_when_its_children_are_narrower()
     {

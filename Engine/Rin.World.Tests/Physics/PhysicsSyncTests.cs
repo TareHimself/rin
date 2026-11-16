@@ -4,26 +4,11 @@ using Rin.World.Transforms;
 
 namespace Rin.World.Tests.Physics;
 
-public class PhysicsSyncTests
+public class PhysicsSyncTests : PhysicsFeatureFixture
 {
     private static readonly Quaternion QuarterTurnY = Quaternion.CreateFromAxisAngle(Vector3.UnitY, MathF.PI / 2);
 
-    private World _world = null!;
-    private FakePhysicsSystem _physics = null!;
-
-    [SetUp]
-    public void SetUp()
-    {
-        _world = new World();
-        _physics = new FakePhysicsSystem();
-        _ = new PhysicsFeature(_world, _physics);
-    }
-
     private static RigidBody Box(PhysicsState state) => new() { Shape = ColliderShape.Box(Vector3.One), State = state };
-
-    private void Tick() => _world.Update(_world.TickInterval);
-
-    private PhysicsBodyHandle HandleOf(Entity entity) => _world.Get<PhysicsBody>(entity).Handle;
 
     private Entity RotatedParentAt(Vector3 position)
     {

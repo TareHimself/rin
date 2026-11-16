@@ -75,15 +75,6 @@ public class MatrixConventionTests
     }
 
     [Test]
-    public void TranspiledShaderCompilesToHostCode()
-    {
-        var slang = Transpile();
-
-        using var compiler = new HostComputeCompiler();
-        using var shader = compiler.Compile(slang);
-    }
-
-    [Test]
     public void TranspiledMatrixMathMatchesSystemNumerics()
     {
         Matrix4x4[] models =

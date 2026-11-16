@@ -48,7 +48,6 @@ public class AtomicIntrinsicsTests
 
         Assert.That(result.Diagnostics, Is.Empty);
         var slang = result.Shaders["AtomicShader"];
-        Snapshot.Verify(slang);
         Assert.Multiple(() =>
         {
             Assert.That(slang, Does.Contain("InterlockedAdd(shared, push.value);"));

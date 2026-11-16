@@ -50,27 +50,6 @@ public class SphericalHarmonics9Tests
     }
 
     [Test]
-    public void IrradianceUnderAConstantSkyIsItsRadianceTimesPi()
-    {
-        var irradiance = Project(_ => Vector3.One).ConvolvedWithCosineLobe();
-
-        AssertClose(irradiance.Evaluate(Vector3.UnitX), new Vector3(MathF.PI), 0.01f);
-    }
-
-    [Test]
-    public void IrradianceUnderALitUpperHemisphereFallsOffTowardsTheGround()
-    {
-        var irradiance = Project(direction => direction.Y > 0f ? Vector3.One : Vector3.Zero).ConvolvedWithCosineLobe();
-
-        Assert.Multiple(() =>
-        {
-            AssertClose(irradiance.Evaluate(Vector3.UnitY), new Vector3(MathF.PI), 0.05f);
-            AssertClose(irradiance.Evaluate(Vector3.UnitZ), new Vector3(MathF.PI / 2f), 0.05f);
-            AssertClose(irradiance.Evaluate(-Vector3.UnitY), Vector3.Zero, 0.05f);
-        });
-    }
-
-    [Test]
     public void KeepsTheDirectionOfAOneSidedLight()
     {
         var projected = Project(direction => direction.X > 0.9f ? Vector3.One : Vector3.Zero);

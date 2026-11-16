@@ -8,20 +8,8 @@ using Rin.Core.Views.Layouts;
 
 namespace Rin.Core.Tests.Views.Composite;
 
-public class ScrollListViewTests
+public class ScrollListViewTests : FakeApplicationFixture
 {
-    [SetUp]
-    public void SetUp()
-    {
-        IApplication.Override = new FakeApplication();
-    }
-
-    [TearDown]
-    public void TearDown()
-    {
-        IApplication.Override = null;
-    }
-
     [Test]
     public void MaxScrollIsTheContentLengthBeyondTheGivenSpace()
     {

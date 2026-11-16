@@ -137,24 +137,7 @@ public class TextCaretLayoutTests
     private static GlyphRect[] Measure(string text)
     {
         var bounds = new GlyphRect[text.Length];
-        var column = 0;
-        var line = 0;
-        for (var i = 0; i < text.Length; i++)
-        {
-            bounds[i] = new GlyphRect
-            {
-                Character = text[i],
-                PenX = column * Advance,
-                Advance = Advance,
-                LineTop = line * LineHeight,
-                LineHeight = LineHeight
-            };
-            column++;
-            if (text[i] != '\n') continue;
-            column = 0;
-            line++;
-        }
-
+        FakeFont.Measure(text, bounds);
         return bounds;
     }
 }

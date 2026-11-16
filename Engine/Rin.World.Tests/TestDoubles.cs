@@ -10,6 +10,8 @@ using Rin.World.Graphics.Mesh;
 using Rin.World.Mesh.Skinning;
 using Rin.World.Mesh.Skinning.Animation;
 using Rin.World.Physics;
+using Rin.World.Physics.Bepu;
+using Rin.World.Transforms;
 
 namespace Rin.World.Tests;
 
@@ -168,6 +170,86 @@ internal sealed class FakeRenderSystem : IRenderSystem
     }
 }
 
+/// <summary>
+///     A world with a <see cref="RenderFeature" /> on fake render and mesh backends.
+/// </summary>
+public abstract class RenderFeatureFixture
+{
+    private protected World _world = null!;
+    private protected FakeRenderSystem _render = null!;
+    private protected FakeMeshFactory _meshes = null!;
+    private protected RenderFeature _feature = null!;
+
+    [SetUp]
+    public void CreateRenderFeature()
+    {
+        _world = new World();
+        _render = new FakeRenderSystem();
+        _meshes = new FakeMeshFactory();
+        _feature = new RenderFeature(_world, _render, _meshes);
+    }
+
+    [TearDown]
+    public void DisposeRenderBackends()
+    {
+        _render.Dispose();
+        _meshes.Dispose();
+    }
+
+    private protected Entity SpawnMesh(Vector3 position)
+    {
+        var entity = _world.Spawn();
+        _world.SetPosition(entity, position);
+        _world.Add(entity, new StaticMesh { Mesh = _meshes.Register(new FakeMesh()) });
+        return entity;
+    }
+}
+
+/// <summary>
+///     A world with a <see cref="PhysicsFeature" /> on a <see cref="FakePhysicsSystem" />.
+/// </summary>
+public abstract class PhysicsFeatureFixture
+{
+    private protected World _world = null!;
+    private protected FakePhysicsSystem _physics = null!;
+    private protected PhysicsFeature _feature = null!;
+
+    [SetUp]
+    public void CreatePhysicsFeature()
+    {
+        _world = new World();
+        _physics = new FakePhysicsSystem();
+        _feature = new PhysicsFeature(_world, _physics);
+    }
+
+    private protected PhysicsBodyHandle HandleOf(Entity entity) => _world.Get<PhysicsBody>(entity).Handle;
+
+    private protected void Tick() => _world.Update(_world.TickInterval);
+}
+
+/// <summary>
+///     Gives each test a real <see cref="BepuPhysicsSystem" /> and destroys it afterwards, which stops its worker threads.
+/// </summary>
+public abstract class BepuFixture
+{
+    private protected BepuPhysicsSystem Bepu { get; private set; } = null!;
+
+    [SetUp]
+    public void CreateBepu()
+    {
+        Bepu = new BepuPhysicsSystem();
+    }
+
+    [TearDown]
+    public void DestroyBepu()
+    {
+        Bepu.Destroy();
+    }
+
+    private protected static Transform At(Vector3 position) =>
+        new() { Position = position, Orientation = Quaternion.Identity, Scale = Vector3.One };
+}
+
 internal sealed class FakePhysicsSystem : IPhysicsSystem
 {
     private sealed class Body
@@ -185,8 +267,6 @@ internal sealed class FakePhysicsSystem : IPhysicsSystem
         public float CapsuleHalfHeight;
         public int CollisionChannel;
         public bool IsTrigger;
-
-        public float ApproxRadius => float.Max(BoxSize.Length() / 2f, float.Max(SphereRadius, CapsuleRadius + CapsuleHalfHeight));
     }
 
     private uint _nextIndex;
@@ -301,88 +381,47 @@ internal sealed class FakePhysicsSystem : IPhysicsSystem
 
     public void Destroy() => _bodies.Clear();
 
-    // Approximate: every body is treated as a bounding sphere. Good enough for a fake; BepuPhysicsSystem
-    // has the real implementation, exercised directly in PhysicsQueryTests.
-    public RayCastResult? RayCast(in Vector3 begin, in Vector3 direction, float distance, int channel = -1)
-    {
-        var closest = new ClosestHit();
-        RayCastAll(begin, direction, distance, ref closest, channel);
-        return closest.Hit ? closest.Result : null;
-    }
+    private static NotSupportedException NoQueries() => new("FakePhysicsSystem has no queries, use BepuPhysicsSystem");
+
+    public RayCastResult? RayCast(in Vector3 begin, in Vector3 direction, float distance, int channel = -1) =>
+        throw NoQueries();
 
     public void RayCastAll<THandler>(in Vector3 begin, in Vector3 direction, float distance, ref THandler handler, int channel = -1)
-        where THandler : struct, IPhysicsHitHandler
-    {
-        var dir = Vector3.Normalize(direction);
-        foreach (var (handle, body) in _bodies)
-        {
-            if (channel != -1 && body.CollisionChannel != channel) continue;
-            var toBody = body.Position - begin;
-            var t = Vector3.Dot(toBody, dir);
-            if (t < 0 || t > distance) continue;
-            var closest = begin + dir * t;
-            if (Vector3.Distance(closest, body.Position) > body.ApproxRadius) continue;
-            var hit = new RayCastResult { Body = handle, Location = closest, Normal = Vector3.Normalize(closest - body.Position), Distance = t };
-            if (!handler.OnHit(hit)) return;
-        }
-    }
-
-    private struct ClosestHit : IPhysicsHitHandler
-    {
-        public bool Hit;
-        public RayCastResult Result;
-
-        public bool OnHit(in RayCastResult hit)
-        {
-            if (!Hit || hit.Distance < Result.Distance)
-            {
-                Hit = true;
-                Result = hit;
-            }
-
-            return true;
-        }
-    }
+        where THandler : struct, IPhysicsHitHandler =>
+        throw NoQueries();
 
     public RayCastResult? SphereCast(float radius, in Vector3 begin, in Vector3 direction, float distance, int channel = -1) =>
-        RayCast(begin, direction, distance, channel);
+        throw NoQueries();
 
     public void SphereCastAll<THandler>(float radius, in Vector3 begin, in Vector3 direction, float distance, ref THandler handler, int channel = -1)
         where THandler : struct, IPhysicsHitHandler =>
-        RayCastAll(begin, direction, distance, ref handler, channel);
+        throw NoQueries();
 
     public RayCastResult? BoxCast(in Vector3 size, in Vector3 begin, in Quaternion orientation, in Vector3 direction, float distance, int channel = -1) =>
-        RayCast(begin, direction, distance, channel);
+        throw NoQueries();
 
     public void BoxCastAll<THandler>(in Vector3 size, in Vector3 begin, in Quaternion orientation, in Vector3 direction, float distance, ref THandler handler, int channel = -1)
         where THandler : struct, IPhysicsHitHandler =>
-        RayCastAll(begin, direction, distance, ref handler, channel);
+        throw NoQueries();
 
     public RayCastResult? CapsuleCast(float radius, float halfHeight, in Vector3 begin, in Quaternion orientation, in Vector3 direction, float distance, int channel = -1) =>
-        RayCast(begin, direction, distance, channel);
+        throw NoQueries();
 
     public void CapsuleCastAll<THandler>(float radius, float halfHeight, in Vector3 begin, in Quaternion orientation, in Vector3 direction, float distance, ref THandler handler, int channel = -1)
         where THandler : struct, IPhysicsHitHandler =>
-        RayCastAll(begin, direction, distance, ref handler, channel);
+        throw NoQueries();
 
     public void OverlapSphere<THandler>(float radius, in Vector3 center, ref THandler handler, int channel = -1)
-        where THandler : struct, IPhysicsOverlapHandler
-    {
-        foreach (var (handle, body) in _bodies)
-        {
-            if (channel != -1 && body.CollisionChannel != channel) continue;
-            if (Vector3.Distance(center, body.Position) > radius + body.ApproxRadius) continue;
-            if (!handler.OnOverlap(handle)) return;
-        }
-    }
+        where THandler : struct, IPhysicsOverlapHandler =>
+        throw NoQueries();
 
     public void OverlapBox<THandler>(in Vector3 size, in Vector3 center, in Quaternion orientation, ref THandler handler, int channel = -1)
         where THandler : struct, IPhysicsOverlapHandler =>
-        OverlapSphere(size.Length() / 2f, center, ref handler, channel);
+        throw NoQueries();
 
     public void OverlapCapsule<THandler>(float radius, float halfHeight, in Vector3 center, in Quaternion orientation, ref THandler handler, int channel = -1)
         where THandler : struct, IPhysicsOverlapHandler =>
-        OverlapSphere(radius + halfHeight, center, ref handler, channel);
+        throw NoQueries();
 }
 
 internal record struct Health(int Value) : IComponentData;

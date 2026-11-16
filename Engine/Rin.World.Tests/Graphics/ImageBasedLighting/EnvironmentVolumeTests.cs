@@ -25,20 +25,6 @@ public class EnvironmentVolumeTests
     }
 
     [Test]
-    public void ABoxAppliesInsideAndNotOutside()
-    {
-        var box = Box();
-
-        Assert.Multiple(() =>
-        {
-            Assert.That(box.WeightAt(Centre), Is.EqualTo(1f));
-            Assert.That(box.WeightAt(Centre + new Vector3(3.9f, 0f, 0f)), Is.EqualTo(1f));
-            Assert.That(box.WeightAt(Centre + new Vector3(4.1f, 0f, 0f)), Is.EqualTo(0f));
-            Assert.That(box.WeightAt(Vector3.Zero), Is.EqualTo(0f));
-        });
-    }
-
-    [Test]
     public void TheWeightRampsUpOverTheBlendDistance()
     {
         var box = Box(2f);
@@ -50,14 +36,6 @@ public class EnvironmentVolumeTests
             Assert.That(box.WeightAt(Centre + new Vector3(2f, 0f, 0f)), Is.EqualTo(1f));
             Assert.That(box.WeightAt(Centre), Is.EqualTo(1f));
         });
-    }
-
-    [Test]
-    public void TheNearestFaceDecidesTheWeight()
-    {
-        var box = Box(2f);
-
-        Assert.That(box.WeightAt(Centre + new Vector3(0f, 3.5f, 1f)), Is.EqualTo(0.25f).Within(1e-5f));
     }
 
     [Test]

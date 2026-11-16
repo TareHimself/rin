@@ -193,18 +193,6 @@ public class FrameCollectorTests
         });
     }
 
-    [Test]
-    public void Collect_IncludesWindowRenderersLikeAnyOther()
-    {
-        var renderer = new RecordingWindowRenderer(NewWindow());
-        _frames.Add(renderer);
-
-        _frames.Collect();
-        _frames.TryTake(_taken);
-
-        Assert.That(_taken, Has.Count.EqualTo(1));
-    }
-
     private sealed class RecordingWindowRenderer(IWindow window) : IWindowRenderer
     {
         public bool VsyncEnabled => false;

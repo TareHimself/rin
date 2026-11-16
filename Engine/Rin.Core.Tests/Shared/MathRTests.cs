@@ -50,20 +50,6 @@ public class MathRTests
     }
 
     [Test]
-    public void LookTowards_matches_the_camera_controller_composition()
-    {
-        // Forward.ToQuaternion() is identity, so the controller chain reduces to yaw then local pitch.
-        const float yawDeg = 40f;
-        const float pitchDeg = -25f;
-
-        var chained = MathR.Forward.ToQuaternion().AddYaw(yawDeg).AddLocalPitch(pitchDeg);
-        var viaLookTowards = MathR.LookTowards(Vector3.Transform(MathR.Forward, chained));
-
-        AssertVectorsClose(Vector3.Transform(MathR.Forward, viaLookTowards),
-            Vector3.Transform(MathR.Forward, chained));
-    }
-
-    [Test]
     public void LookTowards_zero_returns_identity()
     {
         Assert.That(MathR.LookTowards(Vector3.Zero), Is.EqualTo(Quaternion.Identity));

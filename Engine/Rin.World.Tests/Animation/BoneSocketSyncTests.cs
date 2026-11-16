@@ -7,23 +7,14 @@ using SkinnedMesh = Rin.World.Graphics.SkinnedMesh;
 
 namespace Rin.World.Tests.Animation;
 
-public class BoneSocketSyncTests
+public class BoneSocketSyncTests : RenderFeatureFixture
 {
-    private World _world = null!;
-    private FakeRenderSystem _render = null!;
-    private FakeMeshFactory _meshes = null!;
-    private RenderFeature _feature = null!;
     private FakePoseSource _source = null!;
     private Entity _parent;
 
     [SetUp]
     public void SetUp()
     {
-        _world = new World();
-        _render = new FakeRenderSystem();
-        _meshes = new FakeMeshFactory();
-        _feature = new RenderFeature(_world, _render, _meshes);
-
         _source = new FakePoseSource { Skeleton = TestSkeletons.WithSocket(new Vector3(2, 0, 0)), Pose = new SkeletalPose(2) };
         _parent = _world.Spawn();
         _world.SetPosition(_parent, new Vector3(10, 0, 0));
@@ -32,13 +23,6 @@ public class BoneSocketSyncTests
             Mesh = _meshes.Register(new FakeMesh()),
             PoseSource = _feature.PoseSources.Add(_source)
         });
-    }
-
-    [TearDown]
-    public void TearDown()
-    {
-        _render.Dispose();
-        _meshes.Dispose();
     }
 
     [Test]

@@ -16,17 +16,26 @@ public class DefaultWorldViewDataTests
     }
 
     [Test]
-    public void TheViewIsBuiltFromTheCameraViewWithoutItsScale()
+    public void TheViewIsBuiltFromTheCameraViewAndRenderSystemWithoutTheCameraScale()
     {
         var world = Matrix4x4.CreateScale(3f) * Matrix4x4.CreateTranslation(1, 2, 3);
-        var camera = new CameraView(world, 70f, 0.1f, 200f);
+        var camera = new CameraView(world, 70f, 0.1f, 200f)
+        {
+            Exposure = 0.5f,
+            ToneMapCurve = ToneMapCurve.Aces,
+            Channel = RenderChannel.LightCount
+        };
+        var render = new DefaultRenderSystem { DrawMode = MeshDrawMode.Direct };
 
-        var view = (DefaultWorldViewData)new DefaultRenderSystem().Snapshot(camera, new Extent2D(1, 1));
+        var view = (DefaultWorldViewData)render.Snapshot(camera, new Extent2D(1, 1));
 
         Assert.That(view.ViewTransform.Position, Is.EqualTo(new Vector3(1, 2, 3)));
         Assert.That(view.ViewTransform.Scale, Is.EqualTo(Vector3.One));
         Assert.That(view.View, Is.EqualTo(Matrix4x4.CreateTranslation(-1, -2, -3)));
         Assert.That((view.FieldOfView, view.NearClip, view.FarClip), Is.EqualTo((70f, 0.1f, 200f)));
+        Assert.That((view.Exposure, view.ToneMapCurve), Is.EqualTo((0.5f, ToneMapCurve.Aces)));
+        Assert.That(view.Channel, Is.EqualTo(RenderChannel.LightCount));
+        Assert.That(view.DrawMode, Is.EqualTo(MeshDrawMode.Direct));
     }
 
     [TestCase(MeshDrawMode.Auto, true, true)]
@@ -64,24 +73,6 @@ public class DefaultWorldViewDataTests
         Assert.That(passes[^1], Is.TypeOf<SkyPass>());
     }
 
-    [Test]
-    public void TheViewCarriesTheCameraExposureAndCurve()
-    {
-        var camera = TestCameras.Identity with { Exposure = 0.5f, ToneMapCurve = ToneMapCurve.Aces };
-
-        var view = (DefaultWorldViewData)new DefaultRenderSystem().Snapshot(camera, new Extent2D(1, 1));
-
-        Assert.That((view.Exposure, view.ToneMapCurve), Is.EqualTo((0.5f, ToneMapCurve.Aces)));
-    }
-
-    [Test]
-    public void ACameraViewDefaultsToUnitExposureAndAgX()
-    {
-        var view = new CameraView(Matrix4x4.Identity, 90f, 0.1f, 100f);
-
-        Assert.That((view.Exposure, view.ToneMapCurve), Is.EqualTo((1f, ToneMapCurve.AgX)));
-    }
-
     [TestCase(RenderChannel.Scene, true)]
     [TestCase(RenderChannel.Normal, false)]
     [TestCase(RenderChannel.LightCount, false)]
@@ -117,23 +108,5 @@ public class DefaultWorldViewDataTests
             typeof(LightGridPass),
             typeof(ForwardDirectPass)
         }));
-    }
-
-    [Test]
-    public void RenderSystemPassesItsDrawModeToTheViews()
-    {
-        var render = new DefaultRenderSystem { DrawMode = MeshDrawMode.Direct };
-
-        Assert.That(CreateView(render).DrawMode, Is.EqualTo(MeshDrawMode.Direct));
-    }
-
-    [Test]
-    public void TheViewDrawsTheChannelItsCameraViewAsksFor()
-    {
-        var camera = TestCameras.Identity with { Channel = RenderChannel.LightCount };
-
-        var view = (DefaultWorldViewData)new DefaultRenderSystem().Snapshot(camera, new Extent2D(1, 1));
-
-        Assert.That(view.Channel, Is.EqualTo(RenderChannel.LightCount));
     }
 }
