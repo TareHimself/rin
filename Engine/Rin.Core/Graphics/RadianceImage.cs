@@ -21,15 +21,17 @@ public static class RadianceImage
 
     public static Extent2D ReadExtent(ReadOnlySpan<byte> data)
     {
-        return ReadHeader(data, out _);
+        return ReadHeader(data, out _, out _);
     }
 
     /// <summary>
-    ///     Decodes into <paramref name="rgba" />, which must hold width * height * 4 floats. Alpha is 1.
+    ///     Decodes into <paramref name="rgba" />, which must hold width * height * 4 floats. Alpha is 1. The header's
+    ///     EXPOSURE is divided back out.
     /// </summary>
     public static void Decode(ReadOnlySpan<byte> data, Span<float> rgba)
     {
-        var extent = ReadHeader(data, out var pixels);
+        var extent = ReadHeader(data, out var pixels, out var exposure);
+        var gain = 1f / exposure;
         var width = (int)extent.Width;
         var rowLength = width * Channels;
         if (rgba.Length != (long)rowLength * extent.Height)
@@ -43,8 +45,8 @@ public static class RadianceImage
             {
                 var row = rgba.Slice(y * rowLength, rowLength);
                 pixels = IsRunLengthEncoded(pixels, width)
-                    ? DecodeRunLengthScanline(pixels, planes, row)
-                    : DecodeFlatScanline(pixels, row);
+                    ? DecodeRunLengthScanline(pixels, planes, row, gain)
+                    : DecodeFlatScanline(pixels, row, gain);
             }
         }
         finally
@@ -62,14 +64,20 @@ public static class RadianceImage
         return scales;
     }
 
-    private static Extent2D ReadHeader(ReadOnlySpan<byte> data, out ReadOnlySpan<byte> pixels)
+    private static Extent2D ReadHeader(ReadOnlySpan<byte> data, out ReadOnlySpan<byte> pixels, out float exposure)
     {
         if (!IsRadiance(data)) throw new InvalidDataException("Not a Radiance image.");
 
         var remaining = data;
         var isRgbe = false;
+        exposure = 1f;
         for (var line = ReadLine(ref remaining); !line.IsEmpty; line = ReadLine(ref remaining))
+        {
             isRgbe |= line.SequenceEqual("FORMAT=32-bit_rle_rgbe"u8);
+            // Each tool that rescales the pixels adds its own line, so the factors multiply.
+            if (line.StartsWith("EXPOSURE="u8)) exposure *= ParseExposure(line["EXPOSURE=".Length..]);
+        }
+
         if (!isRgbe) throw new InvalidDataException("Only 32-bit_rle_rgbe Radiance images are supported.");
 
         var extent = ParseResolution(ReadLine(ref remaining));
@@ -85,6 +93,14 @@ public static class RadianceImage
         var line = remaining[..length].TrimEnd((byte)'\r');
         remaining = remaining[(length + 1)..];
         return line;
+    }
+
+    private static float ParseExposure(ReadOnlySpan<byte> value)
+    {
+        if (!Utf8Parser.TryParse(value.Trim((byte)' '), out float exposure, out _) || !(exposure > 0f)
+            || !float.IsFinite(exposure))
+            throw new InvalidDataException("Radiance EXPOSURE must be a positive number.");
+        return exposure;
     }
 
     private static Extent2D ParseResolution(ReadOnlySpan<byte> line)
@@ -111,7 +127,7 @@ public static class RadianceImage
     }
 
     private static ReadOnlySpan<byte> DecodeRunLengthScanline(ReadOnlySpan<byte> pixels, Span<byte> planes,
-        Span<float> row)
+        Span<float> row, float gain)
     {
         pixels = pixels[4..];
         var width = planes.Length / Channels;
@@ -123,7 +139,7 @@ public static class RadianceImage
         var blue = planes.Slice(width * 2, width);
         var exponent = planes.Slice(width * 3, width);
         for (var x = 0; x < width; x++)
-            WritePixel(row.Slice(x * Channels, Channels), red[x], green[x], blue[x], exponent[x]);
+            WritePixel(row.Slice(x * Channels, Channels), red[x], green[x], blue[x], exponent[x], gain);
         return pixels;
     }
 
@@ -156,18 +172,18 @@ public static class RadianceImage
         return pixels;
     }
 
-    private static ReadOnlySpan<byte> DecodeFlatScanline(ReadOnlySpan<byte> pixels, Span<float> row)
+    private static ReadOnlySpan<byte> DecodeFlatScanline(ReadOnlySpan<byte> pixels, Span<float> row, float gain)
     {
         if (pixels.Length < row.Length) throw Truncated();
 
         for (var i = 0; i < row.Length; i += Channels)
-            WritePixel(row.Slice(i, Channels), pixels[i], pixels[i + 1], pixels[i + 2], pixels[i + 3]);
+            WritePixel(row.Slice(i, Channels), pixels[i], pixels[i + 1], pixels[i + 2], pixels[i + 3], gain);
         return pixels[row.Length..];
     }
 
-    private static void WritePixel(Span<float> pixel, byte red, byte green, byte blue, byte exponent)
+    private static void WritePixel(Span<float> pixel, byte red, byte green, byte blue, byte exponent, float gain)
     {
-        var scale = ExponentScales[exponent];
+        var scale = ExponentScales[exponent] * gain;
         pixel[3] = 1f;
         pixel[2] = blue * scale;
         pixel[1] = green * scale;

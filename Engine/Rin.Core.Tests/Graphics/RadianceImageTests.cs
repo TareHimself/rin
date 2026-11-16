@@ -14,7 +14,18 @@ public class RadianceImageTests
 
     private static byte[] Hdr(string resolution, params byte[] pixels)
     {
-        var header = Encoding.ASCII.GetBytes($"#?RADIANCE\nFORMAT=32-bit_rle_rgbe\n\n{resolution}\n");
+        return HdrWithHeader("", resolution, pixels);
+    }
+
+    private static byte[] HdrWithExposures(float[] exposures, int width, int height, params byte[] pixels)
+    {
+        var lines = string.Concat(exposures.Select(exposure => FormattableString.Invariant($"EXPOSURE={exposure}\n")));
+        return HdrWithHeader(lines, $"-Y {height} +X {width}", pixels);
+    }
+
+    private static byte[] HdrWithHeader(string headerLines, string resolution, params byte[] pixels)
+    {
+        var header = Encoding.ASCII.GetBytes($"#?RADIANCE\nFORMAT=32-bit_rle_rgbe\n{headerLines}\n{resolution}\n");
         return [.. header, .. pixels];
     }
 
@@ -74,6 +85,58 @@ public class RadianceImageTests
         var rgba = Decode(Hdr(1, 1, 200, 100, 50, 0));
 
         Assert.That(rgba, Is.EqualTo(new[] { 0f, 0f, 0f, 1f }));
+    }
+
+    [Test]
+    public void DividesTheExposureBackOut()
+    {
+        var rgba = Decode(HdrWithExposures([2f], 1, 1, 128, 64, 0, 129));
+
+        Assert.That(rgba, Is.EqualTo(new[] { 0.5f, 0.25f, 0f, 1f }));
+    }
+
+    [Test]
+    public void MultipliesRepeatedExposures()
+    {
+        var rgba = Decode(HdrWithExposures([2f, 4f], 1, 1, 128, 64, 0, 131));
+
+        Assert.That(rgba, Is.EqualTo(new[] { 0.5f, 0.25f, 0f, 1f }));
+    }
+
+    [Test]
+    public void DividesTheExposureOutOfRunLengthScanlines()
+    {
+        byte[] scanline = [2, 2, 0, RunLengthWidth, 128 + 8, 128, 128 + 8, 0, 128 + 8, 0, 128 + 8, 129];
+
+        var rgba = Decode(HdrWithExposures([2f], RunLengthWidth, 1, scanline));
+
+        Assert.That(rgba.AsSpan(0, 4).ToArray(), Is.EqualTo(new[] { 0.5f, 0f, 0f, 1f }));
+    }
+
+    [Test]
+    public void AcceptsASpaceBeforeTheExposure()
+    {
+        var rgba = Decode(HdrWithHeader("EXPOSURE= 2.0\n", "-Y 1 +X 1", 128, 64, 0, 129));
+
+        Assert.That(rgba, Is.EqualTo(new[] { 0.5f, 0.25f, 0f, 1f }));
+    }
+
+    [TestCase(0f)]
+    [TestCase(-1f)]
+    [TestCase(float.PositiveInfinity)]
+    public void RejectsAnExposureThatIsNotPositiveAndFinite(float exposure)
+    {
+        var file = HdrWithExposures([exposure], 1, 1, 128, 128, 128, 128);
+
+        Assert.Throws<InvalidDataException>(() => Decode(file));
+    }
+
+    [Test]
+    public void RejectsAnExposureThatIsNotANumber()
+    {
+        var file = HdrWithHeader("EXPOSURE=bright\n", "-Y 1 +X 1", 128, 128, 128, 128);
+
+        Assert.Throws<InvalidDataException>(() => Decode(file));
     }
 
     [Test]
