@@ -48,4 +48,15 @@ public class Bounds3DTests
         Assert.That(transformed.Min, Is.EqualTo(new Vector3(-2, -2, -2)));
         Assert.That(transformed.Max, Is.EqualTo(new Vector3(-1, -1, -1)));
     }
+    [Test]
+    public void TransformByARotationEnclosesEveryRotatedCorner()
+    {
+        var bounds = new Bounds3D { Min = new Vector3(-1, -1, -1), Max = new Vector3(1, 1, 1) };
+        var diagonal = MathF.Sqrt(2f);
+
+        var transformed = bounds.Transform(Matrix4x4.CreateRotationY(MathF.PI / 4f) * Matrix4x4.CreateTranslation(5, 0, 0));
+
+        Assert.That(Vector3.Distance(transformed.Min, new Vector3(5 - diagonal, -1, -diagonal)), Is.LessThan(1e-5f));
+        Assert.That(Vector3.Distance(transformed.Max, new Vector3(5 + diagonal, 1, diagonal)), Is.LessThan(1e-5f));
+    }
 }

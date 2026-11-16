@@ -1,11 +1,12 @@
 namespace Rin.Core.Shared.Time;
 
-public class Chronometer : IChronometer
+public class Chronometer(TimeProvider? timeProvider = null) : IChronometer
 {
+    private readonly TimeProvider _timeProvider = timeProvider ?? TimeProvider.System;
     private double _accumulatedTime;
-    private DateTime _startedAt = DateTime.UtcNow;
+    private DateTimeOffset _startedAt = (timeProvider ?? TimeProvider.System).GetUtcNow();
 
-    public double ElapsedTime => (DateTime.UtcNow - _startedAt).TotalSeconds;
+    public double ElapsedTime => (_timeProvider.GetUtcNow() - _startedAt).TotalSeconds;
     public bool IsRunning { get; private set; }
 
     public double TotalSeconds => IsRunning ? _accumulatedTime + ElapsedTime : _accumulatedTime;
@@ -13,7 +14,7 @@ public class Chronometer : IChronometer
     public void Start()
     {
         if (IsRunning) return;
-        _startedAt = DateTime.UtcNow;
+        _startedAt = _timeProvider.GetUtcNow();
         IsRunning = true;
     }
 
@@ -26,16 +27,12 @@ public class Chronometer : IChronometer
 
     public void Reset()
     {
-        if (IsRunning) _startedAt = DateTime.UtcNow;
+        if (IsRunning) _startedAt = _timeProvider.GetUtcNow();
         _accumulatedTime = 0;
     }
 
     public void SetTime(double seconds)
     {
-        var now = DateTime.UtcNow;
-        var elapsed = IsRunning ? (now - _startedAt).TotalSeconds : 0.0;
-        var total = _accumulatedTime + elapsed;
-        var delta = seconds - total;
-        _accumulatedTime += delta;
+        _accumulatedTime += seconds - TotalSeconds;
     }
 }

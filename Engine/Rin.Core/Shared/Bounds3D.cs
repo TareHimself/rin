@@ -42,21 +42,23 @@ public record struct Bounds3D : IAdditionOperators<Bounds3D, Bounds3D, Bounds3D>
         };
     }
 
+    /// <summary>
+    ///     The axis-aligned box that encloses this one after the transform, rotation included
+    /// </summary>
     [Pure]
     public Bounds3D Transform(in Matrix4x4 matrix)
     {
-        var min = Min.Transform(matrix);
-        var max = Max.Transform(matrix);
-
-        var temp = min;
-
-        min = Vector3.Min(min, max);
-        max = Vector3.Max(max, temp);
+        var center = ((Min + Max) * 0.5f).Transform(matrix);
+        var extent = (Max - Min) * 0.5f;
+        var transformedExtent = new Vector3(
+            extent.X * MathF.Abs(matrix.M11) + extent.Y * MathF.Abs(matrix.M21) + extent.Z * MathF.Abs(matrix.M31),
+            extent.X * MathF.Abs(matrix.M12) + extent.Y * MathF.Abs(matrix.M22) + extent.Z * MathF.Abs(matrix.M32),
+            extent.X * MathF.Abs(matrix.M13) + extent.Y * MathF.Abs(matrix.M23) + extent.Z * MathF.Abs(matrix.M33));
 
         return new Bounds3D
         {
-            Min = min,
-            Max = max
+            Min = center - transformedExtent,
+            Max = center + transformedExtent
         };
     }
 
