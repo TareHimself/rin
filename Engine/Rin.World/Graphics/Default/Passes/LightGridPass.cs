@@ -92,7 +92,7 @@ public partial class LightGridPass(DefaultWorldViewData view) : IComputePass
             TilesY = TilesY,
             WordCount = wordCount,
             Near = view.NearClip,
-            BinScale = ClusterBinner.BinCount / float.Log(view.FarClip / view.NearClip),
+            BinScale = ClusterBinner.BinScale(view.NearClip, view.FarClip),
             TanHalfFovY = float.Tan(float.DegreesToRadians(view.FieldOfView / 2f)),
             Aspect = view.Extent.Width / (float)view.Extent.Height
         });

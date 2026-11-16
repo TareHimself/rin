@@ -171,7 +171,8 @@ public static class LightGrid
     }
 
     /// <summary>
-    ///     The z-bin of a view depth. The same formula as <see cref="ClusterBinner.BinOf" />, with the scale precomputed.
+    ///     The z-bin of a view depth, for the binner on the CPU and the shading loop alike. <paramref name="binScale" />
+    ///     is <see cref="ClusterBinner.BinScale" />.
     /// </summary>
     public static uint BinOf(float depth, float near, float binScale)
     {

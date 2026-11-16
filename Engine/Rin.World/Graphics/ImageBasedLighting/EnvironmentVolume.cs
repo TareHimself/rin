@@ -1,4 +1,5 @@
 using System.Numerics;
+using Rin.World.Graphics.Default.Shaders;
 
 namespace Rin.World.Graphics.ImageBasedLighting;
 
@@ -60,9 +61,6 @@ public struct EnvironmentVolume
         if (IsUnbounded) return 1f;
         if (!Matrix4x4.Invert(Transform, out var toLocal)) return 0f;
 
-        var inside = Extent - Vector3.Abs(Vector3.Transform(position, toLocal));
-        var depth = MathF.Min(inside.X, MathF.Min(inside.Y, inside.Z));
-        if (depth < 0f) return 0f;
-        return BlendDistance > 0f ? MathF.Min(depth / BlendDistance, 1f) : 1f;
+        return EnvironmentLighting.BoxWeight(Vector3.Transform(position, toLocal), Extent, BlendDistance);
     }
 }

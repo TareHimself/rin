@@ -1,6 +1,7 @@
 using System.Numerics;
 using Rin.Core.Graphics;
 using Rin.Shade;
+using Rin.World.Graphics.ImageBasedLighting;
 using static Rin.Shade.Shader;
 
 namespace Rin.World.Graphics.Default.Shaders;
@@ -61,21 +62,17 @@ public static class EnvironmentFiltering
         var totalWeight = 0f;
         for (var i = 0u; i < SampleCount; i++)
         {
-            var spread = RadicalInverse(i);
-            var cosHalf = Sqrt((1f - spread) / (1f + (alpha * alpha - 1f) * spread));
-            var sinHalf = Sqrt(1f - cosHalf * cosHalf);
-            var around = Tau * (i + 0.5f) / SampleCount;
+            var half = GgxSampling.HalfVector((i + 0.5f) / SampleCount, GgxSampling.RadicalInverse(i), alpha);
 
             // The light direction is the head-on view mirrored about the sampled half vector.
-            var facing = 2f * cosHalf * cosHalf - 1f;
+            var mirrored = half * (2f * half.Z);
+            var facing = mirrored.Z - 1f;
             if (facing <= 0f) continue;
 
-            var sideways = 2f * cosHalf * sinHalf;
-            var light = tangent * (sideways * Cos(around)) + bitangent * (sideways * Sin(around)) + normal * facing;
+            var light = tangent * mirrored.X + bitangent * mirrored.Y + normal * facing;
 
             // A direction that is sampled rarely stands for a wide patch of sky, so it reads a blurrier mip.
-            var spreadTerm = cosHalf * cosHalf * (alpha * alpha - 1f) + 1f;
-            var density = alpha * alpha / (Pi * spreadTerm * spreadTerm) / 4f;
+            var density = GgxSampling.Density(half.Z, alpha) / 4f;
             var level = 0.5f * Log2(1f / (SampleCount * density * texelSolidAngle)) + 1f;
 
             total += Look(panorama, light, Max(level, sharpestLevel), panoramaSize.Y) * facing;
@@ -95,14 +92,4 @@ public static class EnvironmentFiltering
         return BindlessData.SampleTextureLevel(panorama, coordinate, level, ImageTiling.Repeat, ImageFilter.Linear).XYZ;
     }
 
-    // The bits of the index mirrored around the binary point, an evenly spread sequence in 0 to 1.
-    private static float RadicalInverse(uint index)
-    {
-        var bits = (index << 16) | (index >> 16);
-        bits = ((bits & 0x55555555u) << 1) | ((bits & 0xAAAAAAAAu) >> 1);
-        bits = ((bits & 0x33333333u) << 2) | ((bits & 0xCCCCCCCCu) >> 2);
-        bits = ((bits & 0x0F0F0F0Fu) << 4) | ((bits & 0xF0F0F0F0u) >> 4);
-        bits = ((bits & 0x00FF00FFu) << 8) | ((bits & 0xFF00FF00u) >> 8);
-        return bits * 2.3283064365386963e-10f;
-    }
 }

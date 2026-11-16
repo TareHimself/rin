@@ -120,9 +120,15 @@ public sealed class ClusterBinner
     /// </summary>
     public static int BinOf(float depth, float near, float far)
     {
-        if (depth <= near) return 0;
-        var bin = (int)(float.Log(depth / near) * BinCount / float.Log(far / near));
-        return int.Clamp(bin, 0, BinCount - 1);
+        return (int)LightGrid.BinOf(depth, near, BinScale(near, far));
+    }
+
+    /// <summary>
+    ///     Bins per unit of log depth, the factor <see cref="LightGrid.BinOf" /> takes precomputed.
+    /// </summary>
+    public static float BinScale(float near, float far)
+    {
+        return BinCount / float.Log(far / near);
     }
 
     /// <summary>
