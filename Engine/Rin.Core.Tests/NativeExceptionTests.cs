@@ -9,7 +9,7 @@ public class NativeExceptionTests
     }
 
     [Test]
-    public void Message_NamesTheFunctionLibraryAndCode()
+    public void MessageNamesTheFunctionLibraryAndCode()
     {
         var exception = new NativeException("Rin.Fake.Native", "fakeCreate", FakeResult.DeviceLost);
 

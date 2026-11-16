@@ -23,7 +23,7 @@ public class MiniaudioGroupTests
     }
 
     [Test]
-    public void Volume_ReadsAndWritesTheMixer()
+    public void VolumeReadsAndWritesTheMixer()
     {
         _group.Volume = 0.5f;
 
@@ -35,7 +35,7 @@ public class MiniaudioGroupTests
     }
 
     [Test]
-    public void Play_StartsTheSampleOnThisMixer()
+    public void PlayStartsTheSampleOnThisMixer()
     {
         using var sample = new MiniaudioAudioSample(_engine, 42);
 
@@ -45,13 +45,13 @@ public class MiniaudioGroupTests
     }
 
     [Test]
-    public void Play_RejectsASampleFromAnotherBackend()
+    public void PlayRejectsASampleFromAnotherBackend()
     {
         Assert.Throws<ArgumentException>(() => _group.Play(new ForeignSample()));
     }
 
     [Test]
-    public void CreateSubGroup_CreatesAMixerUnderThisOne()
+    public void CreateSubGroupCreatesAMixerUnderThisOne()
     {
         using var child = (MiniaudioAudioGroup)_group.CreateSubGroup();
 
@@ -63,7 +63,7 @@ public class MiniaudioGroupTests
     }
 
     [Test]
-    public void CreatePushStream_PassesTheFormat()
+    public void CreatePushStreamPassesTheFormat()
     {
         using var stream = _group.CreatePushStream(48000, 2);
 
@@ -71,7 +71,7 @@ public class MiniaudioGroupTests
     }
 
     [Test]
-    public void AddEffect_WhenTheMixerRejectsIt_SurfacesTheNativeCode()
+    public void AddEffectWhenTheMixerRejectsItSurfacesTheNativeCode()
     {
         _engine.FailNext(MiniaudioEngine.AudioResult.MiniaudioError);
 
@@ -81,7 +81,7 @@ public class MiniaudioGroupTests
     }
 
     [Test]
-    public void DisposingTheController_RemovesTheEffectOnce()
+    public void DisposingTheControllerRemovesTheEffectOnce()
     {
         var controller = _group.AddEffect(new FakeEffectDescriptor());
 
@@ -93,7 +93,7 @@ public class MiniaudioGroupTests
     }
 
     [Test]
-    public void RemoveEffect_ReleasesTheDescriptorBuffers()
+    public void RemoveEffectReleasesTheDescriptorBuffers()
     {
         var descriptor = new FakeEffectDescriptor();
         var controller = _group.AddEffect(descriptor);
@@ -108,7 +108,7 @@ public class MiniaudioGroupTests
     }
 
     [Test]
-    public void Controller_WritesParametersIntoTheSharedBuffer()
+    public void ControllerWritesParametersIntoTheSharedBuffer()
     {
         var controller = _group.AddEffect(new FakeEffectDescriptor());
 
@@ -119,7 +119,7 @@ public class MiniaudioGroupTests
     }
 
     [Test]
-    public void Dispose_RemovesEffectsBeforeDisposingTheMixer()
+    public void DisposeRemovesEffectsBeforeDisposingTheMixer()
     {
         var first = _group.AddEffect(new FakeEffectDescriptor());
         var second = _group.AddEffect(new FakeEffectDescriptor());
@@ -136,7 +136,7 @@ public class MiniaudioGroupTests
     }
 
     [Test]
-    public void Dispose_Twice_DisposesTheMixerOnce()
+    public void DisposeTwiceDisposesTheMixerOnce()
     {
         _group.Dispose();
         _group.Dispose();
@@ -145,7 +145,7 @@ public class MiniaudioGroupTests
     }
 
     [Test]
-    public void Dispose_OnTheMasterGroup_DoesNothing()
+    public void DisposeOnTheMasterGroupDoesNothing()
     {
         var master = new MiniaudioAudioGroup(_engine, _engine.MasterMixer, isMaster: true);
 
@@ -159,7 +159,7 @@ public class MiniaudioGroupTests
     }
 
     [Test]
-    public void UseAfterDispose_Throws()
+    public void UseAfterDisposeThrows()
     {
         _group.Dispose();
 

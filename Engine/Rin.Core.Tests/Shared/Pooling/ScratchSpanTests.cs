@@ -6,7 +6,7 @@ namespace Rin.Core.Tests.Shared.Pooling;
 public class ScratchSpanTests
 {
     [Test]
-    public void A_stack_buffer_that_fits_is_used_at_the_exact_length()
+    public void AStackBufferThatFitsIsUsedAtTheExactLength()
     {
         Span<int> stack = stackalloc int[8];
 
@@ -19,7 +19,7 @@ public class ScratchSpanTests
     }
 
     [Test]
-    public void Without_a_stack_buffer_it_rents_at_the_exact_length()
+    public void WithoutAStackBufferItRentsAtTheExactLength()
     {
         using var scratch = new ScratchSpan<int>(100, default);
 
@@ -27,7 +27,7 @@ public class ScratchSpanTests
     }
 
     [Test]
-    public void A_rented_span_is_zeroed_even_when_the_pool_hands_back_dirty_memory()
+    public void ARentedSpanIsZeroedEvenWhenThePoolHandsBackDirtyMemory()
     {
         using (var dirty = new ScratchSpan<long>(64, default)) dirty.Span.Fill(-1);
 
@@ -37,7 +37,7 @@ public class ScratchSpanTests
     }
 
     [Test]
-    public void A_stack_span_is_zeroed()
+    public void AStackSpanIsZeroed()
     {
         Span<long> stack = stackalloc long[4];
         stack.Fill(-1);
@@ -48,7 +48,7 @@ public class ScratchSpanTests
     }
 
     [Test]
-    public void The_conditional_stackalloc_form_compiles_and_works_both_ways()
+    public void TheConditionalStackallocFormCompilesAndWorksBothWays()
     {
         Assert.Multiple(() =>
         {

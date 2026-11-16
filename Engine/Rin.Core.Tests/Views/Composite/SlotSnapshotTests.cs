@@ -9,7 +9,7 @@ namespace Rin.Core.Tests.Views.Composite;
 public class SlotSnapshotTests : FakeApplicationFixture
 {
     [Test]
-    public void GetSlots_returns_the_same_array_until_a_slot_changes()
+    public void GetSlotsReturnsTheSameArrayUntilASlotChanges()
     {
         var switcher = new SwitcherView();
         switcher.Add(new SpyView());
@@ -18,7 +18,7 @@ public class SlotSnapshotTests : FakeApplicationFixture
     }
 
     [Test]
-    public void Removing_a_child_does_not_change_a_snapshot_already_taken()
+    public void RemovingAChildDoesNotChangeASnapshotAlreadyTaken()
     {
         var switcher = new SwitcherView();
         var a = new SpyView();
@@ -34,7 +34,7 @@ public class SlotSnapshotTests : FakeApplicationFixture
     }
 
     [Test]
-    public void Adding_while_iterating_a_snapshot_does_not_throw_or_extend_the_loop()
+    public void AddingWhileIteratingASnapshotDoesNotThrowOrExtendTheLoop()
     {
         var switcher = new SwitcherView();
         switcher.Add(new SpyView());
@@ -52,7 +52,7 @@ public class SlotSnapshotTests : FakeApplicationFixture
     }
 
     [Test]
-    public void GetActiveSlots_is_cached_and_follows_selection_and_removal()
+    public void GetActiveSlotsIsCachedAndFollowsSelectionAndRemoval()
     {
         var switcher = new SwitcherView();
         var a = new SpyView();
@@ -70,7 +70,7 @@ public class SlotSnapshotTests : FakeApplicationFixture
     }
 
     [Test]
-    public void Single_slot_view_slots_follow_SetChild_and_are_cached()
+    public void SingleSlotViewSlotsFollowSetChildAndAreCached()
     {
         var rect = new RectView();
         Assert.That(rect.GetSlots(), Is.Empty);
@@ -85,7 +85,7 @@ public class SlotSnapshotTests : FakeApplicationFixture
     }
 
     [Test]
-    public void Collapsed_children_take_no_space_in_a_list()
+    public void CollapsedChildrenTakeNoSpaceInAList()
     {
         var list = new ListView(Rin.Core.Views.Layouts.Axis.Column);
         var shown = new SizedView();

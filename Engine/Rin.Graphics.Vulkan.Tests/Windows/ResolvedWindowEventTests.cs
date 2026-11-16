@@ -26,7 +26,7 @@ public class ResolvedWindowEventTests
     [TestCase((uint)Native.Window.EventType.CursorMove)]
     [TestCase((uint)Native.Window.EventType.CursorButton)]
     [TestCase((uint)Native.Window.EventType.Scroll)]
-    public void Resolve_CursorEvents_ReadTheWindowsCursorPosition(uint type)
+    public void ResolveCursorEventsReadTheWindowsCursorPosition(uint type)
     {
         var resolved = ResolvedWindowEvent.Resolve(Event((Native.Window.EventType)type));
 
@@ -38,7 +38,7 @@ public class ResolvedWindowEventTests
     }
 
     [Test]
-    public void Resolve_TextCommit_CopiesTheTextBehindTheRef()
+    public void ResolveTextCommitCopiesTheTextBehindTheRef()
     {
         FakeNative.SetEventText("xyz");
         var e = Event(Native.Window.EventType.TextCommit);
@@ -50,7 +50,7 @@ public class ResolvedWindowEventTests
     }
 
     [Test]
-    public void Resolve_TextPreedit_CopiesTheTextBehindTheRef()
+    public void ResolveTextPreeditCopiesTheTextBehindTheRef()
     {
         FakeNative.SetEventText("にほん");
         var e = Event(Native.Window.EventType.TextPreedit);
@@ -62,7 +62,7 @@ public class ResolvedWindowEventTests
     }
 
     [Test]
-    public void Resolve_TextWhoseBackingIsGone_HasNoText()
+    public void ResolveTextWhoseBackingIsGoneHasNoText()
     {
         var e = Event(Native.Window.EventType.TextCommit);
         e.textCommit.text = new Native.Window.TextRef { offset = 0, length = 3 };
@@ -73,7 +73,7 @@ public class ResolvedWindowEventTests
     }
 
     [Test]
-    public void Resolve_OtherEvents_ReadNothing()
+    public void ResolveOtherEventsReadNothing()
     {
         var resolved = ResolvedWindowEvent.Resolve(Event(Native.Window.EventType.Key));
 

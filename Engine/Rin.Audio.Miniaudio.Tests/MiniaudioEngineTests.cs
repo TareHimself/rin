@@ -5,7 +5,7 @@ namespace Rin.Audio.Miniaudio.Tests;
 public class MiniaudioEngineTests
 {
     [Test]
-    public void AudioResult_MirrorsResultHpp()
+    public void AudioResultMirrorsResultHpp()
     {
         var header = File.ReadAllText(Path.Combine(FindRepoRoot(), "native", "Rin.Audio.Miniaudio.Native", "src",
             "result.hpp"));

@@ -10,7 +10,7 @@ namespace Rin.Core.Tests.Views.Layouts;
 public class FlexLayoutTests : FakeApplicationFixture
 {
     [Test]
-    public void Column_with_finite_width_fills_it_even_when_its_children_are_narrower()
+    public void ColumnWithFiniteWidthFillsItEvenWhenItsChildrenAreNarrower()
     {
         var column = new FlexBoxView(Axis.Column);
         var child = new FixedView(new Vector2(50f, 20f));
@@ -23,7 +23,7 @@ public class FlexLayoutTests : FakeApplicationFixture
     }
 
     [Test]
-    public void Column_child_with_fill_takes_the_available_width()
+    public void ColumnChildWithFillTakesTheAvailableWidth()
     {
         var column = new FlexBoxView(Axis.Column);
         var child = new FixedView(new Vector2(50f, 20f));
@@ -35,7 +35,7 @@ public class FlexLayoutTests : FakeApplicationFixture
     }
 
     [Test]
-    public void Column_with_infinite_width_sizes_to_the_widest_child()
+    public void ColumnWithInfiniteWidthSizesToTheWidestChild()
     {
         var column = new FlexBoxView(Axis.Column);
         column.Add(new FixedView(new Vector2(50f, 20f)));
@@ -47,7 +47,7 @@ public class FlexLayoutTests : FakeApplicationFixture
     }
 
     [Test]
-    public void Column_centers_a_child_within_the_available_width()
+    public void ColumnCentersAChildWithinTheAvailableWidth()
     {
         var column = new FlexBoxView(Axis.Column);
         var child = new FixedView(new Vector2(50f, 20f));
@@ -59,7 +59,7 @@ public class FlexLayoutTests : FakeApplicationFixture
     }
 
     [Test]
-    public void Row_with_finite_height_fills_it()
+    public void RowWithFiniteHeightFillsIt()
     {
         var row = new FlexBoxView(Axis.Row);
         var child = new FixedView(new Vector2(50f, 20f));
@@ -72,7 +72,7 @@ public class FlexLayoutTests : FakeApplicationFixture
     }
 
     [Test]
-    public void Flex_slots_share_the_main_axis_left_by_fixed_children()
+    public void FlexSlotsShareTheMainAxisLeftByFixedChildren()
     {
         var row = new FlexBoxView(Axis.Row);
         var fixedChild = new FixedView(new Vector2(100f, 20f));

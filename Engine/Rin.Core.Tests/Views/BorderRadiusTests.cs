@@ -6,7 +6,7 @@ namespace Rin.Core.Tests.Views;
 public class BorderRadiusTests
 {
     [Test]
-    public void All_and_the_float_conversion_set_every_corner()
+    public void AllAndTheFloatConversionSetEveryCorner()
     {
         BorderRadius converted = 8f;
 
@@ -15,7 +15,7 @@ public class BorderRadiusTests
     }
 
     [Test]
-    public void Side_helpers_round_only_that_side()
+    public void SideHelpersRoundOnlyThatSide()
     {
         Assert.That(BorderRadius.Top(4f), Is.EqualTo(new BorderRadius(4f, 4f, 0f, 0f)));
         Assert.That(BorderRadius.Bottom(4f), Is.EqualTo(new BorderRadius(0f, 0f, 4f, 4f)));
@@ -24,7 +24,7 @@ public class BorderRadiusTests
     }
 
     [Test]
-    public void Arithmetic_applies_to_every_corner()
+    public void ArithmeticAppliesToEveryCorner()
     {
         var radius = new BorderRadius(1f, 2f, 3f, 4f);
 

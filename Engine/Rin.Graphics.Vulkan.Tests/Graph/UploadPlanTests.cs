@@ -23,7 +23,7 @@ public class UploadPlanTests : UploadLanesFixture
     }
 
     [Test]
-    public void Build_PlansTheSegmentsBeforeACopy_ThenTheCopy_ThenTheSegmentsAfterIt()
+    public void BuildPlansTheSegmentsBeforeACopyThenTheCopyThenTheSegmentsAfterIt()
     {
         QueueWrite(1, 0);
         QueueWrite(2, 0);
@@ -37,7 +37,7 @@ public class UploadPlanTests : UploadLanesFixture
     }
 
     [Test]
-    public void Build_ChainsEachStepToThePreviousStepInEachOfItsLanes()
+    public void BuildChainsEachStepToThePreviousStepInEachOfItsLanes()
     {
         QueueWrite(1, 0);
         QueueWrite(2, 0);
@@ -58,7 +58,7 @@ public class UploadPlanTests : UploadLanesFixture
     }
 
     [Test]
-    public void Build_PlansEachTextureWriteAsItsOwnStep_AndAWholeRunOfBufferWritesAsOne()
+    public void BuildPlansEachTextureWriteAsItsOwnStepAndAWholeRunOfBufferWritesAsOne()
     {
         Lanes.EnqueueTexture(Texture(1), new PendingTextureWrite(PooledMemory<byte>.CopyFrom(new byte[16]),
             ImageRegion.Whole(new Extent2D(2, 2)), new ImageShape(new Extent2D(4, 4))));
@@ -80,7 +80,7 @@ public class UploadPlanTests : UploadLanesFixture
     }
 
     [Test]
-    public void Build_PlansASingleLaneCopyOnce_WithOneEntryInItsLane()
+    public void BuildPlansASingleLaneCopyOnceWithOneEntryInItsLane()
     {
         QueueWrite(1, 0);
         QueueCopy(1, 1);
@@ -97,7 +97,7 @@ public class UploadPlanTests : UploadLanesFixture
     }
 
     [Test]
-    public void Build_ImportsTheOtherSideOfACopy_AndPlansItsWritesAhead()
+    public void BuildImportsTheOtherSideOfACopyAndPlansItsWritesAhead()
     {
         QueueWrite(2, 0);
         QueueCopy(1, 2);
@@ -117,7 +117,7 @@ public class UploadPlanTests : UploadLanesFixture
     }
 
     [Test]
-    public void Build_ImportsTheTextureOfATextureToBufferCopy_WhenTheGraphOnlyTouchesTheBuffer()
+    public void BuildImportsTheTextureOfATextureToBufferCopyWhenTheGraphOnlyTouchesTheBuffer()
     {
         Lanes.EnqueueTexture(Texture(1), new PendingTextureWrite(PooledMemory<byte>.CopyFrom(new byte[16]),
             ImageRegion.Whole(new Extent2D(2, 2)), new ImageShape(new Extent2D(4, 4))));
@@ -139,7 +139,7 @@ public class UploadPlanTests : UploadLanesFixture
     }
 
     [Test]
-    public void Build_SkipsACopyWhenItsOtherSideCannotBeImported_AndStopsTheLaneAtItsFence()
+    public void BuildSkipsACopyWhenItsOtherSideCannotBeImportedAndStopsTheLaneAtItsFence()
     {
         QueueWrite(1, 0);
         QueueCopy(1, 2);
@@ -151,7 +151,7 @@ public class UploadPlanTests : UploadLanesFixture
     }
 
     [Test]
-    public void Build_IgnoresACopyWhenTheGraphTouchesNeitherSide()
+    public void BuildIgnoresACopyWhenTheGraphTouchesNeitherSide()
     {
         QueueWrite(3, 0);
         QueueCopy(1, 2);
@@ -162,7 +162,7 @@ public class UploadPlanTests : UploadLanesFixture
     }
 
     [Test]
-    public void Build_DoesNotPlanACopyBehindAnEarlierCopyItSkipped()
+    public void BuildDoesNotPlanACopyBehindAnEarlierCopyItSkipped()
     {
         QueueCopy(2, 3);
         QueueWrite(1, 0);
@@ -174,7 +174,7 @@ public class UploadPlanTests : UploadLanesFixture
     }
 
     [Test]
-    public void Build_PlansACopyBehindAnEarlierCopyWhenTheGraphReachesIt()
+    public void BuildPlansACopyBehindAnEarlierCopyWhenTheGraphReachesIt()
     {
         QueueCopy(2, 3);
         QueueCopy(1, 2);
@@ -185,7 +185,7 @@ public class UploadPlanTests : UploadLanesFixture
     }
 
     [Test]
-    public void Take_OfAPrunedSuffix_LeavesTheSuffixQueued()
+    public void TakeOfAPrunedSuffixLeavesTheSuffixQueued()
     {
         QueueWrite(1, 0);
         QueueCopy(1, 2);
@@ -206,7 +206,7 @@ public class UploadPlanTests : UploadLanesFixture
     }
 
     [Test]
-    public void Take_TakesExactlyWhatWasPlanned_WhenMoreIsEnqueuedAfterThePlan()
+    public void TakeTakesExactlyWhatWasPlannedWhenMoreIsEnqueuedAfterThePlan()
     {
         QueueWrite(1, 16);
         var plan = Plan([Buffer(1)]);

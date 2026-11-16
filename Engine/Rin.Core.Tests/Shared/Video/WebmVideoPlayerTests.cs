@@ -41,7 +41,7 @@ public class WebmVideoPlayerTests
     }
 
     [Test]
-    public void WithoutASource_NothingHappens()
+    public void WithoutASourceNothingHappens()
     {
         _player.Play();
         _player.Seek(3);
@@ -55,7 +55,7 @@ public class WebmVideoPlayerTests
     }
 
     [Test]
-    public void Step_WhileTheHeaderIsIncomplete_StaysNotReady()
+    public void StepWhileTheHeaderIsIncompleteStaysNotReady()
     {
         _demuxer.HeaderResults.Enqueue(VideoDemuxResult.IncompleteHeader);
         _player.SetSource(new EmptySource());
@@ -72,7 +72,7 @@ public class WebmVideoPlayerTests
     }
 
     [Test]
-    public void Step_OnceTheHeaderIsRead_PublishesDurationAndTrackFormats()
+    public void StepOnceTheHeaderIsReadPublishesDurationAndTrackFormats()
     {
         _demuxer.Duration = 12.5;
         _demuxer.HasVideo = true;
@@ -94,7 +94,7 @@ public class WebmVideoPlayerTests
     }
 
     [Test]
-    public void Step_WhenTheSourceFailed_ReportsItsException()
+    public void StepWhenTheSourceFailedReportsItsException()
     {
         _player.SetSource(new EmptySource());
         _demuxer.SourceError = new IOException("socket closed");
@@ -111,7 +111,7 @@ public class WebmVideoPlayerTests
     }
 
     [Test]
-    public void Step_WhenTheDecoderRejectsTheSource_FailsAndStops()
+    public void StepWhenTheDecoderRejectsTheSourceFailsAndStops()
     {
         SetSourceAndBecomeReady();
         _demuxer.DecodeResults.Enqueue(VideoDemuxResult.Error);
@@ -127,7 +127,7 @@ public class WebmVideoPlayerTests
     }
 
     [Test]
-    public void Step_Decodes_UntilEnoughIsBufferedAhead()
+    public void StepDecodesUntilEnoughIsBufferedAhead()
     {
         SetSourceAndBecomeReady();
 
@@ -142,7 +142,7 @@ public class WebmVideoPlayerTests
     }
 
     [Test]
-    public void Step_StopsDecoding_WhenTheFrameBufferIsFull()
+    public void StepStopsDecodingWhenTheFrameBufferIsFull()
     {
         SetSourceAndBecomeReady();
         _demuxer.BufferedFrameCount = 8;
@@ -155,7 +155,7 @@ public class WebmVideoPlayerTests
     }
 
     [Test]
-    public void Step_DropsFramesPlaybackHasPassed()
+    public void StepDropsFramesPlaybackHasPassed()
     {
         SetSourceAndBecomeReady();
 
@@ -165,7 +165,7 @@ public class WebmVideoPlayerTests
     }
 
     [Test]
-    public void Seek_IsReportedAsThePositionUntilTheDemuxerLandsIt()
+    public void SeekIsReportedAsThePositionUntilTheDemuxerLandsIt()
     {
         SetSourceAndBecomeReady();
         _demuxer.SeekResults.Enqueue(VideoDemuxResult.IncompleteCluster);
@@ -186,7 +186,7 @@ public class WebmVideoPlayerTests
     }
 
     [Test]
-    public void AudioPacket_OpensAStreamWithTheTrackFormatAndPushesTheData()
+    public void AudioPacketOpensAStreamWithTheTrackFormatAndPushesTheData()
     {
         _demuxer.HasAudio = true;
         _demuxer.AudioSampleRate = 44100;
@@ -207,7 +207,7 @@ public class WebmVideoPlayerTests
     }
 
     [Test]
-    public void Position_FollowsTheAudioStreamOffsetByTheFirstPacketTime()
+    public void PositionFollowsTheAudioStreamOffsetByTheFirstPacketTime()
     {
         SetSourceAndBecomeReady();
         _demuxer.OnAudioPacket([0], 2.0);
@@ -217,7 +217,7 @@ public class WebmVideoPlayerTests
     }
 
     [Test]
-    public void AudioPacket_WhileASeekIsPending_IsIgnored()
+    public void AudioPacketWhileASeekIsPendingIsIgnored()
     {
         SetSourceAndBecomeReady();
         _demuxer.SeekResults.Enqueue(VideoDemuxResult.IncompleteCluster);
@@ -230,7 +230,7 @@ public class WebmVideoPlayerTests
     }
 
     [Test]
-    public void Seek_DropsTheAudioStream_AndTheLandedSeekStartsANewOne()
+    public void SeekDropsTheAudioStreamAndTheLandedSeekStartsANewOne()
     {
         SetSourceAndBecomeReady();
         _demuxer.OnAudioPacket([0], 0.0);
@@ -248,7 +248,7 @@ public class WebmVideoPlayerTests
     }
 
     [Test]
-    public void PlayAndPause_FollowThroughToTheAudioStream()
+    public void PlayAndPauseFollowThroughToTheAudioStream()
     {
         SetSourceAndBecomeReady();
         _demuxer.OnAudioPacket([0], 0.0);
@@ -266,7 +266,7 @@ public class WebmVideoPlayerTests
     }
 
     [Test]
-    public void CopyRecentFrame_AsksForTheFrameAtThePlaybackPosition()
+    public void CopyRecentFrameAsksForTheFrameAtThePlaybackPosition()
     {
         _demuxer.HasVideo = true;
         _demuxer.FrameByteSize = 6;
@@ -282,7 +282,7 @@ public class WebmVideoPlayerTests
     }
 
     [Test]
-    public void Dispose_DisposesTheDemuxerAndTheAudioStreamOnce()
+    public void DisposeDisposesTheDemuxerAndTheAudioStreamOnce()
     {
         SetSourceAndBecomeReady();
         _demuxer.OnAudioPacket([0], 0.0);

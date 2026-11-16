@@ -22,7 +22,7 @@ public class GraphConfigTests
     }
 
     [Test]
-    public void PrependTextureWrite_PutsADiscardingWriteAheadOfTheOtherActions()
+    public void PrependTextureWritePutsADiscardingWriteAheadOfTheOtherActions()
     {
         var id = CreateTexture();
 
@@ -39,7 +39,7 @@ public class GraphConfigTests
     }
 
     [Test]
-    public void PrependedActions_KeepTheOrderTheyWereAddedIn()
+    public void PrependedActionsKeepTheOrderTheyWereAddedIn()
     {
         var id = CreateTexture();
 
@@ -56,7 +56,7 @@ public class GraphConfigTests
     }
 
     [Test]
-    public void UseTexture_AddsToTheUsageOfAnImageTheConfigCreated()
+    public void UseTextureAddsToTheUsageOfAnImageTheConfigCreated()
     {
         var id = CreateTexture();
         _config.UseTexture(id, ImageLayout.ShaderReadOnly, ResourceOperation.Read);
@@ -68,7 +68,7 @@ public class GraphConfigTests
     }
 
     [Test]
-    public void Reset_ForgetsThePreviousFrame()
+    public void ResetForgetsThePreviousFrame()
     {
         var id = CreateTexture();
         _config.PrependTextureWrite(id, true);

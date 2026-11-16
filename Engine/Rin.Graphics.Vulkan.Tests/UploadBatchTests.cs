@@ -33,7 +33,7 @@ public class UploadBatchTests : UploadLanesFixture
     private void Fill(int max = 64) => _batch.Fill(Lanes, max, _acquirer);
 
     [Test]
-    public void Fill_TakesAtMostMax_AndLeavesTheRestQueued()
+    public void FillTakesAtMostMaxAndLeavesTheRestQueued()
     {
         for (uint id = 1; id <= 3; id++)
         {
@@ -54,7 +54,7 @@ public class UploadBatchTests : UploadLanesFixture
     }
 
     [Test]
-    public void Fill_DisposesTheWriteOfAResourceItCannotAcquire()
+    public void FillDisposesTheWriteOfAResourceItCannotAcquire()
     {
         var refused = QueueTexture(1);
         var task = new TaskCompletionSource();
@@ -74,7 +74,7 @@ public class UploadBatchTests : UploadLanesFixture
     }
 
     [Test]
-    public void Fill_AcquiresEachResourceOnce_AndGroupsBufferWritesByHandle()
+    public void FillAcquiresEachResourceOnceAndGroupsBufferWritesByHandle()
     {
         var first = QueueWrite(1, 0);
         var second = QueueWrite(1, 64);
@@ -94,7 +94,7 @@ public class UploadBatchTests : UploadLanesFixture
     }
 
     [Test]
-    public void Fill_KeepsTheOrderAcrossResourcesThatACopyConnects()
+    public void FillKeepsTheOrderAcrossResourcesThatACopyConnects()
     {
         var beforeCopy = QueueWrite(1, 0);
         var copy = QueueCopy(1, 2);
@@ -121,7 +121,7 @@ public class UploadBatchTests : UploadLanesFixture
     }
 
     [Test]
-    public void Fill_TakesATextureToBufferCopy_WithoutLeavingTheTextureInATransferLayout()
+    public void FillTakesATextureToBufferCopyWithoutLeavingTheTextureInATransferLayout()
     {
         var copy = new SharedWrite(new TextureToBufferCopy(Texture(1), Buffer(2), default, new Extent2D(2, 2), 0, 16));
         Lanes.EnqueueShared(copy);
@@ -140,7 +140,7 @@ public class UploadBatchTests : UploadLanesFixture
     }
 
     [Test]
-    public void Fill_TakesACopyWithinOneBufferAfterTheWritesAheadOfIt()
+    public void FillTakesACopyWithinOneBufferAfterTheWritesAheadOfIt()
     {
         var before = QueueWrite(1, 0);
         var copy = QueueCopy(1, 1);
@@ -161,7 +161,7 @@ public class UploadBatchTests : UploadLanesFixture
     }
 
     [Test]
-    public void Fill_RunsCopiesInEnqueueOrderAcrossLanes()
+    public void FillRunsCopiesInEnqueueOrderAcrossLanes()
     {
         var first = QueueCopy(1, 2);
         var second = QueueCopy(3, 1);
@@ -173,7 +173,7 @@ public class UploadBatchTests : UploadLanesFixture
     }
 
     [Test]
-    public void Fill_CancelsOnlyTheCopyWhoseResourceCannotBeAcquired()
+    public void FillCancelsOnlyTheCopyWhoseResourceCannotBeAcquired()
     {
         var copy = QueueCopy(1, 2);
         var copyTask = new TaskCompletionSource();
@@ -197,7 +197,7 @@ public class UploadBatchTests : UploadLanesFixture
     }
 
     [Test]
-    public void Fill_SumsStagingSizesRoundedToTheAlignment_AndIgnoresCopies()
+    public void FillSumsStagingSizesRoundedToTheAlignmentAndIgnoresCopies()
     {
         QueueTexture(1, 5);
         QueueWrite(1, 0, 17);
@@ -212,7 +212,7 @@ public class UploadBatchTests : UploadLanesFixture
     }
 
     [Test]
-    public void Fill_WithNothingQueued_IsEmpty()
+    public void FillWithNothingQueuedIsEmpty()
     {
         Fill();
 
@@ -225,7 +225,7 @@ public class UploadBatchTests : UploadLanesFixture
     }
 
     [Test]
-    public void CompleteWrites_CompletesEveryTask_AndClearLeavesTheBatchEmpty()
+    public void CompleteWritesCompletesEveryTaskAndClearLeavesTheBatchEmpty()
     {
         var textureTask = new TaskCompletionSource();
         var bufferTask = new TaskCompletionSource();

@@ -13,7 +13,7 @@ public class SystemClipboardTests
     }
 
     [Test]
-    public void GetText_WithNothingOnTheClipboard_ReturnsNull()
+    public void GetTextWithNothingOnTheClipboardReturnsNull()
     {
         Assert.Multiple(() =>
         {
@@ -25,7 +25,7 @@ public class SystemClipboardTests
     [TestCase("hello")]
     [TestCase("héllo 😀 world")]
     [TestCase("")]
-    public void SetText_ThenGetText_RoundTrips(string text)
+    public void SetTextThenGetTextRoundTrips(string text)
     {
         var accepted = _clipboard.SetText(text);
 
@@ -38,7 +38,7 @@ public class SystemClipboardTests
     }
 
     [Test]
-    public void Clear_LeavesNoText()
+    public void ClearLeavesNoText()
     {
         _clipboard.SetText("hello");
 

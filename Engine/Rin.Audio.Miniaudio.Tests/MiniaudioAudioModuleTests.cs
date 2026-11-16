@@ -15,7 +15,7 @@ public class MiniaudioAudioModuleTests
     }
 
     [Test]
-    public void Start_InitsTheEngineAndWrapsTheMasterMixer()
+    public void StartInitsTheEngineAndWrapsTheMasterMixer()
     {
         _module.Start(null!);
 
@@ -28,7 +28,7 @@ public class MiniaudioAudioModuleTests
     }
 
     [Test]
-    public void Start_WhenInitFails_SurfacesTheNativeCode()
+    public void StartWhenInitFailsSurfacesTheNativeCode()
     {
         _engine.FailNext(MiniaudioEngine.AudioResult.EngineInitFailed);
 
@@ -38,7 +38,7 @@ public class MiniaudioAudioModuleTests
     }
 
     [Test]
-    public void Stop_ShutsTheEngineDown()
+    public void StopShutsTheEngineDown()
     {
         _module.Stop(null!);
 
@@ -46,7 +46,7 @@ public class MiniaudioAudioModuleTests
     }
 
     [Test]
-    public void Volume_IsTheEngineVolume()
+    public void VolumeIsTheEngineVolume()
     {
         _module.SetVolume(0.25f);
 
@@ -58,7 +58,7 @@ public class MiniaudioAudioModuleTests
     }
 
     [Test]
-    public void MakeSample_FromStream_HandsTheWholeStreamToTheEngine()
+    public void MakeSampleFromStreamHandsTheWholeStreamToTheEngine()
     {
         byte[] bytes = [1, 2, 3, 4, 5];
 
@@ -73,7 +73,7 @@ public class MiniaudioAudioModuleTests
     }
 
     [Test]
-    public void MakeStream_FromFile_OpensAStreamRatherThanLoadingASample()
+    public void MakeStreamFromFileOpensAStreamRatherThanLoadingASample()
     {
         using var sample = _module.MakeStream("song.ogg");
 
@@ -81,7 +81,7 @@ public class MiniaudioAudioModuleTests
     }
 
     [Test]
-    public void MakeSample_WhenLoadingFails_SurfacesTheNativeCode()
+    public void MakeSampleWhenLoadingFailsSurfacesTheNativeCode()
     {
         _engine.FailNext(MiniaudioEngine.AudioResult.InvalidArgument);
 
@@ -95,7 +95,7 @@ public class MiniaudioAudioModuleTests
     }
 
     [Test]
-    public void CreateGroup_IsASubGroupOfTheMaster()
+    public void CreateGroupIsASubGroupOfTheMaster()
     {
         _module.Start(null!);
 

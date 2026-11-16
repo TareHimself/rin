@@ -6,7 +6,7 @@ namespace Rin.Core.Tests.Shared.Video;
 public class WebmDemuxerTests
 {
     [Test]
-    public void VideoDemuxResult_MirrorsVideoHpp()
+    public void VideoDemuxResultMirrorsVideoHpp()
     {
         var header = File.ReadAllText(Path.Combine(FindRepoRoot(), "native", "Rin.Native", "src", "video.hpp"));
         var body = Regex.Match(header, @"enum VideoDemuxResult[^{]*\{([^}]*)\}").Groups[1].Value;

@@ -37,7 +37,7 @@ public class GraphBuilderTests : UploadLanesFixture
     [TestCase(ResourceType.Texture)]
     [TestCase(ResourceType.TextureArray)]
     [TestCase(ResourceType.Cubemap)]
-    public void Compile_TakesTheWritesOfAnImageTheGraphReads_WhateverItsKind(ResourceType type)
+    public void CompileTakesTheWritesOfAnImageTheGraphReadsWhateverItsKind(ResourceType type)
     {
         var read = new ResourceHandle(type, 1);
         var unread = new ResourceHandle(type, 2);
@@ -57,7 +57,7 @@ public class GraphBuilderTests : UploadLanesFixture
     }
 
     [Test]
-    public void Compile_TakesTheWritesOfAResourceTheGraphReads_AndLeavesTheOthersQueued()
+    public void CompileTakesTheWritesOfAResourceTheGraphReadsAndLeavesTheOthersQueued()
     {
         QueueWrite(1, 0);
         QueueWrite(2, 0);
@@ -74,7 +74,7 @@ public class GraphBuilderTests : UploadLanesFixture
     }
 
     [Test]
-    public void Compile_KeepsACopyNothingReads_WhenALaterWriteOfItsSourceIsKept()
+    public void CompileKeepsACopyNothingReadsWhenALaterWriteOfItsSourceIsKept()
     {
         QueueWrite(1, 0);
         var copy = QueueCopy(1, 2);
@@ -92,7 +92,7 @@ public class GraphBuilderTests : UploadLanesFixture
     }
 
     [Test]
-    public void Compile_ImportsTheUntouchedSideOfACopy_AndReleasesItWithTheGraph()
+    public void CompileImportsTheUntouchedSideOfACopyAndReleasesItWithTheGraph()
     {
         QueueCopy(1, 2);
         ReadBuffer(1);
@@ -110,7 +110,7 @@ public class GraphBuilderTests : UploadLanesFixture
     }
 
     [Test]
-    public void Compile_LeavesAPrunedSuffixOfALaneQueued_AndTheNextCompileTakesIt()
+    public void CompileLeavesAPrunedSuffixOfALaneQueuedAndTheNextCompileTakesIt()
     {
         QueueWrite(1, 0);
         QueueCopy(1, 2);
@@ -133,7 +133,7 @@ public class GraphBuilderTests : UploadLanesFixture
     }
 
     [Test]
-    public void Compile_DoesNotTakeActionsEnqueuedAfterTheyWerePeeked()
+    public void CompileDoesNotTakeActionsEnqueuedAfterTheyWerePeeked()
     {
         QueueWrite(1, 0);
         QueueCopy(1, 2);
@@ -155,7 +155,7 @@ public class GraphBuilderTests : UploadLanesFixture
     }
 
     [Test]
-    public void Compile_AllocatesOneStagingBufferForEveryTakenWrite_AndFreesItWithTheGraph()
+    public void CompileAllocatesOneStagingBufferForEveryTakenWriteAndFreesItWithTheGraph()
     {
         QueueWrite(1, 0, 17);
         QueueWrite(1, 64, 16);
@@ -176,7 +176,7 @@ public class GraphBuilderTests : UploadLanesFixture
     }
 
     [Test]
-    public void Compile_KeepsAnEarlierCopyOutOfTheSameSource_WhenOnlyALaterCopyIsRead()
+    public void CompileKeepsAnEarlierCopyOutOfTheSameSourceWhenOnlyALaterCopyIsRead()
     {
         var first = QueueCopy(1, 2);
         var second = QueueCopy(1, 3);
@@ -196,7 +196,7 @@ public class GraphBuilderTests : UploadLanesFixture
     }
 
     [Test]
-    public void Compile_TakesACopyWithinOneBuffer_WithoutItWaitingOnItself()
+    public void CompileTakesACopyWithinOneBufferWithoutItWaitingOnItself()
     {
         QueueWrite(1, 0);
         var copy = QueueCopy(1, 1);
@@ -214,7 +214,7 @@ public class GraphBuilderTests : UploadLanesFixture
     }
 
     [Test]
-    public void Compile_AllocatesNoStaging_ForCopiesAlone()
+    public void CompileAllocatesNoStagingForCopiesAlone()
     {
         QueueCopy(1, 2);
         ReadBuffer(1);
@@ -322,7 +322,7 @@ public class GraphBuilderTests : UploadLanesFixture
     }
 
     [Test]
-    public void Compile_KeepsAPassThatWritesATerminalResource()
+    public void CompileKeepsAPassThatWritesATerminalResource()
     {
         var writer = new ImagePass(GraphResourceFlags.Terminal);
         _builder.AddPass(writer);
@@ -337,7 +337,7 @@ public class GraphBuilderTests : UploadLanesFixture
     }
 
     [Test]
-    public void Compile_KeepsWhatATerminalWriterReads_AndPrunesTheRest()
+    public void CompileKeepsWhatATerminalWriterReadsAndPrunesTheRest()
     {
         var source = new ImagePass();
         var terminal = new ImagePass(GraphResourceFlags.Terminal, source);
@@ -358,7 +358,7 @@ public class GraphBuilderTests : UploadLanesFixture
     }
 
     [Test]
-    public void Compile_ReturnsNull_WhenNothingIsTerminal()
+    public void CompileReturnsNullWhenNothingIsTerminal()
     {
         var pass = new ImagePass();
         _builder.AddPass(pass);
@@ -373,7 +373,7 @@ public class GraphBuilderTests : UploadLanesFixture
     }
 
     [Test]
-    public void Compile_StillRootsFromTerminalPasses()
+    public void CompileStillRootsFromTerminalPasses()
     {
         var source = new ImagePass();
         _builder.AddPass(source);
@@ -389,7 +389,7 @@ public class GraphBuilderTests : UploadLanesFixture
     }
 
     [Test]
-    public void Compile_AfterReset_MatchesAFreshBuilder()
+    public void CompileAfterResetMatchesAFreshBuilder()
     {
         AddChain(_builder, 2);
         _builder.Compile()!.Dispose();
@@ -404,7 +404,7 @@ public class GraphBuilderTests : UploadLanesFixture
     }
 
     [Test]
-    public void Compile_ReusesADisposedGraph()
+    public void CompileReusesADisposedGraph()
     {
         AddChain(_builder, 2);
         var first = _builder.Compile()!;
@@ -416,7 +416,7 @@ public class GraphBuilderTests : UploadLanesFixture
     }
 
     [Test]
-    public void Compile_LeavesAGraphThatIsStillInUseAlone()
+    public void CompileLeavesAGraphThatIsStillInUseAlone()
     {
         AddChain(_builder, 2);
         var first = (CompiledGraph)_builder.Compile()!;
@@ -434,7 +434,7 @@ public class GraphBuilderTests : UploadLanesFixture
     }
 
     [Test]
-    public void Dispose_Twice_DisposesItsPassesOnce()
+    public void DisposeTwiceDisposesItsPassesOnce()
     {
         var pass = new ImagePass(GraphResourceFlags.Terminal);
         _builder.AddPass(pass);
@@ -450,7 +450,7 @@ public class GraphBuilderTests : UploadLanesFixture
     ///     The render graph overlay example reads these private fields by name.
     /// </summary>
     [Test]
-    public void TheFieldsTheOverlayReadsByReflection_KeepTheirNamesAndShapes()
+    public void TheFieldsTheOverlayReadsByReflectionKeepTheirNamesAndShapes()
     {
         AddChain(_builder, 2);
         var graph = _builder.Compile()!;

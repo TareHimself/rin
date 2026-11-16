@@ -5,7 +5,7 @@ namespace Rin.Shade.Tests;
 public class SlangDiagnosticTests
 {
     [Test]
-    public void Parses_diagnostic_lines_and_skips_source_excerpts()
+    public void ParsesDiagnosticLinesAndSkipsSourceExcerpts()
     {
         const string output = """
             Failed to load slang shader module:
@@ -26,7 +26,7 @@ public class SlangDiagnosticTests
     }
 
     [Test]
-    public void Returns_nothing_for_output_without_diagnostics()
+    public void ReturnsNothingForOutputWithoutDiagnostics()
     {
         Assert.That(SlangDiagnostic.Parse("Failed to create composed program."), Is.Empty);
     }

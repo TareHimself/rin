@@ -20,7 +20,7 @@ public class DoubleDiagnosticTests
         """;
 
     [Test]
-    public void A_double_literal_local_is_rejected()
+    public void ADoubleLiteralLocalIsRejected()
     {
         var result = Emit("""
             [Shader]
@@ -42,7 +42,7 @@ public class DoubleDiagnosticTests
     }
 
     [Test]
-    public void A_double_parameter_is_rejected()
+    public void ADoubleParameterIsRejected()
     {
         var result = Emit("""
             [Shader]
@@ -67,7 +67,7 @@ public class DoubleDiagnosticTests
     }
 
     [Test]
-    public void A_double_field_is_rejected()
+    public void ADoubleFieldIsRejected()
     {
         var result = Emit("""
             public struct WidePush

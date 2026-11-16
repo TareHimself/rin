@@ -21,7 +21,7 @@ public class MiniaudioActiveAudioTests
 
     [TestCase(true)]
     [TestCase(false)]
-    public void Play_PassesTheRestartFlagAndReturnsTheEngineAnswer(bool restart)
+    public void PlayPassesTheRestartFlagAndReturnsTheEngineAnswer(bool restart)
     {
         _engine.ActiveResult = restart;
 
@@ -35,7 +35,7 @@ public class MiniaudioActiveAudioTests
     }
 
     [Test]
-    public void Queries_ReadTheEngine()
+    public void QueriesReadTheEngine()
     {
         _engine.Position = 1.5;
         _engine.Duration = 10;
@@ -51,7 +51,7 @@ public class MiniaudioActiveAudioTests
     }
 
     [Test]
-    public void Commands_TargetThisHandle()
+    public void CommandsTargetThisHandle()
     {
         _active.Pause();
         _active.SetVolume(0.5f);
@@ -66,7 +66,7 @@ public class MiniaudioActiveAudioTests
     }
 
     [Test]
-    public void Dispose_Twice_DisposesTheHandleOnce()
+    public void DisposeTwiceDisposesTheHandleOnce()
     {
         _active.Dispose();
         _active.Dispose();
@@ -75,7 +75,7 @@ public class MiniaudioActiveAudioTests
     }
 
     [Test]
-    public void UseAfterDispose_Throws()
+    public void UseAfterDisposeThrows()
     {
         _active.Dispose();
 

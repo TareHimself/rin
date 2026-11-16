@@ -18,6 +18,10 @@ When a single source type spans two subsystems' worth of behavior (e.g. a test f
 a `Graphics` handle type and a `Physics` handle type), split it into one test file per subsystem
 folder rather than picking one folder for the combined file.
 
+Test methods are named as one PascalCase sentence that states the behaviour, with no underscores
+(`AFreedHandleGoesStaleEvenAfterItsSlotIsReused`, not `Free_StaleHandle_ReturnsNull` or
+`free_makes_handle_stale`). Test classes are `<TypeUnderTest>Tests` in a file of the same name.
+
 ## Maintainability
 
 Code must be maintainable by humans and AI alike. Generated or quickly written code is not an exception:

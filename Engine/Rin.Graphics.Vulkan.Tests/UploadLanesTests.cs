@@ -37,7 +37,7 @@ public class UploadLanesTests : UploadLanesFixture
     }
 
     [Test]
-    public void Enqueue_MergesACoveringWriteIntoThePreviousOne_AndAdoptsItsTasks()
+    public void EnqueueMergesACoveringWriteIntoThePreviousOneAndAdoptsItsTasks()
     {
         var covered = QueueWrite(1, 16);
         var task = new TaskCompletionSource();
@@ -53,7 +53,7 @@ public class UploadLanesTests : UploadLanesFixture
     }
 
     [Test]
-    public void Enqueue_DoesNotMergeAcrossAFence()
+    public void EnqueueDoesNotMergeAcrossAFence()
     {
         QueueWrite(1, 16);
         QueueCopy(1, 2);
@@ -64,7 +64,7 @@ public class UploadLanesTests : UploadLanesFixture
     }
 
     [Test]
-    public void Enqueue_DoesNotMergeIntoItemsThatWerePeeked()
+    public void EnqueueDoesNotMergeIntoItemsThatWerePeeked()
     {
         var peeked = QueueWrite(1, 16);
         List<PendingResourceAction> items = [];
@@ -82,7 +82,7 @@ public class UploadLanesTests : UploadLanesFixture
     }
 
     [Test]
-    public void EnqueueCopy_PutsTheSameFenceInBothLanes_AndOnceInTheCopyList()
+    public void EnqueueCopyPutsTheSameFenceInBothLanesAndOnceInTheCopyList()
     {
         var copy = QueueCopy(1, 2);
 
@@ -102,7 +102,7 @@ public class UploadLanesTests : UploadLanesFixture
     }
 
     [Test]
-    public void TakeOrdered_RunsCopiesInEnqueueOrder_EachWithTheWritesAheadOfItInBothLanes()
+    public void TakeOrderedRunsCopiesInEnqueueOrderEachWithTheWritesAheadOfItInBothLanes()
     {
         var intoB = QueueWrite(2, 0);
         var copy1 = QueueCopy(1, 2);
@@ -116,7 +116,7 @@ public class UploadLanesTests : UploadLanesFixture
     }
 
     [Test]
-    public void TakeOrdered_StopsAtACopyThatDoesNotFit_AndLeavesItsLanesBlockedAtTheFence()
+    public void TakeOrderedStopsAtACopyThatDoesNotFitAndLeavesItsLanesBlockedAtTheFence()
     {
         var firstWrite = QueueWrite(1, 0);
         var firstCopy = QueueCopy(1, 2);
@@ -135,7 +135,7 @@ public class UploadLanesTests : UploadLanesFixture
     }
 
     [Test]
-    public void TakeOrdered_AlwaysTakesTheFirstCopy_EvenWhenItIsBiggerThanTheBudget()
+    public void TakeOrderedAlwaysTakesTheFirstCopyEvenWhenItIsBiggerThanTheBudget()
     {
         QueueWrite(1, 0);
         QueueWrite(1, 16);
@@ -148,7 +148,7 @@ public class UploadLanesTests : UploadLanesFixture
     }
 
     [Test]
-    public void Take_OfACopyFromOneLane_RemovesItFromTheCopyList()
+    public void TakeOfACopyFromOneLaneRemovesItFromTheCopyList()
     {
         var copy = QueueCopy(1, 2);
         List<PendingResourceAction> taken = [];
@@ -167,7 +167,7 @@ public class UploadLanesTests : UploadLanesFixture
     }
 
     [Test]
-    public void Drop_CancelsCopiesThatReferenceTheResource_AndRemovesTheirFenceFromTheOtherLane()
+    public void DropCancelsCopiesThatReferenceTheResourceAndRemovesTheirFenceFromTheOtherLane()
     {
         var copy = QueueCopy(1, 2);
         var task = new TaskCompletionSource();
@@ -189,7 +189,7 @@ public class UploadLanesTests : UploadLanesFixture
     }
 
     [Test]
-    public void EnqueueShared_OnASingleLane_PutsExactlyOneFence_AndTakesWithoutWaitingOnItself()
+    public void EnqueueSharedOnASingleLanePutsExactlyOneFenceAndTakesWithoutWaitingOnItself()
     {
         var before = QueueWrite(1, 0);
         var shared = QueueCopy(1, 1);
@@ -205,7 +205,7 @@ public class UploadLanesTests : UploadLanesFixture
     }
 
     [Test]
-    public void EnqueueShared_AcrossKinds_FencesABufferLaneAndATextureLane_AndTakesBothSidesFirst()
+    public void EnqueueSharedAcrossKindsFencesABufferLaneAndATextureLaneAndTakesBothSidesFirst()
     {
         var bufferWrite = QueueWrite(1, 0);
         var textureWrite = TextureWrite(1);
@@ -223,7 +223,7 @@ public class UploadLanesTests : UploadLanesFixture
     }
 
     [Test]
-    public void EnqueueShared_TextureToBuffer_TakesTheTextureSideThenTheBufferSideBeforeTheCopy()
+    public void EnqueueSharedTextureToBufferTakesTheTextureSideThenTheBufferSideBeforeTheCopy()
     {
         var textureWrite = TextureWrite(1);
         var bufferWrite = QueueWrite(1, 0);
@@ -236,7 +236,7 @@ public class UploadLanesTests : UploadLanesFixture
     }
 
     [Test]
-    public void Enqueue_OnATextureLane_DoesNotMergeAcrossAFence()
+    public void EnqueueOnATextureLaneDoesNotMergeAcrossAFence()
     {
         TextureWrite(1);
         BufferToTexture(1, 1);
@@ -249,7 +249,7 @@ public class UploadLanesTests : UploadLanesFixture
     }
 
     [Test]
-    public void TakeOrdered_SpendsTheBudgetOnBothKinds()
+    public void TakeOrderedSpendsTheBudgetOnBothKinds()
     {
         QueueWrite(1, 0);
         QueueWrite(2, 0);
@@ -267,7 +267,7 @@ public class UploadLanesTests : UploadLanesFixture
     }
 
     [Test]
-    public void Drop_OfATexture_CancelsTheSharedWriteAndClearsItsFenceFromTheBufferLane()
+    public void DropOfATextureCancelsTheSharedWriteAndClearsItsFenceFromTheBufferLane()
     {
         var shared = BufferToTexture(1, 1);
         var task = new TaskCompletionSource();
@@ -283,7 +283,7 @@ public class UploadLanesTests : UploadLanesFixture
     }
 
     [Test]
-    public void Drop_CancelsTheTasksOfQueuedWrites()
+    public void DropCancelsTheTasksOfQueuedWrites()
     {
         var write = QueueWrite(1, 0);
         var task = new TaskCompletionSource();

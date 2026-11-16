@@ -34,7 +34,7 @@ public class FrameCollectorTests
     }
 
     [Test]
-    public void Collect_ThenTryTake_HandsOverEachRenderersOwnData()
+    public void CollectThenTryTakeHandsOverEachRenderersOwnData()
     {
         var first = new RecordingRenderer();
         var second = new RecordingRenderer();
@@ -53,7 +53,7 @@ public class FrameCollectorTests
     }
 
     [Test]
-    public void TryTake_WithoutACollect_HandsOverNothing()
+    public void TryTakeWithoutACollectHandsOverNothing()
     {
         _frames.Add(new RecordingRenderer());
 
@@ -65,7 +65,7 @@ public class FrameCollectorTests
     }
 
     [Test]
-    public void Collect_Twice_HandsOverTheNewestAndDisposesTheSkippedBatch()
+    public void CollectTwiceHandsOverTheNewestAndDisposesTheSkippedBatch()
     {
         var renderer = new RecordingRenderer();
         _frames.Add(renderer);
@@ -83,7 +83,7 @@ public class FrameCollectorTests
     }
 
     [Test]
-    public void Collect_SkipsARendererWithNothingToDraw()
+    public void CollectSkipsARendererWithNothingToDraw()
     {
         var idle = new RecordingRenderer { Draws = false };
         var busy = new RecordingRenderer();
@@ -97,7 +97,7 @@ public class FrameCollectorTests
     }
 
     [Test]
-    public void TryTake_DropsAndDisposesTheDataOfARendererRemovedAfterCollect()
+    public void TryTakeDropsAndDisposesTheDataOfARendererRemovedAfterCollect()
     {
         var removed = new RecordingRenderer();
         var kept = new RecordingRenderer();
@@ -117,7 +117,7 @@ public class FrameCollectorTests
     }
 
     [Test]
-    public void Remove_StopsCollectingFromThatRenderer()
+    public void RemoveStopsCollectingFromThatRenderer()
     {
         var renderer = new RecordingRenderer();
         _frames.Add(renderer);
@@ -133,7 +133,7 @@ public class FrameCollectorTests
     }
 
     [Test]
-    public void DisposeRemaining_DisposesABatchNobodyTook()
+    public void DisposeRemainingDisposesABatchNobodyTook()
     {
         var renderer = new RecordingRenderer();
         _frames.Add(renderer);
@@ -145,7 +145,7 @@ public class FrameCollectorTests
     }
 
     [Test]
-    public void DisposeBatch_DisposesEveryEntry()
+    public void DisposeBatchDisposesEveryEntry()
     {
         var renderer = new RecordingRenderer();
         _frames.Add(renderer);
@@ -158,7 +158,7 @@ public class FrameCollectorTests
     }
 
     [Test]
-    public void Add_IndexesAWindowRendererByItsWindow()
+    public void AddIndexesAWindowRendererByItsWindow()
     {
         var window = NewWindow();
         var other = NewWindow();
@@ -177,7 +177,7 @@ public class FrameCollectorTests
     }
 
     [Test]
-    public void Remove_ForgetsTheWindowRenderer()
+    public void RemoveForgetsTheWindowRenderer()
     {
         var window = NewWindow();
         var renderer = new RecordingWindowRenderer(window);

@@ -20,7 +20,7 @@ public class MiniaudioPushStreamTests
     }
 
     [Test]
-    public void Push_HandsTheBytesToThisStream()
+    public void PushHandsTheBytesToThisStream()
     {
         byte[] bytes = [1, 2, 3, 4];
 
@@ -34,7 +34,7 @@ public class MiniaudioPushStreamTests
     }
 
     [Test]
-    public void Push_AfterDispose_Throws()
+    public void PushAfterDisposeThrows()
     {
         _stream.Dispose();
 

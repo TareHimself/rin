@@ -16,7 +16,7 @@ public class LightGridTests
         LightGrid.TileSlopes(tileX, tileY, Width, Height, TanHalfFovY, Aspect);
 
     [Test]
-    public void One_tile_covering_the_screen_spans_the_field_of_view()
+    public void OneTileCoveringTheScreenSpansTheFieldOfView()
     {
         var slopes = LightGrid.TileSlopes(0, 0, 32, 32, 1f, 1f);
 
@@ -24,7 +24,7 @@ public class LightGridTests
     }
 
     [Test]
-    public void The_last_tile_stops_at_the_screen_edge()
+    public void TheLastTileStopsAtTheScreenEdge()
     {
         var lastX = (Width - 1) / LightGrid.TileSize;
         var lastY = (Height - 1) / LightGrid.TileSize;
@@ -39,7 +39,7 @@ public class LightGridTests
     }
 
     [Test]
-    public void A_projected_point_lands_in_the_tile_whose_slopes_contain_it()
+    public void AProjectedPointLandsInTheTileWhoseSlopesContainIt()
     {
         var projection = MathR.PerspectiveProjection(FieldOfView, Width, Height, 0.1f);
         var random = new Random(3);
@@ -63,7 +63,7 @@ public class LightGridTests
     }
 
     [Test]
-    public void A_sphere_touches_tiles_it_overlaps_and_not_tiles_it_misses()
+    public void ASphereTouchesTilesItOverlapsAndNotTilesItMisses()
     {
         var slopes = new Vector4(-0.1f, 0.1f, -0.1f, 0.1f);
 
@@ -84,7 +84,7 @@ public class LightGridTests
     [TestCase(1u, 3u, 40u, 0x1FFu)]
     [TestCase(1u, 40u, 70u, 0xFFFFFF00u)]
     [TestCase(2u, 10u, 64u, 1u)]
-    public void RangeMask_keeps_only_the_bits_inside_the_range(uint word, uint first, uint last, uint expected)
+    public void RangeMaskKeepsOnlyTheBitsInsideTheRange(uint word, uint first, uint last, uint expected)
     {
         Assert.That(LightGrid.RangeMask(word, first, last), Is.EqualTo(expected));
     }

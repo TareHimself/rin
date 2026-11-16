@@ -22,7 +22,7 @@ public class ResourceTableTests
     }
 
     [Test]
-    public void SlotZero_IsNeverHandedOut()
+    public void SlotZeroIsNeverHandedOut()
     {
         var first = Add();
 
@@ -36,7 +36,7 @@ public class ResourceTableTests
     }
 
     [Test]
-    public void Resolve_ReturnsOnlyReadyOccupants()
+    public void ResolveReturnsOnlyReadyOccupants()
     {
         var ready = Add();
         var pending = Add(BindlessResourceState.PendingBind);
@@ -50,7 +50,7 @@ public class ResourceTableTests
     }
 
     [Test]
-    public void Find_RejectsAHandleOfAnotherType()
+    public void FindRejectsAHandleOfAnotherType()
     {
         var handle = Add();
         var texture = new ResourceHandle(ResourceType.Texture, handle.Id, generation: handle.Generation);
@@ -59,7 +59,7 @@ public class ResourceTableTests
     }
 
     [Test]
-    public void Free_ReturnsTheOccupantOnce_AndTheHandleNeverResolvesAgain()
+    public void FreeReturnsTheOccupantOnceAndTheHandleNeverResolvesAgain()
     {
         var handle = Add();
 
@@ -76,7 +76,7 @@ public class ResourceTableTests
     }
 
     [Test]
-    public void ReusedSlot_GetsANewerGenerationThanTheStaleHandle()
+    public void ReusedSlotGetsANewerGenerationThanTheStaleHandle()
     {
         var stale = Add();
         _table.Free(stale);
@@ -93,7 +93,7 @@ public class ResourceTableTests
     }
 
     [Test]
-    public void Reserve_AfterFreeingTwoSlots_HandsThemBackBeforeNewOnes()
+    public void ReserveAfterFreeingTwoSlotsHandsThemBackBeforeNewOnes()
     {
         var first = Add();
         var second = Add();
