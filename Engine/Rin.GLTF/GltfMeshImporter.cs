@@ -173,18 +173,28 @@ public static class GltfMeshImporter
 
     private static uint[] ReadOrSynthesizeIndices(MeshPrimitive primitive, int vertexCount)
     {
-        if (primitive.IndexAccessor is null) return Enumerable.Range(0, vertexCount).Select(i => (uint)i).ToArray();
+        return primitive.IndexAccessor is null ? SequentialIndices(vertexCount) : primitive.GetIndices().ToArray();
+    }
 
-        return primitive.GetIndices().ToArray();
+    internal static uint[] SequentialIndices(int vertexCount)
+    {
+        var indices = new uint[vertexCount];
+        for (var i = 0; i < indices.Length; i++) indices[i] = (uint)i;
+        return indices;
+    }
+
+    private static Vector3[] ReadOrComputeNormals(MeshPrimitive primitive, IReadOnlyList<Vector3> positions,
+        IReadOnlyList<uint> indices)
+    {
+        return primitive.GetVertexAccessor("NORMAL") is not null
+            ? primitive.GetVertices("NORMAL").AsVector3Array().ToArray()
+            : ComputeNormals(positions, indices);
     }
 
     // Flat per-triangle normals, averaged per vertex - a reasonable default for content that omits
     // NORMAL entirely (valid per the glTF spec), not a substitute for authored smoothing groups.
-    private static Vector3[] ReadOrComputeNormals(MeshPrimitive primitive, IReadOnlyList<Vector3> positions,
-        IReadOnlyList<uint> indices)
+    internal static Vector3[] ComputeNormals(IReadOnlyList<Vector3> positions, IReadOnlyList<uint> indices)
     {
-        if (primitive.GetVertexAccessor("NORMAL") is not null) return primitive.GetVertices("NORMAL").AsVector3Array().ToArray();
-
         var normals = new Vector3[positions.Count];
         for (var i = 0; i + 2 < indices.Count; i += 3)
         {
