@@ -32,11 +32,7 @@ public class BackgroundTaskQueue : IDisposable
 
     private void ProcessTasks()
     {
-        foreach (var pendingTask in _pendingTasks.GetConsumingEnumerable())
-        {
-            pendingTask.Fn();
-            pendingTask.Pending.SetResult();
-        }
+        foreach (var pendingTask in _pendingTasks.GetConsumingEnumerable()) RunTask(pendingTask);
     }
 
     public void Dispose()
@@ -113,8 +109,7 @@ public class BackgroundTaskQueue<T> : IDisposable
 
     private void ProcessTasks()
     {
-        foreach (var pendingTask in _pendingTasks.GetConsumingEnumerable())
-            pendingTask.Pending.SetResult(pendingTask.Fn());
+        foreach (var pendingTask in _pendingTasks.GetConsumingEnumerable()) RunTask(pendingTask);
     }
 
     public void Dispose()
