@@ -20,6 +20,7 @@ using Rin.World.Physics;
 using Rin.World.Scripting;
 using Rin.World.Transforms;
 using Rin.World.Graphics.Default;
+using Rin.World.Graphics.ImageBasedLighting;
 using Rin.World.Graphics.Mesh;
 using Rin.World.Graphics.Surfaces;
 using Rin.World.Mesh;
@@ -36,6 +37,20 @@ public sealed class SceneTestExample : Example
     private const int BenchGridSide = 25;
     private const float BenchGridSpacing = 5f;
     private const float BoxRainIntervalSeconds = 3f;
+    private const string SkyName = "footprint_court";
+
+    // A second environment that takes over inside a box around the play area.
+    private const string RoomName = "papermill";
+    private const float RoomBlendDistance = 5f;
+    private static readonly Vector3 RoomCentre = new(0f, 10f, 20f);
+    private static readonly Vector3 RoomHalfSize = new(25f, 20f, 25f);
+
+    private static readonly Log Log = Log.For<SceneTestExample>();
+
+    // Every point and directional light with its full radiance, so they can all be switched off to see the sky alone.
+    private readonly Dictionary<Entity, float> _directLights = [];
+    private bool _directLightsOn = true;
+    private Entity? _sky;
 
     private readonly Random _rng = new();
     private MeshHandle _cubeMesh;
@@ -66,6 +81,26 @@ public sealed class SceneTestExample : Example
 
         SpawnBox(world, new Vector3(0f, -6f, 20f), new Vector3(200f, 1f, 200f), PhysicsState.Static, default);
 
+        Task.Run(() => LoadEnvironment(SkyName)).DispatchMain(sky =>
+        {
+            if (_render != render || sky is null) return;
+            _sky = world.Spawn();
+            world.Add(_sky.Value, new EnvironmentLight { Map = render.Environments.Create(sky) });
+        });
+
+        Task.Run(() => LoadEnvironment(RoomName)).DispatchMain(room =>
+        {
+            if (_render != render || room is null) return;
+            var volume = world.Spawn();
+            world.SetPosition(volume, RoomCentre);
+            world.Add(volume, new EnvironmentLight
+            {
+                Map = render.Environments.Create(room),
+                Extent = RoomHalfSize,
+                BlendDistance = RoomBlendDistance
+            });
+        });
+
         var cubePath = Path.Join(Global.Directory, "assets", "models", "cube.glb");
         Task.Run(() => GltfMeshImporter.LoadStaticMesh(cubePath)).DispatchMain(loaded =>
         {
@@ -79,7 +114,7 @@ public sealed class SceneTestExample : Example
             var sunPosition = new Vector3(0.0f, 200.0f, 0.0f);
             world.SetPosition(sun, sunPosition);
             world.SetRotation(sun, MathR.LookTowards(Vector3.Normalize(Vector3.Zero - sunPosition)));
-            world.Add(sun, new DirectionalLight { Radiance = 10.0f });
+            world.Add(sun, new DirectionalLight { Radiance = TrackDirectLight(sun, 10.0f) });
 
             // Static visible obstacle the dynamic boxes pile against.
             SpawnBox(world, new Vector3(0f, -2.5f, 22f), new Vector3(10f, 5f, 10f), PhysicsState.Static, mesh);
@@ -99,6 +134,8 @@ public sealed class SceneTestExample : Example
         {
             if (e is { Key: InputKey.P, State: InputState.Pressed })
                 IApplication.Get().MainDispatcher.Enqueue(() => SpawnBoxGrid(BenchBoxCount));
+            if (e is { Key: InputKey.L, State: InputState.Pressed })
+                IApplication.Get().MainDispatcher.Enqueue(() => ToggleDirectLights(world));
         });
 
         context.OnUpdate(world.Update);
@@ -106,19 +143,55 @@ public sealed class SceneTestExample : Example
         context.Add(RenderGraphOverlay.GraphOverlay.Create(surf));
     }
 
+    // Environments are downloaded on first run, so the scene still starts without them when offline.
+    private static async Task<EnvironmentMap?> LoadEnvironment(string name)
+    {
+        try
+        {
+            return EnvironmentMap.FromRadiance(await SampleEnvironments.Load(name));
+        }
+        catch (Exception e) when (e is HttpRequestException or TaskCanceledException or IOException
+                                      or InvalidDataException)
+        {
+            Log.Warn($"Could not load the environment '{name}' ({e.Message})");
+            return null;
+        }
+    }
+
     public override void Stop()
     {
         _physics?.PhysicsSystem.Destroy();
         _physics = null;
         _render?.RenderSystem.Dispose();
+        _render?.Environments.Dispose();
         _render = null;
         _cubeMesh = default;
         _boxMaterials = default;
+        _directLights.Clear();
+        _directLightsOn = true;
+        _sky = null;
         _meshFactory?.Dispose();
         _meshFactory = null;
     }
 
-    private static Entity SpawnCamera(World world, Vector3 position, Quaternion rotation)
+    private float TrackDirectLight(Entity light, float radiance)
+    {
+        _directLights[light] = radiance;
+        return _directLightsOn ? radiance : 0f;
+    }
+
+    private void ToggleDirectLights(World world)
+    {
+        _directLightsOn = !_directLightsOn;
+        foreach (var (light, radiance) in _directLights)
+        {
+            var applied = _directLightsOn ? radiance : 0f;
+            if (world.Has<PointLight>(light)) world.Get<PointLight>(light).Radiance = applied;
+            else world.Get<DirectionalLight>(light).Radiance = applied;
+        }
+    }
+
+    private Entity SpawnCamera(World world, Vector3 position, Quaternion rotation)
     {
         var camera = world.Spawn();
         world.SetPosition(camera, position);
@@ -128,15 +201,15 @@ public sealed class SceneTestExample : Example
         var light = world.Spawn();
         world.SetPosition(light, Vector3.Zero);
         world.SetParent(light, camera);
-        world.Add(light, new PointLight { Radiance = 200.0f });
+        world.Add(light, new PointLight { Radiance = TrackDirectLight(light, 200.0f) });
         return camera;
     }
 
-    private static void SpawnPointLight(World world, Vector3 position)
+    private void SpawnPointLight(World world, Vector3 position)
     {
         var light = world.Spawn();
         world.SetPosition(light, position);
-        world.Add(light, new PointLight { Radiance = 800.0f });
+        world.Add(light, new PointLight { Radiance = TrackDirectLight(light, 800.0f) });
     }
 
     // The physics system multiplies the box size by the entity scale, as the old SceneTest did with the same values.
@@ -226,7 +299,7 @@ public sealed class SceneTestExample : Example
         });
     }
 
-    private static DockSpaceView BuildDockLayout(RenderFeature render, Entity perspectiveCam, Entity topCam)
+    private DockSpaceView BuildDockLayout(RenderFeature render, Entity perspectiveCam, Entity topCam)
     {
         DockPanel Panel(string id, string title, IView content, Color? bg = null)
         {
@@ -253,12 +326,14 @@ public sealed class SceneTestExample : Example
                     {
                         Child = new TextBoxView
                         {
-                            Content = "RMB drag: look\nWASD: move\nLMB: cycle view channel\nP: drop 2000 boxes",
+                            Content = "RMB drag: look\nWASD: move\nLMB: cycle view channel\nP: drop 2000 boxes\n" +
+                                      "L: toggle direct lights",
                             FontSize = 14f,
                             WrapContent = true
                         }
                     },
-                    new FlexBoxSlot { Child = BuildTimeScaleControl(render.World), Flex = 1, Fit = CrossFit.Fill }
+                    new FlexBoxSlot { Child = BuildTimeScaleControl(render.World), Fit = CrossFit.Fill },
+                    new FlexBoxSlot { Child = BuildSkyIntensityControl(render.World), Flex = 1, Fit = CrossFit.Fill }
                 ]
             }));
         var side = new DockSplitNode(DockOrientation.Vertical, stats, controls);
@@ -276,12 +351,34 @@ public sealed class SceneTestExample : Example
 
     private const float MaxTimeScale = 3f;
 
+    private const float MaxSkyIntensity = 4f;
+
     private static IView BuildTimeScaleControl(World scene)
     {
-        var label = new LiveLabelView(() => $"TimeScale: {scene.TimeScale:F2}x") { FontSize = 14f };
-        var slider = new SliderView(
+        return BuildSlider(() => $"TimeScale: {scene.TimeScale:F2}x",
             () => scene.TimeScale / MaxTimeScale,
-            frac => scene.TimeScale = frac * MaxTimeScale)
+            frac => scene.TimeScale = frac * MaxTimeScale);
+    }
+
+    private IView BuildSkyIntensityControl(World scene)
+    {
+        return BuildSlider(() => $"Sky intensity: {SkyIntensity(scene):F2}x",
+            () => SkyIntensity(scene) / MaxSkyIntensity,
+            frac =>
+            {
+                if (_sky is { } sky) scene.Get<EnvironmentLight>(sky).Intensity = frac * MaxSkyIntensity;
+            });
+    }
+
+    private float SkyIntensity(World scene)
+    {
+        return _sky is { } sky ? scene.Get<EnvironmentLight>(sky).Intensity : 0f;
+    }
+
+    private static IView BuildSlider(Func<string> text, Func<float> getFraction, Action<float> setFraction)
+    {
+        var label = new LiveLabelView(text) { FontSize = 14f };
+        var slider = new SliderView(getFraction, setFraction)
         {
             BackgroundColor = Color.FromRgb(0.2f, 0.2f, 0.22f),
             ForegroundColor = Color.FromRgb(0.3f, 0.6f, 1f),
