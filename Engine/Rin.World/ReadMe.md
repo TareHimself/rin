@@ -78,9 +78,26 @@ The `scripting` example has one small script per pattern (patrol, sequenced door
 | --- | --- |
 | `StaticMesh`, `SkinnedMesh` | A `MeshHandle` from `IMeshFactory.CreateMesh` plus a `MaterialSet` from `RenderFeature.Materials`. The mesh is drawable as soon as `CreateMesh` returns. Skinned meshes also need a pose source |
 | `PointLight`, `DirectionalLight` | Color, radiance, radius |
-| `Camera` | `world.GetCameraView(entity)` for a `Viewport` |
+| `EnvironmentLight` | Lights the scene from an environment map: a handle from `RenderFeature.Environments`, an intensity, and an optional box (`Extent`, `BlendDistance`, `Priority`) |
+| `Camera` | `world.GetCameraView(entity)` for a `Viewport`. `Exposure` scales scene brightness and `ToneMapCurve` (`AgX` by default, `Neutral`, `Aces`) picks how it is fitted to the display |
 
 One mesh or light per entity, so use child entities for more. Animation runs per frame. `renderFeature.AttachToBone(child, parent, "bone")` makes a child follow a bone, with its `LocalTransform` as the offset from the bone. Call it again to move it to another bone, and `DetachFromBone` to stop.
+
+### Environment lighting
+
+```csharp
+var sky = EnvironmentMap.FromRadiance(File.ReadAllBytes("sky.hdr"));
+world.Add(world.Spawn(), new EnvironmentLight { Map = renderFeature.Environments.Create(sky) });
+```
+
+`EnvironmentMap` prepares a panorama on the CPU: it shrinks it to what the cubemap can show and works out spherical harmonics for diffuse light. `Environments.Create` uploads the panorama, and the first frame that uses the map runs `EnvironmentFilterPass` once, which draws every mip of every cubemap face from it, each mip blurred for a rougher surface.
+
+| `Extent` | Reach |
+| --- | --- |
+| Zero | Everywhere, like a sky. The highest `Priority` wins |
+| A box half-size | Pixels inside the box around the entity, fading in over `BlendDistance` from its border and blending with the unbounded light underneath. The highest `Priority` wins an overlap, and equal priorities cross-fade |
+
+Surfaces get diffuse light and reflections, blurrier the rougher they are. Each pixel finds the boxes it is inside through the light grid, and a box's reflections are corrected as if its map were painted on the box's walls. The sky pass draws the unbounded map behind the scene, blended towards the box the camera is inside. Reflections show only the maps, so objects do not appear in each other.
 
 ### Materials
 
@@ -132,10 +149,10 @@ The tick is deterministic on the same build and CPU family. Tick code must:
 
 ```mermaid
 flowchart LR
-    S["skinning, bounds, scene data"] --> C["culling, indirect commands"] --> D["depth prepass"] --> LG["light grid"] --> F["forward color"]
+    S["skinning, bounds, scene data"] --> C["culling, indirect commands"] --> D["depth prepass"] --> LG["light grid"] --> F["forward color"] --> K["sky"] --> T["tone map"]
 ```
 
-The light grid sorts point lights by view depth into 1024 depth bins on the CPU (`LightBinner`), then a compute pass marks which lights touch each 32 x 32 pixel tile. The forward pass draws every mesh again with its material's shader, which evaluates the surface and lights it right there, looping only the lights in both the pixel's tile and its depth bin, plus every directional light. A light reaches nothing past its `Radius`. There is no G-buffer.
+The light grid culls everything with a bounded reach: point lights by their `Radius` and environment boxes by a sphere around them. `ClusterBinner` sorts these items by kind and then by view depth, and fills 1024 depth bins per kind on the CPU. A compute pass then marks which items touch each 32 x 32 pixel tile. Each item says which kind it is and which entry of that kind's data array it stands for, so adding a kind is one more array and one more loop. The forward pass draws every mesh again with its material's shader, which evaluates the surface and lights it right there, looping only the items in both the pixel's tile and its depth bin, plus every directional light and the unbounded environment. There is no G-buffer.
 
 Draws are batched by index buffer plus material pass, and materials that don't move vertices share one depth pass. Without indirect rendering (or with `DrawMode = Direct`), culling is skipped and meshes draw from the CPU. Culling doesn't cull anything yet.
 

@@ -3,6 +3,8 @@ using Rin.Core.Graphics;
 using Rin.World.Graphics;
 using Rin.World.Graphics.Default;
 using Rin.World.Graphics.Default.Passes;
+using Rin.World.Graphics.ImageBasedLighting;
+using Rin.World.Tests.Graphics.ImageBasedLighting;
 
 namespace Rin.World.Tests.Graphics;
 
@@ -49,6 +51,59 @@ public class DefaultWorldViewDataTests
             typeof(LightGridPass),
             typeof(ForwardIndirectPass)
         }));
+    }
+
+    [Test]
+    public void AViewWithAnEnvironmentDrawsTheSkyLast()
+    {
+        var render = new DefaultRenderSystem();
+        render.CreateEnvironmentProxy(TestEnvironments.Unbounded(1, Vector3.One));
+
+        var passes = CreateView(render).CreateGeometryPasses(false);
+
+        Assert.That(passes[^1], Is.TypeOf<SkyPass>());
+    }
+
+    [Test]
+    public void TheViewCarriesTheCameraExposureAndCurve()
+    {
+        var camera = TestCameras.Identity with { Exposure = 0.5f, ToneMapCurve = ToneMapCurve.Aces };
+
+        var view = (DefaultWorldViewData)new DefaultRenderSystem().Snapshot(camera, new Extent2D(1, 1));
+
+        Assert.That((view.Exposure, view.ToneMapCurve), Is.EqualTo((0.5f, ToneMapCurve.Aces)));
+    }
+
+    [Test]
+    public void ACameraViewDefaultsToUnitExposureAndAgX()
+    {
+        var view = new CameraView(Matrix4x4.Identity, 90f, 0.1f, 100f);
+
+        Assert.That((view.Exposure, view.ToneMapCurve), Is.EqualTo((1f, ToneMapCurve.AgX)));
+    }
+
+    [TestCase(RenderChannel.Scene, true)]
+    [TestCase(RenderChannel.Normal, false)]
+    [TestCase(RenderChannel.LightCount, false)]
+    public void OnlyTheLitSceneIsToneMapped(RenderChannel channel, bool expected)
+    {
+        var camera = TestCameras.Identity with { Channel = channel };
+
+        var view = (DefaultWorldViewData)new DefaultRenderSystem().Snapshot(camera, new Extent2D(1, 1));
+
+        Assert.That(view.ToneMaps, Is.EqualTo(expected));
+    }
+
+    [Test]
+    public void ADebugChannelViewLeavesTheSkyOut()
+    {
+        var render = new DefaultRenderSystem();
+        render.CreateEnvironmentProxy(TestEnvironments.Unbounded(1, Vector3.One));
+        var camera = TestCameras.Identity with { Channel = RenderChannel.Normal };
+
+        var view = (DefaultWorldViewData)render.Snapshot(camera, new Extent2D(1, 1));
+
+        Assert.That(view.DrawsSky, Is.False);
     }
 
     [Test]

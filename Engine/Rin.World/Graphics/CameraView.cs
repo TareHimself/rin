@@ -16,4 +16,6 @@ public readonly struct CameraView(in Matrix4x4 world, float fieldOfView, float n
     public float FarClipPlane { get; } = farClipPlane;
 
     public RenderChannel Channel { get; init; }
+    public float Exposure { get; init; } = 1f;
+    public ToneMapCurve ToneMapCurve { get; init; }
 }

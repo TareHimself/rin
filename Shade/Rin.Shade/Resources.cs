@@ -59,6 +59,12 @@ public struct TextureCube
     /// </summary>
     [SlangExpression("@this.Sample(@sampler, @direction)")]
     public extern Vector4 Sample(SamplerState sampler, Vector3 direction);
+
+    /// <summary>
+    /// Samples the cube map along a direction at an explicit mip level.
+    /// </summary>
+    [SlangExpression("@this.SampleLevel(@sampler, @direction, @level)")]
+    public extern Vector4 SampleLevel(SamplerState sampler, Vector3 direction, float level);
 }
 
 /// <summary>

@@ -2,6 +2,7 @@ using System.Collections.Concurrent;
 using System.Numerics;
 using Rin.Core.Graphics;
 using Rin.Core.Shared.Pooling;
+using Rin.World.Graphics.ImageBasedLighting;
 using Rin.World.Mesh.Skinning;
 
 namespace Rin.World.Graphics.Default;
@@ -16,7 +17,8 @@ public class DefaultRenderSystem : IRenderSystem
     {
         StaticMesh,
         SkinnedMesh,
-        Light
+        Light,
+        Environment
     }
 
     private record struct ProxyRow(ProxyKind Kind, Matrix4x4 Transform)
@@ -25,6 +27,7 @@ public class DefaultRenderSystem : IRenderSystem
         public StaticMeshProxyDesc StaticDesc;
         public SkinnedMeshProxyDesc SkinnedDesc;
         public LightInfo Light;
+        public EnvironmentVolume? Environment;
     }
 
     private enum CommandKind
@@ -32,6 +35,7 @@ public class DefaultRenderSystem : IRenderSystem
         CreateStaticMesh,
         CreateSkinnedMesh,
         CreateLight,
+        SetEnvironment,
         UpdateTransform,
         UpdatePose,
         UpdateLight,
@@ -49,6 +53,7 @@ public class DefaultRenderSystem : IRenderSystem
         public StaticMeshProxyDesc StaticDesc;
         public SkinnedMeshProxyDesc SkinnedDesc;
         public LightInfo Light;
+        public EnvironmentVolume? Environment;
         public SkeletalPose Pose;
     }
 
@@ -92,6 +97,18 @@ public class DefaultRenderSystem : IRenderSystem
         var handle = Reserve();
         _commands.Enqueue(new ProxyCommand { Kind = CommandKind.CreateLight, Handle = handle, Light = desc });
         return handle;
+    }
+
+    public RenderProxyHandle CreateEnvironmentProxy(in EnvironmentVolume desc)
+    {
+        var handle = Reserve();
+        UpdateEnvironmentProxy(handle, desc);
+        return handle;
+    }
+
+    public void UpdateEnvironmentProxy(RenderProxyHandle handle, in EnvironmentVolume desc)
+    {
+        _commands.Enqueue(new ProxyCommand { Kind = CommandKind.SetEnvironment, Handle = handle, Environment = desc });
     }
 
     public void UpdateProxyTransform(RenderProxyHandle handle, in Matrix4x4 worldTransform)
@@ -165,6 +182,9 @@ public class DefaultRenderSystem : IRenderSystem
                 case ProxyKind.Light:
                     scene.AddLight(row.Light);
                     break;
+                case ProxyKind.Environment:
+                    scene.AddEnvironment(row.Environment!.Value);
+                    break;
             }
         }
 
@@ -218,6 +238,10 @@ public class DefaultRenderSystem : IRenderSystem
                 break;
             case CommandKind.CreateLight:
                 Set(handle, new ProxyRow(ProxyKind.Light, Matrix4x4.Identity) { Light = command.Light });
+                break;
+            case CommandKind.SetEnvironment:
+                Set(handle, new ProxyRow(ProxyKind.Environment, command.Environment!.Value.Transform)
+                    { Environment = command.Environment });
                 break;
             case CommandKind.UpdateTransform:
                 if (TryGet(handle, out var moved)) Set(handle, WithTransform(moved, command.Transform));

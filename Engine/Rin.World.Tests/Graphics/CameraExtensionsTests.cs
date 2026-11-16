@@ -15,10 +15,16 @@ public class CameraExtensionsTests
         world.SetPosition(parent, new Vector3(0, 10, 0));
         world.SetPosition(camera, new Vector3(0, 0, -5));
         world.SetParent(camera, parent);
-        world.Add(camera, new Camera { FieldOfView = 60f, NearClipPlane = 0.5f, FarClipPlane = 900f });
+        world.Add(camera, new Camera
+        {
+            FieldOfView = 60f, NearClipPlane = 0.5f, FarClipPlane = 900f, Exposure = 2f,
+            ToneMapCurve = ToneMapCurve.Neutral
+        });
         world.Update(0f);
 
         var view = world.GetCameraView(camera);
+
+        Assert.That((view.Exposure, view.ToneMapCurve), Is.EqualTo((2f, ToneMapCurve.Neutral)));
 
         Assert.That(view.World, Is.EqualTo(world.Get<WorldTransform>(camera).Matrix));
         Assert.That(view.World.Translation, Is.EqualTo(new Vector3(0, 10, -5)));

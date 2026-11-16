@@ -6,7 +6,8 @@ using Rin.Shade;
 namespace Rin.World.Graphics.Default.Shaders;
 
 /// <summary>
-///     Fills the tile bitmasks: one thread per (tile, 32-light word), each writing its own word, so no atomics.
+///     Fills the tile bitmasks: one thread per (tile, 32-item word), each writing its own word, so no atomics. Every
+///     kind of item is tested by its sphere.
 /// </summary>
 [Shader]
 public partial class TileLightsShader : Shader
@@ -33,12 +34,12 @@ public partial class TileLightsShader : Shader
         var mask = 0u;
         for (var bit = 0u; bit < 32u; bit++)
         {
-            var lightIndex = word * 32u + bit;
-            if (lightIndex >= (uint)grid.PointLightCount) break;
+            var itemIndex = word * 32u + bit;
+            if (itemIndex >= (uint)grid.ItemCount) break;
 
-            var light = grid.PointLights[lightIndex];
-            var center = Vector4.Transform(new Vector4(light.Location, 1f), grid.View);
-            if (LightGrid.SphereTouchesTile(new Vector3(center.X, center.Y, center.Z), light.Radius, slopes))
+            var item = grid.Items[itemIndex];
+            var center = Vector4.Transform(new Vector4(item.Center, 1f), grid.View);
+            if (LightGrid.SphereTouchesTile(new Vector3(center.X, center.Y, center.Z), item.Radius, slopes))
                 mask |= 1u << (int)bit;
         }
 

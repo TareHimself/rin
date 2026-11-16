@@ -3,6 +3,7 @@ using System.Runtime.InteropServices;
 using Rin.Core.Graphics.Graph;
 using Rin.Core.Shared.Math;
 using Rin.Core.Shared.Pooling;
+using Rin.World.Graphics.ImageBasedLighting;
 
 namespace Rin.World.Graphics.Default;
 
@@ -14,6 +15,7 @@ namespace Rin.World.Graphics.Default;
 public sealed class DefaultWorldSnapshot : IResettable
 {
     private readonly List<Transform> _bones = [];
+    private readonly List<EnvironmentVolume> _environments = [];
     private readonly List<LightInfo> _lights = [];
     private readonly DefaultRenderSystem _owner;
     private readonly List<SkinnedMeshInfo> _skinned = [];
@@ -30,6 +32,8 @@ public sealed class DefaultWorldSnapshot : IResettable
     public ReadOnlySpan<SkinnedMeshInfo> SkinnedGeometry => CollectionsMarshal.AsSpan(Held(_skinned));
 
     public ReadOnlySpan<LightInfo> Lights => CollectionsMarshal.AsSpan(Held(_lights));
+
+    public ReadOnlySpan<EnvironmentVolume> Environments => CollectionsMarshal.AsSpan(Held(_environments));
 
     /// <summary>
     ///     The mesh's local bone transforms, one per bone of its skeleton.
@@ -92,6 +96,11 @@ public sealed class DefaultWorldSnapshot : IResettable
         _lights.Add(light);
     }
 
+    internal void AddEnvironment(in EnvironmentVolume environment)
+    {
+        _environments.Add(environment);
+    }
+
     public void Reset()
     {
         if (Volatile.Read(ref _holders) > 0)
@@ -99,6 +108,7 @@ public sealed class DefaultWorldSnapshot : IResettable
         _static.Clear();
         _skinned.Clear();
         _lights.Clear();
+        _environments.Clear();
         _bones.Clear();
     }
 

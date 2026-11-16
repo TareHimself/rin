@@ -78,6 +78,19 @@ public struct BindlessData
         return Textures[(int)Shader.NonUniformResourceIndex(handle.Id)].Sample(sampler, uv);
     }
 
+    public static Vector4 SampleTextureLevel(DeviceHandle handle, Vector2 uv, float level, ImageTiling tiling,
+        ImageFilter filter)
+    {
+        var sampler = GetSampler(tiling, filter);
+        return Textures[(int)Shader.NonUniformResourceIndex(handle.Id)].SampleLevel(sampler, uv, level);
+    }
+
+    public static Vector4 SampleCubemap(DeviceHandle handle, Vector3 direction, float level)
+    {
+        var sampler = GetSampler(ImageTiling.ClampEdge, ImageFilter.Linear);
+        return Cubemaps[(int)Shader.NonUniformResourceIndex(handle.Id)].SampleLevel(sampler, direction, level);
+    }
+
     public static RWByteAddressBuffer GetBuffer(uint handle)
     {
         return Buffers[(int)Shader.NonUniformResourceIndex(handle)];

@@ -8,19 +8,21 @@ using static Rin.Shade.Shader;
 namespace Rin.World.Graphics.Default.Shaders;
 
 /// <summary>
-///     One view's light grid: the point lights sorted by view depth, the z-bins from <see cref="LightBinner" />, and one
-///     bitmask word per 32 lights per screen tile.
+///     One view's grid: every culled item sorted by kind and view depth, the z-bins per kind from
+///     <see cref="ClusterBinner" />, one bitmask word per 32 items per screen tile, and each kind's data array.
 /// </summary>
 [ShadeExport]
 [NoReorder]
 public struct LightGridInfo
 {
-    public DeviceSpan<LightInfo> PointLights;
-    public DeviceSpan<LightInfo> DirectionalLights;
+    public DeviceSpan<ClusterItem> Items;
     public DeviceSpan<uint> Bins;
     public DeviceSpan<uint> TileMasks;
+    public DeviceSpan<LightInfo> PointLights;
+    public DeviceSpan<LightInfo> DirectionalLights;
+    public DeviceSpan<EnvironmentVolumeInfo> Volumes;
     public Matrix4x4 View;
-    public int PointLightCount;
+    public int ItemCount;
     public int DirectionalLightCount;
     public uint Width;
     public uint Height;
@@ -94,7 +96,7 @@ public static class LightGrid
     }
 
     /// <summary>
-    ///     The bits of light word <paramref name="word" /> that fall inside the sorted index range [first, last].
+    ///     The bits of item word <paramref name="word" /> that fall inside the sorted index range [first, last].
     /// </summary>
     public static uint RangeMask(uint word, uint first, uint last)
     {
@@ -116,25 +118,40 @@ public static class LightGrid
         for (var i = 0; i < grid.DirectionalLightCount; i++)
             Add(ref result, surface, location, eye, grid.DirectionalLights[i]);
 
-        var depth = Vector4.Transform(new Vector4(location, 1f), grid.View).Z;
-        var bin = grid.Bins[BinOf(depth, grid.Near, grid.BinScale)];
+        var bin = BinAt(grid, ClusterItemType.PointLight, location);
         var first = bin & 0xFFFFu;
         var last = bin >> 16;
         if (first > last) return result;
 
-        var tile = ((uint)pixel.Y / TileSize * grid.TilesX + (uint)pixel.X / TileSize) * grid.WordCount;
+        var tile = TileAt(grid, pixel);
         for (var word = first / 32u; word <= last / 32u; word++)
         {
             var bits = grid.TileMasks[tile + word] & RangeMask(word, first, last);
             result.LightCount += CountBits(bits);
             while (bits != 0u)
             {
-                Add(ref result, surface, location, eye, grid.PointLights[word * 32u + FirstBitLow(bits)]);
+                var item = grid.Items[word * 32u + FirstBitLow(bits)];
+                Add(ref result, surface, location, eye, grid.PointLights[item.Index]);
                 bits &= bits - 1u;
             }
         }
 
         return result;
+    }
+
+    /// <summary>
+    ///     The packed first and last item index of one kind at a world position's depth. Empty when first is greater
+    ///     than last.
+    /// </summary>
+    public static uint BinAt(LightGridInfo grid, ClusterItemType type, Vector3 location)
+    {
+        var depth = Vector4.Transform(new Vector4(location, 1f), grid.View).Z;
+        return grid.Bins[(uint)type * ClusterBinner.BinCount + BinOf(depth, grid.Near, grid.BinScale)];
+    }
+
+    public static uint TileAt(LightGridInfo grid, Vector2 pixel)
+    {
+        return ((uint)pixel.Y / TileSize * grid.TilesX + (uint)pixel.X / TileSize) * grid.WordCount;
     }
 
     /// <summary>
@@ -154,12 +171,12 @@ public static class LightGrid
     }
 
     /// <summary>
-    ///     The z-bin of a view depth. The same formula as <see cref="LightBinner.BinOf" />, with the scale precomputed.
+    ///     The z-bin of a view depth. The same formula as <see cref="ClusterBinner.BinOf" />, with the scale precomputed.
     /// </summary>
     public static uint BinOf(float depth, float near, float binScale)
     {
         if (depth <= near) return 0u;
         var bin = Log(depth / near) * binScale;
-        return (uint)Min(bin, LightBinner.BinCount - 1f);
+        return (uint)Min(bin, ClusterBinner.BinCount - 1f);
     }
 }

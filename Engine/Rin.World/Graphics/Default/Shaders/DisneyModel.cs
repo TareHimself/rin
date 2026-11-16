@@ -50,7 +50,6 @@ public static class DisneyModel
         if (Min(noL,irradiance) > 0f)
         {
             var view = Normalize(eye - location);
-            var reflectance = surface.Specular;
             var roughness = surface.Roughness;
             var metallic = surface.Metallic;
             var baseColor = surface.BaseColor;
@@ -61,8 +60,7 @@ public static class DisneyModel
             var noH = Clamp(Dot(normal, halfway), 0f, 1f);
             var voH = Clamp(Dot(view, halfway), 0f, 1f);
 
-            var f0 = new Vector3(0.16f * (reflectance * reflectance));
-            f0 = Lerp(f0, baseColor, metallic);
+            var f0 = LightMath.BaseReflectivity(surface);
 
             var fresnel = FresnelSchlick(voH, f0);
             var d = GgxDistribution(noH, roughness);

@@ -5,6 +5,7 @@ using Rin.Core.Shared;
 using Rin.Core.Shared.Buffers;
 using Rin.Core.Shared.Math;
 using Rin.World.Graphics;
+using Rin.World.Graphics.ImageBasedLighting;
 using Rin.World.Graphics.Mesh;
 using Rin.World.Mesh.Skinning;
 using Rin.World.Mesh.Skinning.Animation;
@@ -85,6 +86,8 @@ internal sealed class FakeRenderSystem : IRenderSystem
     public List<(RenderProxyHandle Handle, StaticMeshProxyDesc Desc)> CreatedStaticMeshes { get; } = [];
     public List<(RenderProxyHandle Handle, SkinnedMeshProxyDesc Desc)> CreatedSkinnedMeshes { get; } = [];
     public List<(RenderProxyHandle Handle, LightInfo Light)> CreatedLights { get; } = [];
+    public List<(RenderProxyHandle Handle, EnvironmentVolume Volume)> CreatedEnvironments { get; } = [];
+    public List<(RenderProxyHandle Handle, EnvironmentVolume Volume)> PushedEnvironments { get; } = [];
     public List<RenderProxyHandle> Destroyed { get; } = [];
     public int DestroyCount => Destroyed.Count;
     public int LiveCount => _live.Count;
@@ -110,6 +113,19 @@ internal sealed class FakeRenderSystem : IRenderSystem
         var handle = Create();
         CreatedLights.Add((handle, desc));
         return handle;
+    }
+
+    public RenderProxyHandle CreateEnvironmentProxy(in EnvironmentVolume desc)
+    {
+        var handle = Create();
+        CreatedEnvironments.Add((handle, desc));
+        return handle;
+    }
+
+    public void UpdateEnvironmentProxy(RenderProxyHandle handle, in EnvironmentVolume desc)
+    {
+        if (!_live.Contains(handle)) throw new InvalidOperationException("Stale or unknown proxy handle");
+        PushedEnvironments.Add((handle, desc));
     }
 
     private RenderProxyHandle Create()
