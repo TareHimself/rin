@@ -51,9 +51,6 @@ public class DefaultProvider : IProvider
     {
         var type = typeof(TInterface);
 
-        Debug.Assert(_factories.ContainsKey(type) || _singleFactories.ContainsKey(type) || _instances.ContainsKey(type),
-            $"No factory found for type {type}");
-
         {
             if (_instances.TryGetValue(type, out var instance)) return (TInterface)instance;
         }
@@ -67,6 +64,6 @@ public class DefaultProvider : IProvider
             if (_factories.TryGetValue(type, out var factory)) return (TInterface)factory(this);
         }
 
-        throw new NullReferenceException();
+        throw new InvalidOperationException($"Nothing is registered for {type}");
     }
 }

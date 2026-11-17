@@ -30,19 +30,25 @@ internal abstract class BepuBody
 
     public void Dispose()
     {
+        RemoveFromSimulation();
+        System.Simulation.Shapes.RemoveAndDispose(GetShapeIndex(), System.Simulation.BufferPool);
+    }
+
+    private void RemoveFromSimulation()
+    {
         switch (GetState())
         {
             case PhysicsState.Static:
                 System.Simulation.Statics.Remove(StaticHandle ?? throw new NullReferenceException());
+                StaticHandle = null;
                 break;
             case PhysicsState.Controlled or PhysicsState.Simulated:
                 System.Simulation.Bodies.Remove(BodyHandle ?? throw new NullReferenceException());
+                BodyHandle = null;
                 break;
             default:
                 throw new ArgumentOutOfRangeException();
         }
-
-        System.Simulation.Shapes.RemoveAndDispose(GetShapeIndex(), System.Simulation.BufferPool);
     }
 
     public int CollisionChannel { get; set; }
@@ -207,15 +213,29 @@ internal abstract class BepuBody
         UpdateInertia();
     }
 
+    /// <summary>
+    ///     Moves the body between Bepu's statics and bodies, which gives it a new Bepu handle. Only a body
+    ///     that becomes simulated keeps its velocity.
+    /// </summary>
     public void SetState(PhysicsState state)
     {
-        var oldState = _state;
-        _state = state;
-        if (oldState == _state) return;
-
-        if (oldState == PhysicsState.Static)
+        if (state == _state) return;
+        if (!HasAnyHandle())
         {
+            _state = state;
+            return;
         }
+
+        var linearVelocity = GetLinearVelocity();
+        var angularVelocity = GetAngularVelocity();
+        GetPosition();
+        GetOrientation();
+        RemoveFromSimulation();
+        _state = state;
+        Init();
+        if (state != PhysicsState.Simulated) return;
+        SetLinearVelocity(linearVelocity);
+        SetAngularVelocity(angularVelocity);
     }
 
     protected abstract TypedIndex GetShapeIndex();
@@ -290,6 +310,23 @@ internal abstract class BepuBody
             default:
                 throw new ArgumentOutOfRangeException();
         }
+    }
+
+    /// <summary>
+    ///     Makes the broad phase see a shape that was just resized.
+    /// </summary>
+    protected void RefreshBounds()
+    {
+        if (!HasAnyHandle()) return;
+        if (GetState() == PhysicsState.Static)
+        {
+            GetStaticReference().UpdateBounds();
+            return;
+        }
+
+        var reference = GetBodyReference();
+        reference.Awake = true;
+        reference.UpdateBounds();
     }
 
     protected void UpdateInertia()

@@ -27,7 +27,7 @@ internal class BepuCapsuleBody : BepuBody
 
     public float GetHalfHeight()
     {
-        return _height;
+        return _height * 0.5f;
     }
 
     public float GetScaledHalfHeight()
@@ -77,6 +77,8 @@ internal class BepuCapsuleBody : BepuBody
     {
         _shape.Radius = _radius * GetRadiusScale();
         _shape.Length = _height * GetHeightScale();
+        System.Simulation.Shapes.GetShape<Capsule>(_shapeIndex.Index) = _shape;
+        RefreshBounds();
         UpdateInertia();
     }
 

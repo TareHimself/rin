@@ -1,3 +1,5 @@
+using Rin.Core;
+using Rin.Graphics.Null;
 using System.Numerics;
 using System.Runtime.InteropServices;
 using Rin.Core.Graphics;
@@ -38,13 +40,33 @@ public class RinWindowTests
     }
 
     [Test]
-    public void Constructor_RegistersDropCallbacks()
+    public void ConstructorRegistersDropCallbacks()
     {
         Assert.That(FakeNative.WindowHasDropCallbacks(_handle), Is.EqualTo(1));
     }
 
     [Test]
-    public void Dispose_DestroysTheNativeWindowOnce()
+    public void DisposingAParentDisposesEachOfItsChildren()
+    {
+        Global.Provider.AddSingle<IGraphicsModule>(new NullGraphicsModule());
+        try
+        {
+            var disposedChildren = 0;
+            for (var i = 0; i < 3; i++)
+                _window.CreateChild("child", new Extent2D(1, 1)).OnDispose += () => disposedChildren++;
+
+            _window.Dispose();
+
+            Assert.That(disposedChildren, Is.EqualTo(3));
+        }
+        finally
+        {
+            Global.Provider.RemoveSingle<IGraphicsModule>();
+        }
+    }
+
+    [Test]
+    public void DisposeDestroysTheNativeWindowAndRaisesOnDisposeOnce()
     {
         var disposed = 0;
         _window.OnDispose += () => disposed++;
@@ -56,18 +78,18 @@ public class RinWindowTests
         {
             Assert.That(FakeNative.WindowCount(), Is.Zero);
             Assert.That(_window.GetHandle(), Is.Zero);
-            Assert.That(disposed, Is.EqualTo(2));
+            Assert.That(disposed, Is.EqualTo(1));
         });
     }
 
     [Test]
-    public void GetSize_ReadsTheNativeWindow()
+    public void GetSizeReadsTheNativeWindow()
     {
         Assert.That(_window.GetSize(), Is.EqualTo(new Extent2D(640, 480)));
     }
 
     [Test]
-    public void SetSize_IsReflectedByGetSize()
+    public void SetSizeIsReflectedByGetSize()
     {
         _window.SetSize(new Extent2D(800, 600));
 
@@ -75,7 +97,7 @@ public class RinWindowTests
     }
 
     [Test]
-    public void SetFullscreen_ReachesTheNativeWindowAndTracksTheState()
+    public void SetFullscreenReachesTheNativeWindowAndTracksTheState()
     {
         _window.SetFullscreen(true);
 
@@ -95,7 +117,7 @@ public class RinWindowTests
     }
 
     [Test]
-    public void SetCursorPosition_RoundTrips()
+    public void SetCursorPositionRoundTrips()
     {
         _window.SetCursorPosition(new Vector2(12, 34));
 
@@ -103,7 +125,7 @@ public class RinWindowTests
     }
 
     [Test]
-    public void ProcessEvent_Key_RaisesOnKey()
+    public void ProcessEventKeyRaisesOnKey()
     {
         KeyEvent? raised = null;
         _window.OnKey += e => raised = e;
@@ -127,7 +149,7 @@ public class RinWindowTests
     }
 
     [Test]
-    public void ProcessEvent_Resize_RaisesOnResize()
+    public void ProcessEventResizeRaisesOnResize()
     {
         ResizeEvent? raised = null;
         _window.OnResize += e => raised = e;
@@ -141,7 +163,7 @@ public class RinWindowTests
 
     [TestCase(1, true)]
     [TestCase(0, false)]
-    public void ProcessEvent_KeyboardFocus_MapsTheFocusedFlag(int focused, bool expected)
+    public void ProcessEventKeyboardFocusMapsTheFocusedFlag(int focused, bool expected)
     {
         FocusEvent? raised = null;
         _window.OnKeyboardFocus += e => raised = e;
@@ -154,7 +176,7 @@ public class RinWindowTests
     }
 
     [Test]
-    public void ProcessEvent_CursorButton_UsesTheResolvedCursorPosition()
+    public void ProcessEventCursorButtonUsesTheResolvedCursorPosition()
     {
         CursorButtonEvent? raised = null;
         _window.OnCursorButton += e => raised = e;
@@ -174,7 +196,7 @@ public class RinWindowTests
     }
 
     [Test]
-    public void ProcessEvent_Scroll_CarriesTheDeltaAndTheResolvedCursorPosition()
+    public void ProcessEventScrollCarriesTheDeltaAndTheResolvedCursorPosition()
     {
         ScrollEvent? raised = null;
         _window.OnScroll += e => raised = e;
@@ -191,7 +213,7 @@ public class RinWindowTests
     }
 
     [Test]
-    public void ProcessEvent_CursorMove_UsesTheResolvedCursorPosition()
+    public void ProcessEventCursorMoveUsesTheResolvedCursorPosition()
     {
         CursorMoveEvent? raised = null;
         _window.OnCursorMoved += e => raised = e;
@@ -203,7 +225,7 @@ public class RinWindowTests
     }
 
     [Test]
-    public void ProcessEvent_TextCommit_RaisesOneCharacterPerUtf16Unit()
+    public void ProcessEventTextCommitRaisesOneCharacterPerUtf16Unit()
     {
         var characters = new List<char>();
         _window.OnCharacter += e => characters.Add(e.Data);
@@ -215,7 +237,7 @@ public class RinWindowTests
     }
 
     [Test]
-    public void ProcessEvent_TextCommit_WithoutText_RaisesNothing()
+    public void ProcessEventTextCommitWithoutTextRaisesNothing()
     {
         var characters = 0;
         _window.OnCharacter += _ => characters++;
@@ -227,7 +249,7 @@ public class RinWindowTests
     }
 
     [Test]
-    public void ProcessEvent_TextPreedit_RaisesTextAndCaret()
+    public void ProcessEventTextPreeditRaisesTextAndCaret()
     {
         TextPreeditEvent? raised = null;
         _window.OnTextPreedit += e => raised = e;
@@ -247,7 +269,7 @@ public class RinWindowTests
     }
 
     [Test]
-    public void ProcessEvent_UnknownType_Throws()
+    public void ProcessEventUnknownTypeThrows()
     {
         var e = Event((Native.Window.EventType)99, _handle);
 
@@ -301,7 +323,7 @@ public class RinWindowTests
     }
 
     [Test]
-    public void Drag_WithoutADropHandler_RefusesAndRaisesNothing()
+    public void DragWithoutADropHandlerRefusesAndRaisesNothing()
     {
         var entered = false;
         _window.OnDragEnter += _ => entered = true;
@@ -316,7 +338,7 @@ public class RinWindowTests
     }
 
     [Test]
-    public void DragEnter_DecodesPathsTextAndTheDefaultEffect()
+    public void DragEnterDecodesPathsTextAndTheDefaultEffect()
     {
         DragEvent? raised = null;
         _window.OnDrop += _ => { };
@@ -337,7 +359,7 @@ public class RinWindowTests
     }
 
     [Test]
-    public void DragOver_WithoutText_HasNoText()
+    public void DragOverWithoutTextHasNoText()
     {
         DragEvent? raised = null;
         _window.OnDrop += _ => { };
@@ -353,7 +375,7 @@ public class RinWindowTests
     }
 
     [Test]
-    public void Drop_ReturnsTheEffectTheHandlerChose()
+    public void DropReturnsTheEffectTheHandlerChose()
     {
         DropEvent? raised = null;
         _window.OnDrop += e =>
@@ -372,7 +394,7 @@ public class RinWindowTests
     }
 
     [Test]
-    public void DragLeave_RaisesOnDragLeave()
+    public void DragLeaveRaisesOnDragLeave()
     {
         var left = 0;
         _window.OnDrop += _ => { };
@@ -384,7 +406,7 @@ public class RinWindowTests
     }
 
     [Test]
-    public void DragHandlerException_IsKeptUntilThrowPendingDragHandlerError()
+    public void DragHandlerExceptionIsKeptUntilThrowPendingDragHandlerError()
     {
         _window.OnDrop += _ => { };
         _window.OnDragEnter += _ => throw new InvalidOperationException("handler failed");

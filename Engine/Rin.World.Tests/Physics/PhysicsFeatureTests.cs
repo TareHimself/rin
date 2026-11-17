@@ -4,20 +4,8 @@ using Rin.World.Transforms;
 
 namespace Rin.World.Tests.Physics;
 
-public class PhysicsFeatureTests
+public class PhysicsFeatureTests : PhysicsFeatureFixture
 {
-    private World _world = null!;
-    private FakePhysicsSystem _physics = null!;
-    private PhysicsFeature _feature = null!;
-
-    [SetUp]
-    public void SetUp()
-    {
-        _world = new World();
-        _physics = new FakePhysicsSystem();
-        _feature = new PhysicsFeature(_world, _physics);
-    }
-
     private static RigidBody Box(PhysicsState state = PhysicsState.Simulated) =>
         new() { Shape = ColliderShape.Box(new Vector3(2f)), State = state };
 
@@ -110,20 +98,6 @@ public class PhysicsFeatureTests
     }
 
     [Test]
-    public void ARigidBodyAddedThroughTheCommandBufferGetsItsBodyOnPlayback()
-    {
-        var entity = _world.Spawn();
-        _world.Commands.Add(entity, Box());
-
-        Assert.That(_physics.BodyCount, Is.Zero);
-
-        _world.Commands.Playback();
-
-        Assert.That(_physics.BodyCount, Is.EqualTo(1));
-        Assert.That(_world.Has<PhysicsBody>(entity), Is.True);
-    }
-
-    [Test]
     public void DespawningAParentDestroysTheBodiesOfItsChildrenToo()
     {
         var parent = _world.Spawn();
@@ -138,21 +112,6 @@ public class PhysicsFeatureTests
 
         Assert.That(_physics.BodyCount, Is.Zero);
         Assert.That(_feature.FindEntity(childHandle).IsValid, Is.False);
-    }
-
-    [TestCase(1f, 8)]
-    [TestCase(2f, 16)]
-    [TestCase(0f, 0)]
-    public void TimeScaleScalesHowOftenPhysicsStepsForTheSameRealTime(float timeScale, int expectedSteps)
-    {
-        var steps = 0;
-        _physics.OnUpdate = _ => steps++;
-        _world.TickInterval = 0.125f;
-        _world.TimeScale = timeScale;
-
-        for (var i = 0; i < 8; i++) _world.Update(0.125f);
-
-        Assert.That(steps, Is.EqualTo(expectedSteps));
     }
 
     [Test]

@@ -5,22 +5,10 @@ using Rin.Core.Views.Events;
 
 namespace Rin.Core.Tests.Views.Composite;
 
-public class ButtonViewTests
+public class ButtonViewTests : FakeApplicationFixture
 {
-    [SetUp]
-    public void SetUp()
-    {
-        IApplication.Override = new FakeApplication();
-    }
-
-    [TearDown]
-    public void TearDown()
-    {
-        IApplication.Override = null;
-    }
-
     [Test]
-    public void Cursor_down_is_captured_even_without_handlers()
+    public void CursorDownIsCapturedEvenWithoutHandlers()
     {
         var button = new ButtonView();
         var e = new CursorDownSurfaceEvent(new FakeSurface(), CursorButton.One, Vector2.Zero);
@@ -32,7 +20,7 @@ public class ButtonViewTests
     }
 
     [Test]
-    public void Cursor_down_raises_OnPressed_and_captures()
+    public void CursorDownRaisesOnPressedAndCaptures()
     {
         var button = new ButtonView();
         var pressed = 0;

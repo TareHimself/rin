@@ -7,30 +7,14 @@ using Rin.World.Physics.Bepu;
 
 namespace Rin.World.Tests.Physics;
 
-public class ContactDispatchTests
+public class ContactDispatchTests : PhysicsFeatureFixture
 {
-    private World _world = null!;
-    private FakePhysicsSystem _physics = null!;
-    private PhysicsFeature _feature = null!;
-
-    [SetUp]
-    public void SetUp()
-    {
-        _world = new World();
-        _physics = new FakePhysicsSystem();
-        _feature = new PhysicsFeature(_world, _physics);
-    }
-
     private Entity SpawnBody()
     {
         var entity = _world.Spawn();
         _world.Add(entity, new RigidBody { Shape = ColliderShape.Sphere(1f), State = PhysicsState.Simulated });
         return entity;
     }
-
-    private PhysicsBodyHandle HandleOf(Entity entity) => _world.Get<PhysicsBody>(entity).Handle;
-
-    private void Tick() => _world.Update(_world.TickInterval);
 
     [Test]
     public void ContactEventsAreMappedToTheirEntities()

@@ -5,20 +5,13 @@ using Rin.Shade.Transpiler;
 public class InheritanceTests
 {
     [Test]
-    public void OnlyTheShaderAttributedClassIsEmitted()
+    public void OnlyTheShaderAttributedClassIsEmittedWithItsInheritedMembersFlattened()
     {
         var source = FixtureSource.Read("../Fixtures/InheritanceFixtureShaders.cs");
         var result = ShadeEmitter.Emit(CompilationBuilder.Build(source));
 
         Assert.That(result.Diagnostics, Is.Empty);
         Assert.That(result.Shaders.Keys, Is.EquivalentTo(new[] { "DerivedInheritanceShader" }));
-    }
-
-    [Test]
-    public void InheritedPushFieldAndOverriddenComputeAreFlattenedCorrectly()
-    {
-        var source = FixtureSource.Read("../Fixtures/InheritanceFixtureShaders.cs");
-        var result = ShadeEmitter.Emit(CompilationBuilder.Build(source));
 
         var slang = result.Shaders["DerivedInheritanceShader"];
 

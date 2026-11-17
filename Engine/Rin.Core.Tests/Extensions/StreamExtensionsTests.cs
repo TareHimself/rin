@@ -5,9 +5,9 @@ namespace Rin.Core.Tests.Extensions;
 public class StreamExtensionsTests
 {
     [TestCase(0UL)]
-    [TestCase(12UL)]
+    [TestCase(0x0102030405060708UL)]
     [TestCase(ulong.MaxValue)]
-    public void WriteUInt64_RoundTripsThroughReadUInt64(ulong value)
+    public void WriteUInt64RoundTripsThroughReadUInt64(ulong value)
     {
         using var stream = new MemoryStream();
         stream.Write(value);

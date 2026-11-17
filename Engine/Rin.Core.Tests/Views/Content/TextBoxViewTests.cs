@@ -7,14 +7,13 @@ using Rin.Core.Views.Graphics.Quads;
 
 namespace Rin.Core.Tests.Views.Content;
 
-public class TextBoxViewTests
+public class TextBoxViewTests : FakeApplicationFixture
 {
     private FakeViewsModule _module = null!;
 
     [SetUp]
     public void SetUp()
     {
-        IApplication.Override = new FakeApplication();
         _module = new FakeViewsModule();
         ((FakeFontManager)_module.FontManager).GlyphState = LiveGlyphState.Ready;
         IViewsModule.Override = _module;
@@ -23,7 +22,6 @@ public class TextBoxViewTests
     [TearDown]
     public void TearDown()
     {
-        IApplication.Override = null;
         IViewsModule.Override = null;
     }
 

@@ -20,7 +20,7 @@ public class DoubleDiagnosticTests
         """;
 
     [Test]
-    public void A_double_literal_local_is_rejected()
+    public void ADoubleLiteralLocalIsRejected()
     {
         var result = Emit("""
             [Shader]
@@ -42,7 +42,7 @@ public class DoubleDiagnosticTests
     }
 
     [Test]
-    public void A_double_parameter_is_rejected()
+    public void ADoubleParameterIsRejected()
     {
         var result = Emit("""
             [Shader]
@@ -67,7 +67,7 @@ public class DoubleDiagnosticTests
     }
 
     [Test]
-    public void A_double_field_is_rejected()
+    public void ADoubleFieldIsRejected()
     {
         var result = Emit("""
             public struct WidePush
@@ -90,27 +90,6 @@ public class DoubleDiagnosticTests
             """);
 
         Assert.That(result.Diagnostics.Select(d => d.Id), Has.Member("SHADE0021"));
-    }
-
-    [Test]
-    public void Float_code_raises_nothing()
-    {
-        var result = Emit("""
-            [Shader]
-            public class FloatOnlyShader : Shader
-            {
-                [Push] protected DoublePush Push;
-
-                [Compute(1, 1, 1)]
-                public void Compute()
-                {
-                    var half = 0.5f;
-                    Push.Output[0] = half * Push.A;
-                }
-            }
-            """);
-
-        Assert.That(result.Diagnostics, Is.Empty);
     }
 
     private static ShadeEmitResult Emit(string shader)

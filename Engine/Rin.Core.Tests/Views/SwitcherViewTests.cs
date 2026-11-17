@@ -9,22 +9,10 @@ using Rin.Core.Views.Graphics;
 
 namespace Rin.Core.Tests.Views;
 
-public class SwitcherViewTests
+public class SwitcherViewTests : FakeApplicationFixture
 {
-    [SetUp]
-    public void SetUp()
-    {
-        IApplication.Override = new FakeApplication();
-    }
-
-    [TearDown]
-    public void TearDown()
-    {
-        IApplication.Override = null;
-    }
-
     [Test]
-    public void GetSlots_returns_all_children_GetActiveSlots_returns_the_selected_one()
+    public void GetSlotsReturnsAllChildrenGetActiveSlotsReturnsTheSelectedOne()
     {
         var switcher = new SwitcherView();
         var a = new SpyView();
@@ -43,7 +31,7 @@ public class SwitcherViewTests
     }
 
     [Test]
-    public void Attaching_surfaces_every_child_not_just_the_selected_one()
+    public void AttachingSurfacesEveryChildNotJustTheSelectedOne()
     {
         var switcher = new SwitcherView();
         var visible = new SpyView();
@@ -60,7 +48,7 @@ public class SwitcherViewTests
     }
 
     [Test]
-    public void Disposing_disposes_every_child_not_just_the_selected_one()
+    public void DisposingDisposesEveryChildNotJustTheSelectedOne()
     {
         var switcher = new SwitcherView();
         var visible = new SpyView();

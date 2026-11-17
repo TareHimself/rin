@@ -3,16 +3,14 @@ using Rin.Core.Shared;
 
 namespace Rin.Graphics.Vulkan.Tests;
 
-public class UploadBatchTests
+public class UploadBatchTests : UploadLanesFixture
 {
-    private UploadLanes _lanes = null!;
     private AllowList _acquirer = null!;
     private UploadBatch _batch = null!;
 
     [SetUp]
-    public void CreateLanes()
+    public void CreateBatch()
     {
-        _lanes = new UploadLanes();
         _acquirer = new AllowList();
         _batch = new UploadBatch();
     }
@@ -22,45 +20,25 @@ public class UploadBatchTests
     {
         _batch.CompleteWrites();
         _batch.Clear();
-        List<PendingResourceAction> remaining = [];
-        _lanes.TakeAll(remaining);
-        foreach (var action in remaining) action.Dispose();
     }
-
-    private static ResourceHandle Texture(uint id) => new(ResourceType.Texture, id);
-    private static ResourceHandle Buffer(uint id) => new(ResourceType.Buffer, id);
 
     private PendingTextureWrite QueueTexture(uint id, int bytes = 16)
     {
         var write = new PendingTextureWrite(PooledMemory<byte>.CopyFrom(new byte[bytes]),
             ImageRegion.Whole(new Extent2D(2, 2)), new ImageShape(new Extent2D(2, 2)));
-        _lanes.EnqueueTexture(Texture(id), write);
+        Lanes.EnqueueTexture(Texture(id), write);
         return write;
     }
 
-    private PendingBufferWrite QueueBuffer(uint id, ulong offset, int bytes = 16)
-    {
-        var write = new PendingBufferWrite(PooledMemory<byte>.CopyFrom(new byte[bytes]), offset);
-        _lanes.EnqueueBuffer(Buffer(id), write);
-        return write;
-    }
-
-    private SharedWrite QueueBufferCopy(uint source, uint destination)
-    {
-        var shared = new SharedWrite(new BufferCopy(Buffer(source), Buffer(destination), 0, 0, 16));
-        _lanes.EnqueueShared(shared);
-        return shared;
-    }
-
-    private void Fill(int max = 64) => _batch.Fill(_lanes, max, _acquirer);
+    private void Fill(int max = 64) => _batch.Fill(Lanes, max, _acquirer);
 
     [Test]
-    public void Fill_TakesAtMostMax_AndLeavesTheRestQueued()
+    public void FillTakesAtMostMaxAndLeavesTheRestQueued()
     {
         for (uint id = 1; id <= 3; id++)
         {
             QueueTexture(id);
-            QueueBuffer(id, 0);
+            QueueWrite(id, 0);
             _acquirer.Allow(Texture(id));
             _acquirer.Allow(Buffer(id));
         }
@@ -70,13 +48,13 @@ public class UploadBatchTests
         Assert.Multiple(() =>
         {
             Assert.That(_batch.Steps, Has.Count.EqualTo(4));
-            Assert.That(_lanes.Count(Texture(3)), Is.EqualTo(1));
-            Assert.That(_lanes.Count(Buffer(3)), Is.EqualTo(1));
+            Assert.That(Lanes.Count(Texture(3)), Is.EqualTo(1));
+            Assert.That(Lanes.Count(Buffer(3)), Is.EqualTo(1));
         });
     }
 
     [Test]
-    public void Fill_DisposesTheWriteOfAResourceItCannotAcquire()
+    public void FillDisposesTheWriteOfAResourceItCannotAcquire()
     {
         var refused = QueueTexture(1);
         var task = new TaskCompletionSource();
@@ -96,11 +74,11 @@ public class UploadBatchTests
     }
 
     [Test]
-    public void Fill_AcquiresEachResourceOnce_AndGroupsBufferWritesByHandle()
+    public void FillAcquiresEachResourceOnceAndGroupsBufferWritesByHandle()
     {
-        var first = QueueBuffer(1, 0);
-        var second = QueueBuffer(1, 64);
-        var other = QueueBuffer(2, 0);
+        var first = QueueWrite(1, 0);
+        var second = QueueWrite(1, 64);
+        var other = QueueWrite(2, 0);
         _acquirer.Allow(Buffer(1));
         _acquirer.Allow(Buffer(2));
 
@@ -116,12 +94,12 @@ public class UploadBatchTests
     }
 
     [Test]
-    public void Fill_KeepsTheOrderAcrossResourcesThatACopyConnects()
+    public void FillKeepsTheOrderAcrossResourcesThatACopyConnects()
     {
-        var beforeCopy = QueueBuffer(1, 0);
-        var copy = QueueBufferCopy(1, 2);
-        var intoDestination = QueueBuffer(2, 0);
-        var afterCopy = QueueBuffer(1, 64);
+        var beforeCopy = QueueWrite(1, 0);
+        var copy = QueueCopy(1, 2);
+        var intoDestination = QueueWrite(2, 0);
+        var afterCopy = QueueWrite(1, 64);
         _acquirer.Allow(Buffer(1));
         _acquirer.Allow(Buffer(2));
 
@@ -143,10 +121,10 @@ public class UploadBatchTests
     }
 
     [Test]
-    public void Fill_TakesATextureToBufferCopy_WithoutLeavingTheTextureInATransferLayout()
+    public void FillTakesATextureToBufferCopyWithoutLeavingTheTextureInATransferLayout()
     {
         var copy = new SharedWrite(new TextureToBufferCopy(Texture(1), Buffer(2), default, new Extent2D(2, 2), 0, 16));
-        _lanes.EnqueueShared(copy);
+        Lanes.EnqueueShared(copy);
         _acquirer.Allow(Texture(1));
         _acquirer.Allow(Buffer(2));
 
@@ -162,10 +140,10 @@ public class UploadBatchTests
     }
 
     [Test]
-    public void Fill_TakesACopyWithinOneBufferAfterTheWritesAheadOfIt()
+    public void FillTakesACopyWithinOneBufferAfterTheWritesAheadOfIt()
     {
-        var before = QueueBuffer(1, 0);
-        var copy = QueueBufferCopy(1, 1);
+        var before = QueueWrite(1, 0);
+        var copy = QueueCopy(1, 1);
         _acquirer.Allow(Buffer(1));
 
         Fill();
@@ -183,10 +161,10 @@ public class UploadBatchTests
     }
 
     [Test]
-    public void Fill_RunsCopiesInEnqueueOrderAcrossLanes()
+    public void FillRunsCopiesInEnqueueOrderAcrossLanes()
     {
-        var first = QueueBufferCopy(1, 2);
-        var second = QueueBufferCopy(3, 1);
+        var first = QueueCopy(1, 2);
+        var second = QueueCopy(3, 1);
         for (uint id = 1; id <= 3; id++) _acquirer.Allow(Buffer(id));
 
         Fill();
@@ -195,12 +173,12 @@ public class UploadBatchTests
     }
 
     [Test]
-    public void Fill_CancelsOnlyTheCopyWhoseResourceCannotBeAcquired()
+    public void FillCancelsOnlyTheCopyWhoseResourceCannotBeAcquired()
     {
-        var copy = QueueBufferCopy(1, 2);
+        var copy = QueueCopy(1, 2);
         var copyTask = new TaskCompletionSource();
         copy.Tasks.Add(copyTask);
-        var other = QueueBufferCopy(3, 4);
+        var other = QueueCopy(3, 4);
         var otherTask = new TaskCompletionSource();
         other.Tasks.Add(otherTask);
         _acquirer.Allow(Buffer(1));
@@ -219,11 +197,11 @@ public class UploadBatchTests
     }
 
     [Test]
-    public void Fill_SumsStagingSizesRoundedToTheAlignment_AndIgnoresCopies()
+    public void FillSumsStagingSizesRoundedToTheAlignmentAndIgnoresCopies()
     {
         QueueTexture(1, 5);
-        QueueBuffer(1, 0, 17);
-        QueueBufferCopy(1, 2);
+        QueueWrite(1, 0, 17);
+        QueueCopy(1, 2);
         _acquirer.Allow(Texture(1));
         _acquirer.Allow(Buffer(1));
         _acquirer.Allow(Buffer(2));
@@ -234,7 +212,7 @@ public class UploadBatchTests
     }
 
     [Test]
-    public void Fill_WithNothingQueued_IsEmpty()
+    public void FillWithNothingQueuedIsEmpty()
     {
         Fill();
 
@@ -247,14 +225,14 @@ public class UploadBatchTests
     }
 
     [Test]
-    public void CompleteWrites_CompletesEveryTask_AndClearLeavesTheBatchEmpty()
+    public void CompleteWritesCompletesEveryTaskAndClearLeavesTheBatchEmpty()
     {
         var textureTask = new TaskCompletionSource();
         var bufferTask = new TaskCompletionSource();
         var copyTask = new TaskCompletionSource();
         QueueTexture(1).Tasks.Add(textureTask);
-        QueueBuffer(1, 0).Tasks.Add(bufferTask);
-        QueueBufferCopy(1, 2).Tasks.Add(copyTask);
+        QueueWrite(1, 0).Tasks.Add(bufferTask);
+        QueueCopy(1, 2).Tasks.Add(copyTask);
         _acquirer.Allow(Texture(1));
         _acquirer.Allow(Buffer(1));
         _acquirer.Allow(Buffer(2));

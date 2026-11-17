@@ -18,9 +18,7 @@ public class ShadeExportSourceGeneratorTests
 {
     private static string RunAndGetContainerSource(string source)
     {
-        var references = ((string)AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES")!)
-            .Split(Path.PathSeparator)
-            .Select(path => (MetadataReference)MetadataReference.CreateFromFile(path))
+        var references = CompilationBuilder.PlatformReferences
             .Append(MetadataReference.CreateFromFile(typeof(ShadeExportAttribute).Assembly.Location));
 
         var compilation = CSharpCompilation.Create("GeneratorProbe",

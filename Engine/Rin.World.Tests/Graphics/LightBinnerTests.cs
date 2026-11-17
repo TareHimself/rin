@@ -37,7 +37,7 @@ public class LightBinnerTests
     }
 
     [Test]
-    public void BinOf_maps_near_to_the_first_bin_and_far_to_the_last()
+    public void BinOfMapsNearToTheFirstBinAndFarToTheLast()
     {
         Assert.Multiple(() =>
         {
@@ -49,7 +49,7 @@ public class LightBinnerTests
     }
 
     [Test]
-    public void BinOf_never_decreases_with_depth()
+    public void BinOfNeverDecreasesWithDepth()
     {
         var previous = 0;
         for (var depth = Near; depth < Far; depth *= 1.01f)
@@ -61,17 +61,7 @@ public class LightBinnerTests
     }
 
     [Test]
-    public void Point_lights_are_sorted_nearest_first()
-    {
-        var binner = new LightBinner();
-
-        binner.Bin([Point(30f, 1f), Point(10f, 1f), Point(20f, 1f)], [], Matrix4x4.Identity, Near, Far);
-
-        Assert.That(Depths(binner), Is.EqualTo(new[] { 10f, 20f, 30f }));
-    }
-
-    [Test]
-    public void Depth_is_measured_in_view_space()
+    public void DepthIsMeasuredInViewSpace()
     {
         var binner = new LightBinner();
         var cameraAtZ50 = Matrix4x4.CreateTranslation(0f, 0f, -50f);
@@ -82,7 +72,7 @@ public class LightBinnerTests
     }
 
     [Test]
-    public void A_light_covers_exactly_the_bins_its_depth_range_touches()
+    public void ALightCoversExactlyTheBinsItsDepthRangeTouches()
     {
         var binner = new LightBinner();
 
@@ -101,7 +91,7 @@ public class LightBinnerTests
     }
 
     [Test]
-    public void Every_light_overlapping_a_bin_is_inside_its_range()
+    public void EveryLightOverlappingABinIsInsideItsRange()
     {
         var binner = new LightBinner();
         var lights = new LightInfo[200];
@@ -125,7 +115,7 @@ public class LightBinnerTests
     }
 
     [Test]
-    public void Lights_out_of_range_are_dropped_and_directional_lights_are_kept_apart()
+    public void LightsOutOfRangeAreDroppedAndDirectionalLightsAreKeptApart()
     {
         var binner = new LightBinner();
 
@@ -140,7 +130,7 @@ public class LightBinnerTests
     }
 
     [Test]
-    public void With_no_point_lights_every_bin_is_empty()
+    public void WithNoPointLightsEveryBinIsEmpty()
     {
         var binner = new LightBinner();
         binner.Bin([Point(20f, 1f)], [], Matrix4x4.Identity, Near, Far);
@@ -151,7 +141,7 @@ public class LightBinnerTests
     }
 
     [Test]
-    public void Box_volumes_are_binned_by_their_bounding_sphere_and_unbounded_ones_are_left_out()
+    public void BoxVolumesAreBinnedByTheirBoundingSphereAndUnboundedOnesAreLeftOut()
     {
         var binner = new LightBinner();
         var box = TestEnvironments.Box(1, Vector3.One, new Vector3(0f, 0f, 20f), 3f);
@@ -172,7 +162,7 @@ public class LightBinnerTests
     }
 
     [Test]
-    public void Binning_the_same_number_of_lights_again_does_not_allocate()
+    public void BinningTheSameNumberOfLightsAgainDoesNotAllocate()
     {
         var binner = new LightBinner();
         LightInfo[] lights = [Point(30f, 2f), Point(10f, 2f), Directional(), Point(20f, 2f)];

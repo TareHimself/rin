@@ -155,7 +155,7 @@ public record struct Rect2D
         var pRight = point - tr;
         var pBottom = point - br;
         var pLeft = point - bl;
-        var a = top.Acos(pTop);
+        var a = top.Cross(pTop);
         var b = right.Cross(pRight);
         var c = bottom.Cross(pBottom);
         var d = left.Cross(pLeft);

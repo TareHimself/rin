@@ -167,6 +167,8 @@ internal sealed class FakeEffectDescriptor : IAudioEffectDescriptor<FakeEffectPa
     public int ReleasedParameters { get; private set; }
     public int ReleasedStates { get; private set; }
 
+    private IntPtr _parameters;
+
     public IntPtr GetProcessMethodPtr() => IntPtr.Zero;
 
     public IntPtr CreateState() => IntPtr.Zero;
@@ -175,8 +177,12 @@ internal sealed class FakeEffectDescriptor : IAudioEffectDescriptor<FakeEffectPa
     {
         var ptr = (IntPtr)NativeMemory.Alloc((nuint)sizeof(ParameterSlots<FakeEffectParameters>));
         Unsafe.Write(ptr.ToPointer(), new ParameterSlots<FakeEffectParameters>(default));
+        _parameters = ptr;
         return ptr;
     }
+
+    public unsafe FakeEffectParameters ReadSharedParameters() =>
+        ParameterSlots<FakeEffectParameters>.Read(_parameters.ToPointer());
 
     public void ReleaseState(IntPtr state) => ReleasedStates++;
 

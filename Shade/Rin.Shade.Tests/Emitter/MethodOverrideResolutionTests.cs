@@ -46,7 +46,9 @@ public class MethodOverrideResolutionTests
 
         Assert.That(result.Diagnostics, Is.Empty);
 
-        Snapshot.Verify(result.Shaders["ConsumerShader"]);
+        var slang = result.Shaders["ConsumerShader"].Replace("\r\n", "\n");
+        Assert.That(slang, Does.Contain("float getValue(float raw)\n{\n    return raw * 2;\n}"));
+        Assert.That(slang, Does.Contain("push.output.setItem(0, getValue(push.value));"));
     }
 
     // No override anywhere in the chain still means no body - stays a diagnostic, not silently

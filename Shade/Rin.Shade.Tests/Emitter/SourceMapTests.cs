@@ -36,7 +36,7 @@ public class SourceMapTests
         """;
 
     [Test]
-    public void Statement_lines_map_back_to_their_csharp_lines()
+    public void StatementLinesMapBackToTheirCsharpLines()
     {
         var result = ShadeEmitter.Emit(CompilationBuilder.Build(Source));
         var slang = result.Shaders["MapShader"];
@@ -49,7 +49,7 @@ public class SourceMapTests
     }
 
     [Test]
-    public void Signature_lines_map_to_the_method_and_type_lines_map_nowhere()
+    public void SignatureLinesMapToTheMethodAndTypeLinesMapNowhere()
     {
         var result = ShadeEmitter.Emit(CompilationBuilder.Build(Source));
         var slang = result.Shaders["MapShader"];

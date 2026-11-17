@@ -20,7 +20,7 @@ public class MiniaudioAudioSampleTests
     }
 
     [Test]
-    public void MakeActive_CreatesAnActiveFromThisSample()
+    public void MakeActiveCreatesAnActiveFromThisSample()
     {
         using var active = _sample.MakeActive();
 
@@ -28,7 +28,7 @@ public class MiniaudioAudioSampleTests
     }
 
     [Test]
-    public void Dispose_Twice_DisposesTheSampleOnce()
+    public void DisposeTwiceDisposesTheSampleOnce()
     {
         _sample.Dispose();
         _sample.Dispose();
@@ -37,7 +37,7 @@ public class MiniaudioAudioSampleTests
     }
 
     [Test]
-    public void MakeActive_AfterDispose_Throws()
+    public void MakeActiveAfterDisposeThrows()
     {
         _sample.Dispose();
 

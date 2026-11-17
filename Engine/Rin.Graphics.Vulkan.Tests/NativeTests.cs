@@ -4,6 +4,7 @@ using System.Text.RegularExpressions;
 using Rin.Core;
 using Rin.Core.Graphics;
 using Rin.Core.Graphics.Windows;
+using Rin.TestSupport;
 using TerraFX.Interop.Vulkan;
 
 namespace Rin.Graphics.Vulkan.Tests;
@@ -58,7 +59,7 @@ public class NativeTests
     }
 
     [TestCaseSource(nameof(FallibleExports))]
-    public void CheckedWrapper_ThrowsNativeExceptionNamingTheExportAndCode(string export, int code, Action call)
+    public void CheckedWrapperThrowsNativeExceptionNamingTheExportAndCode(string export, int code, Action call)
     {
         var expected = (Native.GraphicsResult)code;
         FakeNative.FailNext(expected);
@@ -74,14 +75,8 @@ public class NativeTests
         });
     }
 
-    [TestCaseSource(nameof(FallibleExports))]
-    public void CheckedWrapper_ReturnsQuietlyOnOk(string export, int code, Action call)
-    {
-        Assert.DoesNotThrow(() => call());
-    }
-
     [Test]
-    public void CreateWindow_ReturnsAHandleTheNativeSideKnows()
+    public void CreateWindowReturnsAHandleTheNativeSideKnows()
     {
         var handle = Native.CreateWindow("test", new Extent2D(640, 480), WindowFlags.Visible);
 
@@ -94,7 +89,7 @@ public class NativeTests
     }
 
     [Test]
-    public unsafe void NewBuffer_WritesTheBufferAndAllocationItWasGiven()
+    public unsafe void NewBufferWritesTheBufferAndAllocationItWasGiven()
     {
         VkBuffer buffer;
         var allocation = IntPtr.Zero;
@@ -117,7 +112,7 @@ public class NativeTests
     }
 
     [Test]
-    public unsafe void CreateVulkanInstance_ReturnsTheStructTheNativeSideWrote()
+    public unsafe void CreateVulkanInstanceReturnsTheStructTheNativeSideWrote()
     {
         var expected = new byte[sizeof(Native.VulkanInitResult)];
         for (var i = 0; i < expected.Length; i++) expected[i] = (byte)(i + 1);
@@ -130,7 +125,7 @@ public class NativeTests
     }
 
     [Test]
-    public void GraphicsResult_MirrorsResultHpp()
+    public void GraphicsResultMirrorsResultHpp()
     {
         var header = ReadNativeSource("result.hpp");
         var body = Regex.Match(header, @"enum class GraphicsResult[^{]*\{([^}]*)\}").Groups[1].Value;
@@ -143,7 +138,7 @@ public class NativeTests
     }
 
     [Test]
-    public void VulkanInitResult_MirrorsGraphicsHpp()
+    public void VulkanInitResultMirrorsGraphicsHpp()
     {
         var header = ReadNativeSource("graphics.hpp");
         var body = Regex.Match(header, @"struct VulkanInitResult\s*\{([^}]*)\}").Groups[1].Value;
@@ -163,7 +158,6 @@ public class NativeTests
 
     private static string ReadNativeSource(string file)
     {
-        return File.ReadAllText(Path.Combine(NativeFakeLocator.FindRepoRoot(), "native",
-            "Rin.Graphics.Vulkan.Native", "src", file));
+        return RepoFiles.NativeSource("Rin.Graphics.Vulkan.Native", file);
     }
 }

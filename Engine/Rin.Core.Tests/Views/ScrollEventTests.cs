@@ -6,20 +6,8 @@ using Rin.Core.Views.Graphics;
 
 namespace Rin.Core.Tests.Views;
 
-public class ScrollEventTests
+public class ScrollEventTests : FakeApplicationFixture
 {
-    [SetUp]
-    public void SetUp()
-    {
-        IApplication.Override = new FakeApplication();
-    }
-
-    [TearDown]
-    public void TearDown()
-    {
-        IApplication.Override = null;
-    }
-
     [Test]
     public void ScrollEventOverThePointerReachesTheContentViewUnderIt()
     {

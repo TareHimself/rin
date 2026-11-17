@@ -15,7 +15,7 @@ public class ParameterSlotsTests
     }
 
     [Test]
-    public unsafe void Reads_the_initial_value_before_any_write()
+    public unsafe void ReadsTheInitialValueBeforeAnyWrite()
     {
         var slots = new ParameterSlots<Wide>(Wide.Filled(7));
 
@@ -23,7 +23,7 @@ public class ParameterSlotsTests
     }
 
     [Test]
-    public unsafe void Reader_sees_the_latest_write_and_keeps_it_until_the_next()
+    public unsafe void ReaderSeesTheLatestWriteAndKeepsItUntilTheNext()
     {
         var slots = new ParameterSlots<Wide>(default);
 
@@ -40,7 +40,7 @@ public class ParameterSlotsTests
     }
 
     [Test]
-    public unsafe void Concurrent_writer_never_tears_a_read()
+    public unsafe void ConcurrentWriterNeverTearsARead()
     {
         var memory = (ParameterSlots<Wide>*)NativeMemory.AlignedAlloc((nuint)sizeof(ParameterSlots<Wide>), 16);
         *memory = new ParameterSlots<Wide>(Wide.Filled(0));

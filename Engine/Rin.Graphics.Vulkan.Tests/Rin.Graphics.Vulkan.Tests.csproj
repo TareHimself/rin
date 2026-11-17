@@ -21,6 +21,11 @@
 
     <ItemGroup>
         <ProjectReference Include="$(EngineDir)Rin.Graphics.Vulkan\Rin.Graphics.Vulkan.csproj" />
+        <ProjectReference Include="$(EngineDir)Rin.Graphics.Null\Rin.Graphics.Null.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <Compile Include="$(EngineDir)TestSupport\RepoFiles.cs" Link="RepoFiles.cs" />
     </ItemGroup>
 
 </Project>

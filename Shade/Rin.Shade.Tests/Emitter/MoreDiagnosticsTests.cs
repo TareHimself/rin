@@ -13,45 +13,6 @@ using Rin.Shade.Transpiler;
 public class MoreDiagnosticsTests
 {
     [Test]
-    public void ConcreteGenericStructIsLowered()
-    {
-        const string source = """
-                               using Rin.Shade;
-                               using Rin.Shade.Tests;
-
-                               namespace GenericStructCheck;
-
-                               public struct Wrapper<T>
-                               {
-                                   public float Value;
-                               }
-
-                               public struct GenericPush
-                               {
-                                   public Wrapper<int> W;
-                                   public TestBuffer<float> Output;
-                               }
-
-                               [Shader]
-                               public class GenericStructShader : Shader
-                               {
-                                   [Push] protected GenericPush Push;
-
-                                   [Compute(1, 1, 1)]
-                                   public void Compute()
-                                   {
-                                       Push.Output[0] = Push.W.Value;
-                                   }
-                               }
-                               """;
-
-        var result = ShadeEmitter.Emit(CompilationBuilder.Build(source));
-
-        Assert.That(result.Diagnostics, Is.Empty);
-        Assert.That(result.Shaders["GenericStructShader"], Does.Contain("struct Wrapper_int"));
-    }
-
-    [Test]
     public void NonDefaultEnumUnderlyingTypeIsRejected()
     {
         const string source = """

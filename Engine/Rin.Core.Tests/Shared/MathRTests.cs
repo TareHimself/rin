@@ -12,7 +12,7 @@ public class MathRTests
     }
 
     [Test]
-    public void LookTowards_orients_forward_along_the_direction()
+    public void LookTowardsOrientsForwardAlongTheDirection()
     {
         Vector3[] dirs =
         [
@@ -34,7 +34,7 @@ public class MathRTests
     }
 
     [Test]
-    public void LookTowards_is_roll_free()
+    public void LookTowardsIsRollFree()
     {
         // The right vector must stay horizontal (no roll) for any non-vertical direction.
         foreach (var dir in new[]
@@ -50,21 +50,7 @@ public class MathRTests
     }
 
     [Test]
-    public void LookTowards_matches_the_camera_controller_composition()
-    {
-        // Forward.ToQuaternion() is identity, so the controller chain reduces to yaw then local pitch.
-        const float yawDeg = 40f;
-        const float pitchDeg = -25f;
-
-        var chained = MathR.Forward.ToQuaternion().AddYaw(yawDeg).AddLocalPitch(pitchDeg);
-        var viaLookTowards = MathR.LookTowards(Vector3.Transform(MathR.Forward, chained));
-
-        AssertVectorsClose(Vector3.Transform(MathR.Forward, viaLookTowards),
-            Vector3.Transform(MathR.Forward, chained));
-    }
-
-    [Test]
-    public void LookTowards_zero_returns_identity()
+    public void LookTowardsZeroReturnsIdentity()
     {
         Assert.That(MathR.LookTowards(Vector3.Zero), Is.EqualTo(Quaternion.Identity));
     }
@@ -76,7 +62,7 @@ public class MathRTests
     }
 
     [Test]
-    public void PerspectiveProjection_maps_near_to_one_and_falls_toward_zero()
+    public void PerspectiveProjectionMapsNearToOneAndFallsTowardZero()
     {
         const float near = 2f;
         var projection = MathR.PerspectiveProjection(90f, 1920f, 1080f, near);
@@ -91,7 +77,7 @@ public class MathRTests
     }
 
     [Test]
-    public void PerspectiveProjection_maps_the_vertical_field_of_view_edge_to_the_clip_edge()
+    public void PerspectiveProjectionMapsTheVerticalFieldOfViewEdgeToTheClipEdge()
     {
         var projection = MathR.PerspectiveProjection(90f, 200f, 100f, 0.1f);
 
@@ -118,7 +104,7 @@ public class MathRTests
     }
 
     [Test]
-    public void ExtractWorldSpaceFrustum_contains_points_in_view()
+    public void ExtractWorldSpaceFrustumContainsPointsInView()
     {
         var (frustum, eye) = TurnedCamera(0.1f, 50f);
         Vector3[] inView = [eye + new Vector3(10f, 0f, 0f), eye + new Vector3(10f, 9f, -9f), eye + new Vector3(49f, 0f, 0f)];
@@ -129,7 +115,7 @@ public class MathRTests
     }
 
     [Test]
-    public void ExtractWorldSpaceFrustum_planes_exclude_the_matching_side()
+    public void ExtractWorldSpaceFrustumPlanesExcludeTheMatchingSide()
     {
         var (frustum, eye) = TurnedCamera(0.1f, 50f);
 

@@ -4,28 +4,14 @@ using Rin.World.Transforms;
 
 namespace Rin.World.Tests.Graphics;
 
-public class RenderFeatureRestoreTests
+public class RenderFeatureRestoreTests : RenderFeatureFixture
 {
-    private World _world = null!;
-    private FakeRenderSystem _render = null!;
-    private FakeMeshFactory _meshes = null!;
     private WorldSnapshot _snapshot = null!;
 
     [SetUp]
     public void SetUp()
     {
-        _world = new World();
-        _render = new FakeRenderSystem();
-        _meshes = new FakeMeshFactory();
-        _ = new RenderFeature(_world, _render, _meshes);
         _snapshot = new WorldSnapshot();
-    }
-
-    [TearDown]
-    public void TearDown()
-    {
-        _render.Dispose();
-        _meshes.Dispose();
     }
 
     [Test]
@@ -112,14 +98,6 @@ public class RenderFeatureRestoreTests
 
         Assert.That(_world.Has<StaticMesh>(entity), Is.True);
         Assert.That(_world.Has<RenderProxy>(entity), Is.False);
-    }
-
-    private Entity SpawnMesh(Vector3 position)
-    {
-        var entity = _world.Spawn();
-        _world.SetPosition(entity, position);
-        _world.Add(entity, new StaticMesh { Mesh = _meshes.Register(new FakeMesh()) });
-        return entity;
     }
 
     private void Frame() => _world.Update(0f);

@@ -27,4 +27,8 @@
         <Folder Include="Graphics\"/>
     </ItemGroup>
 
+    <ItemGroup>
+        <Compile Include="$(EngineDir)TestSupport\RepoFiles.cs" Link="RepoFiles.cs" />
+    </ItemGroup>
+
 </Project>

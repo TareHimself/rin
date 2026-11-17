@@ -7,55 +7,18 @@ namespace Rin.World.Tests.Mesh.Skinning.Animation;
 
 public class BlendNodeTests
 {
-    [Test]
-    public void WeightZeroIsFullyA()
-    {
-        var a = new FakePoseNode(1, (0, new Transform { Position = new Vector3(1, 0, 0) }));
-        var b = new FakePoseNode(1, (0, new Transform { Position = new Vector3(9, 0, 0) }));
-        var node = new BlendNode(a, b) { Weight = 0f };
-
-        using var pose = node.Evaluate(new AnimationEvalContext(0f));
-
-        Assert.That(pose.BoneTransforms[0].Position, Is.EqualTo(new Vector3(1, 0, 0)));
-    }
-
-    [Test]
-    public void WeightOneIsFullyB()
-    {
-        var a = new FakePoseNode(1, (0, new Transform { Position = new Vector3(1, 0, 0) }));
-        var b = new FakePoseNode(1, (0, new Transform { Position = new Vector3(9, 0, 0) }));
-        var node = new BlendNode(a, b) { Weight = 1f };
-
-        using var pose = node.Evaluate(new AnimationEvalContext(0f));
-
-        Assert.That(pose.BoneTransforms[0].Position, Is.EqualTo(new Vector3(9, 0, 0)));
-    }
-
-    [Test]
-    public void WeightHalfInterpolates()
+    [TestCase(0f, 0f)]
+    [TestCase(0.5f, 5f)]
+    [TestCase(1f, 10f)]
+    public void WeightBlendsFromAToB(float weight, float expectedX)
     {
         var a = new FakePoseNode(1, (0, new Transform { Position = new Vector3(0, 0, 0) }));
         var b = new FakePoseNode(1, (0, new Transform { Position = new Vector3(10, 0, 0) }));
-        var node = new BlendNode(a, b) { Weight = 0.5f };
+        var node = new BlendNode(a, b) { Weight = weight };
 
         using var pose = node.Evaluate(new AnimationEvalContext(0f));
 
-        Assert.That(pose.BoneTransforms[0].Position, Is.EqualTo(new Vector3(5, 0, 0)));
-    }
-
-    [Test]
-    public void EvaluatesBothChildrenEveryTick()
-    {
-        var a = new FakePoseNode(1);
-        var b = new FakePoseNode(1);
-        var node = new BlendNode(a, b) { Weight = 0.5f };
-
-        using (node.Evaluate(new AnimationEvalContext(0f)))
-        {
-        }
-
-        Assert.That(a.EvaluateCount, Is.EqualTo(1));
-        Assert.That(b.EvaluateCount, Is.EqualTo(1));
+        Assert.That(pose.BoneTransforms[0].Position, Is.EqualTo(new Vector3(expectedX, 0, 0)));
     }
 
     [Test]

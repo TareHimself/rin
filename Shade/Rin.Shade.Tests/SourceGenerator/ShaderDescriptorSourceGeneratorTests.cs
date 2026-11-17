@@ -12,9 +12,7 @@ public class ShaderDescriptorSourceGeneratorTests
 {
     private static object GetDescriptor(string source, string typeName)
     {
-        var references = ((string)AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES")!)
-            .Split(Path.PathSeparator)
-            .Select(path => (MetadataReference)MetadataReference.CreateFromFile(path));
+        var references = CompilationBuilder.PlatformReferences;
 
         var compilation = CSharpCompilation.Create($"DescriptorProbe_{Guid.NewGuid():N}",
             [CSharpSyntaxTree.ParseText(source)], references,
@@ -57,9 +55,7 @@ public class ShaderDescriptorSourceGeneratorTests
                                }
                                """;
 
-        var references = ((string)AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES")!)
-            .Split(Path.PathSeparator)
-            .Select(path => (MetadataReference)MetadataReference.CreateFromFile(path));
+        var references = CompilationBuilder.PlatformReferences;
         var compilation = CSharpCompilation.Create($"HidingProbe_{Guid.NewGuid():N}",
             [CSharpSyntaxTree.ParseText(source)], references,
             new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));

@@ -48,6 +48,8 @@ internal class BepuSphereBody : BepuBody
     protected override void UpdateShape()
     {
         _shape.Radius = _radius * GetRadiusScale();
+        System.Simulation.Shapes.GetShape<Sphere>(_shapeIndex.Index) = _shape;
+        RefreshBounds();
         UpdateInertia();
     }
 

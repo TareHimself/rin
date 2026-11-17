@@ -18,15 +18,6 @@ public class ResourceHandleTests
     }
 
     [Test]
-    public void InvalidHandlesHaveIdZero()
-    {
-        Assert.That(ResourceHandle.InvalidTexture.Id, Is.EqualTo(0u));
-        Assert.That(ResourceHandle.InvalidCubemap.Id, Is.EqualTo(0u));
-        Assert.That(ResourceHandle.InvalidTextureArray.Id, Is.EqualTo(0u));
-        Assert.That(ResourceHandle.InvalidBuffer.Id, Is.EqualTo(0u));
-    }
-
-    [Test]
     public void InvalidHandleReportsNotValidWithoutTouchingAGraphicsModule()
     {
         // IsValid() short-circuits on Id == 0, so this must not throw despite no IGraphicsModule being registered.

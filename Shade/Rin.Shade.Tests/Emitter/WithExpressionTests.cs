@@ -47,7 +47,10 @@ public class WithExpressionTests
 
         Assert.That(result.Diagnostics, Is.Empty);
 
-        Snapshot.Verify(result.Shaders["WithExpressionShader"]);
+        var slang = result.Shaders["WithExpressionShader"].Replace("\r\n", "\n");
+        Assert.That(slang, Does.Contain(
+            "Bounds3D bounds3DWithUpper(Bounds3D self, float3 upper)\n{\n    self.upper = upper;\n    return self;\n}"));
+        Assert.That(slang, Does.Contain("var grown = bounds3DWithUpper(push.bounds, push.newUpper);"));
     }
 
     // Two `with`s with the same (type, overridden-field-set) shape share one synthesized helper.

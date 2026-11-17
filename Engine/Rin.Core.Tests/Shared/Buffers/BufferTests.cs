@@ -5,7 +5,7 @@ namespace Rin.Core.Tests.Shared.Buffers;
 public class BufferTests
 {
     [Test]
-    public void SpanConstructor_CopiesTheElements()
+    public void SpanConstructorCopiesTheElements()
     {
         int[] source = [1, 2, 3, 4];
 
@@ -20,7 +20,7 @@ public class BufferTests
     }
 
     [Test]
-    public void SpanConstructor_DoesNotAliasTheSource()
+    public void SpanConstructorDoesNotAliasTheSource()
     {
         int[] source = [1, 2, 3];
         using var buffer = new Buffer<int>(source);
@@ -31,7 +31,7 @@ public class BufferTests
     }
 
     [Test]
-    public void Zero_ClearsEveryElement()
+    public void ZeroClearsEveryElement()
     {
         using var buffer = new Buffer<int>([7, 8, 9]);
 
@@ -41,7 +41,7 @@ public class BufferTests
     }
 
     [Test]
-    public void EmptyBuffer_HasNoElementsAndDisposesCleanly()
+    public void EmptyBufferHasNoElementsAndDisposesCleanly()
     {
         var buffer = new Buffer<int>();
 
@@ -54,7 +54,7 @@ public class BufferTests
     }
 
     [Test]
-    public void BinarySerialize_RoundTripsThroughBinaryDeserialize()
+    public void BinarySerializeRoundTripsThroughBinaryDeserialize()
     {
         using var source = new Buffer<float>([1.5f, -2f, 3.25f]);
         using var stream = new MemoryStream();

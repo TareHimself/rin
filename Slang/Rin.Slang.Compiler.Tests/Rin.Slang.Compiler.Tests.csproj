@@ -22,4 +22,8 @@
         <ProjectReference Include="$(SlangDir)Rin.Slang.Compiler\Rin.Slang.Compiler.csproj" />
     </ItemGroup>
 
+    <ItemGroup>
+        <Compile Include="..\..\Engine\TestSupport\RepoFiles.cs" Link="RepoFiles.cs" />
+    </ItemGroup>
+
 </Project>

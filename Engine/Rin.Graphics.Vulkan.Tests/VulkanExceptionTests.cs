@@ -9,7 +9,7 @@ public class VulkanExceptionTests
     [TestCase(VkResult.VK_NOT_READY)]
     [TestCase(VkResult.VK_INCOMPLETE)]
     [TestCase(VkResult.VK_SUBOPTIMAL_KHR)]
-    public void ThrowIfFailed_LetsSuccessCodesThrough(VkResult result)
+    public void ThrowIfFailedLetsSuccessCodesThrough(VkResult result)
     {
         Assert.DoesNotThrow(() => result.ThrowIfFailed("vkCall"));
     }
@@ -17,7 +17,7 @@ public class VulkanExceptionTests
     [TestCase(VkResult.VK_ERROR_DEVICE_LOST)]
     [TestCase(VkResult.VK_ERROR_OUT_OF_DATE_KHR)]
     [TestCase(VkResult.VK_ERROR_OUT_OF_DEVICE_MEMORY)]
-    public void ThrowIfFailed_ThrowsVulkanExceptionNamingTheCall(VkResult result)
+    public void ThrowIfFailedThrowsVulkanExceptionNamingTheCall(VkResult result)
     {
         var exception = Assert.Throws<VulkanException>(() => result.ThrowIfFailed("vkCall"));
 

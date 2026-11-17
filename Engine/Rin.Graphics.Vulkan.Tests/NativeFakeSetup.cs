@@ -1,4 +1,5 @@
 using System.Runtime.InteropServices;
+using Rin.TestSupport;
 
 namespace Rin.Graphics.Vulkan.Tests;
 
@@ -8,7 +9,7 @@ public class NativeFakeSetup
     [OneTimeSetUp]
     public void RedirectVulkanNativeToFake()
     {
-        var fakePath = NativeFakeLocator.Find("Rin.Graphics.Vulkan.Native.Fake");
+        var fakePath = RepoFiles.NativeFake("Rin.Graphics.Vulkan.Native.Fake");
         NativeLibrary.SetDllImportResolver(typeof(VulkanGraphicsModule).Assembly,
             (name, _, _) => name == "Rin.Graphics.Vulkan.Native" ? NativeLibrary.Load(fakePath) : IntPtr.Zero);
         NativeLibrary.SetDllImportResolver(typeof(NativeFakeSetup).Assembly,

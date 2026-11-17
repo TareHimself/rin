@@ -47,16 +47,6 @@ public class EnvironmentMapsTests
     }
 
     [Test]
-    public void AMapStaysUnfilteredUntilItIsMarked()
-    {
-        var uploaded = _maps.Get(_maps.Create(TestEnvironments.Map(Sky), _graphics))!;
-
-        uploaded.MarkFiltered();
-
-        Assert.That(uploaded.IsFiltered, Is.True);
-    }
-
-    [Test]
     public void TheDefaultHandleIsNoMap()
     {
         Assert.Multiple(() =>

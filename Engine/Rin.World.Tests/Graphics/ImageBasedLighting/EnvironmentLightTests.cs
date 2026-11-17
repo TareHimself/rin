@@ -8,29 +8,14 @@ using Rin.World.Transforms;
 
 namespace Rin.World.Tests.Graphics.ImageBasedLighting;
 
-public class EnvironmentLightTests
+public class EnvironmentLightTests : RenderFeatureFixture
 {
-    private World _world = null!;
-    private FakeRenderSystem _render = null!;
-    private FakeMeshFactory _meshes = null!;
-    private RenderFeature _feature = null!;
     private EnvironmentMapHandle _map;
 
     [SetUp]
     public void SetUp()
     {
-        _world = new World();
-        _render = new FakeRenderSystem();
-        _meshes = new FakeMeshFactory();
-        _feature = new RenderFeature(_world, _render, _meshes);
         _map = _feature.Environments.Create(TestEnvironments.Map(Vector3.One), new NullGraphicsModule());
-    }
-
-    [TearDown]
-    public void TearDown()
-    {
-        _render.Dispose();
-        _meshes.Dispose();
     }
 
     private Entity SpawnLight()

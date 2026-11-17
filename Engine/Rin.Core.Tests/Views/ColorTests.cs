@@ -5,7 +5,7 @@ namespace Rin.Core.Tests.Views;
 public class ColorTests
 {
     [Test]
-    public void FromRgb_is_opaque()
+    public void FromRgbIsOpaque()
     {
         var color = Color.FromRgb(0.2f, 0.4f, 0.6f);
 
@@ -13,7 +13,7 @@ public class ColorTests
     }
 
     [Test]
-    public void FromBytes_divides_by_255()
+    public void FromBytesDividesBy255()
     {
         var color = Color.FromBytes(255, 0, 51, 128);
 
@@ -31,7 +31,7 @@ public class ColorTests
     [TestCase(2f / 3f, 0f, 0f, 1f)]
     [TestCase(1f, 1f, 0f, 0f)]
     [TestCase(1.5f, 0f, 1f, 1f)]
-    public void FromHsv_wraps_hue_around_the_wheel(float hue, float r, float g, float b)
+    public void FromHsvWrapsHueAroundTheWheel(float hue, float r, float g, float b)
     {
         var color = Color.FromHsv(hue, 1f, 1f);
 
@@ -45,7 +45,7 @@ public class ColorTests
     }
 
     [Test]
-    public void FromHsv_with_zero_saturation_is_grey_and_keeps_alpha()
+    public void FromHsvWithZeroSaturationIsGreyAndKeepsAlpha()
     {
         var color = Color.FromHsv(0.7f, 0f, 0.3f, 0.5f);
 
@@ -53,7 +53,7 @@ public class ColorTests
     }
 
     [Test]
-    public void FromHtml_matches_FromBytes()
+    public void FromHtmlMatchesFromBytes()
     {
         var html = Color.FromHtml("#123456");
         var bytes = Color.FromBytes(18, 52, 86);

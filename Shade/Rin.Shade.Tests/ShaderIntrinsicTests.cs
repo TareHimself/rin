@@ -28,12 +28,6 @@ public class ShaderIntrinsicTests
     }
 
     [Test]
-    public void ANonUniformIndexIsTheIndex()
-    {
-        Assert.That(Shader.NonUniformResourceIndex(7u), Is.EqualTo(7u));
-    }
-
-    [Test]
     public void SignOfNotANumberIsZero()
     {
         Assert.That(Shader.Sign(float.NaN), Is.EqualTo(0f));

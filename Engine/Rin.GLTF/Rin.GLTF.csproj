@@ -3,6 +3,7 @@
     <ItemGroup>
         <ProjectReference Include="$(EngineDir)Rin.World\Rin.World.csproj" />
         <PackageReference Include="SharpGLTF.Core" />
+        <InternalsVisibleTo Include="Rin.GLTF.Tests" />
     </ItemGroup>
 
 </Project>

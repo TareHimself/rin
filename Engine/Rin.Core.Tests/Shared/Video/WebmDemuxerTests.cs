@@ -1,14 +1,15 @@
 using System.Text.RegularExpressions;
 using Rin.Core.Shared.Video;
+using Rin.TestSupport;
 
 namespace Rin.Core.Tests.Shared.Video;
 
 public class WebmDemuxerTests
 {
     [Test]
-    public void VideoDemuxResult_MirrorsVideoHpp()
+    public void VideoDemuxResultMirrorsVideoHpp()
     {
-        var header = File.ReadAllText(Path.Combine(FindRepoRoot(), "native", "Rin.Native", "src", "video.hpp"));
+        var header = RepoFiles.NativeSource("Rin.Native", "video.hpp");
         var body = Regex.Match(header, @"enum VideoDemuxResult[^{]*\{([^}]*)\}").Groups[1].Value;
         var expected = body.Split(',')
             .Select(entry => Regex.Replace(entry, "//.*", string.Empty).Trim())
@@ -28,15 +29,5 @@ public class WebmDemuxerTests
     private static string ToUpperSnake(string pascal)
     {
         return Regex.Replace(pascal, "(?<=[a-z])(?=[A-Z])", "_").ToUpperInvariant();
-    }
-
-    private static string FindRepoRoot()
-    {
-        var dir = new DirectoryInfo(AppContext.BaseDirectory);
-        while (dir is not null && !File.Exists(Path.Combine(dir.FullName, "rin.sln")))
-            dir = dir.Parent;
-        if (dir is null)
-            throw new InvalidOperationException($"Could not find rin.sln above {AppContext.BaseDirectory}");
-        return dir.FullName;
     }
 }

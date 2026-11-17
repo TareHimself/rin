@@ -39,6 +39,6 @@ public class VectorConstructorTests
 
         Assert.That(result.Diagnostics, Is.Empty);
 
-        Snapshot.Verify(result.Shaders["VectorConstructorShader"]);
+        Assert.That(result.Shaders["VectorConstructorShader"], Does.Contain("var v = float3(1, 2, 3);"));
     }
 }

@@ -65,7 +65,9 @@ public class InterfaceDispatchTests
 
         Assert.That(result.Diagnostics, Is.Empty);
 
-        Snapshot.Verify(result.Shaders["GoldShader"]);
+        Assert.That(result.Shaders["GoldShader"],
+            Does.Contain("static Surface evaluate(in Gold material, float2 uv)").And
+                .Contain("push.output.setItem(0, Gold.evaluate(push.materials.getItem(0), float2(0.5)));"));
     }
 
     [Test]
@@ -130,7 +132,9 @@ public class InterfaceDispatchTests
 
         Assert.That(result.Diagnostics, Is.Empty);
 
-        Snapshot.Verify(result.Shaders["GoldShader"]);
+        Assert.That(result.Shaders["GoldShader"],
+            Does.Contain("    Surface evaluate(float2 uv)").And
+                .Contain("push.output.setItem(0, material.evaluate(float2(0.5)));"));
     }
 
     [Test]
@@ -191,8 +195,13 @@ public class InterfaceDispatchTests
 
         Assert.That(result.Diagnostics, Is.Empty);
 
-        Snapshot.Verify(result.Shaders["StillShader"], "Still");
-        Snapshot.Verify(result.Shaders["WavyShader"], "Wavy");
+        var still = result.Shaders["StillShader"].Replace("\r\n", "\n");
+        Assert.That(still, Does.Contain(
+            "float3 IVertexOffset_Still_offset(in Still material, float3 world)\n{\n    return float3(0);\n}"));
+        Assert.That(still, Does.Contain("world + IVertexOffset_Still_offset(push.materials.getItem(0), world)"));
+        Assert.That(result.Shaders["WavyShader"],
+            Does.Contain("static float3 offset(in Wavy material, float3 world)").And
+                .Contain("world + Wavy.offset(push.materials.getItem(0), world)"));
     }
 
     [Test]

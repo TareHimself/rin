@@ -7,14 +7,14 @@ public class CommandExtensionsTests
     [Test]
     public void CastToArrayCopiesTheCommandsInOrder()
     {
-        List<ICommand> source = [new NoOpCommand(), new NoOpCommand()];
-        ReadOnlySpan<ICommand> commands = source.ToArray();
+        var first = new NoOpCommand();
+        var second = new NoOpCommand();
+        ICommand[] source = [first, second];
 
-        var copy = commands.CastToArray<NoOpCommand>();
-        source.Clear();
+        var copy = new ReadOnlySpan<ICommand>(source).CastToArray<NoOpCommand>();
+        Array.Clear(source);
 
-        Assert.That(copy, Has.Length.EqualTo(2));
-        Assert.That(copy[0], Is.Not.SameAs(copy[1]));
+        Assert.That(copy, Is.EqualTo(new[] { first, second }).Using<NoOpCommand>(ReferenceEquals));
     }
 
     [Test]

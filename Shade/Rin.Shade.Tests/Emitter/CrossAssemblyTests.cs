@@ -43,10 +43,7 @@ public class CrossAssemblyTests
 
         var derivedSource = File.ReadAllText(SampleSource("SampleGame", "DerivedMeshShader.cs"));
 
-        var references = ((string)AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES")!)
-            .Split(Path.PathSeparator)
-            .Select(path => (MetadataReference)MetadataReference.CreateFromFile(path))
-            .Append(MetadataReference.CreateFromFile(typeof(Shader).Assembly.Location))
+        var references = CompilationBuilder.References
             .Append(MetadataReference.CreateFromFile(sampleStdlibDll))
             .Append(MetadataReference.CreateFromFile(sampleWorldDll));
 
@@ -110,10 +107,7 @@ public class CrossAssemblyTests
         Assert.That(File.Exists(sampleStdlibDll), Is.True,
             $"'{sampleStdlibDll}' not found - build Shade/Samples/SampleStdlib first");
 
-        var references = ((string)AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES")!)
-            .Split(Path.PathSeparator)
-            .Select(path => (MetadataReference)MetadataReference.CreateFromFile(path))
-            .Append(MetadataReference.CreateFromFile(typeof(Shader).Assembly.Location))
+        var references = CompilationBuilder.References
             .Append(MetadataReference.CreateFromFile(sampleStdlibDll));
 
         var scratch = ScratchCompilationBuilder.Build([localSource], references);

@@ -52,6 +52,8 @@ internal class BepuBoxBody : BepuBody
         _shape.Width = scaledSize.X;
         _shape.Height = scaledSize.Y;
         _shape.Length = scaledSize.Z;
+        System.Simulation.Shapes.GetShape<Box>(_shapeIndex.Index) = _shape;
+        RefreshBounds();
         UpdateInertia();
     }
 
