@@ -28,6 +28,7 @@
         <ProjectReference Include="..\Rin.Shade.SourceGenerator\Rin.Shade.SourceGenerator.csproj"/>
         <ProjectReference Include="..\Samples\SampleStdlib\SampleStdlib.csproj" ReferenceOutputAssembly="false"/>
         <ProjectReference Include="..\Samples\SampleWorld\SampleWorld.csproj" ReferenceOutputAssembly="false"/>
+        <ProjectReference Include="..\Rin.Shade.Cli\Rin.Shade.Cli.csproj" ReferenceOutputAssembly="false"/>
     </ItemGroup>
 
 </Project>

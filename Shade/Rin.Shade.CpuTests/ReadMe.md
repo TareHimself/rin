@@ -17,5 +17,6 @@ dotnet test Shade/Rin.Shade.CpuTests/Rin.Shade.CpuTests.csproj
 | `BitIntrinsicTests` | `CountBits` matches the BCL on the CPU and `FirstBitLow` compiles to SPIR-V. Running `FirstBitLow` on the CPU is skipped until the Slang bump, since Slang 2025.9.2's CPU prelude lacks it. |
 | `BufferAccessTests` | Elements read and written through a bindless buffer handle land at the C# struct offsets in real memory. |
 | `ScalarLayoutTests` | Hand-written Slang compiled to SPIR-V gives pointer and `ParameterBlock` structs scalar offsets. |
+| `CompileRinShadeShadersTests` | The build task itself: a shader becomes a `.crsh` package, an unchanged one is reused, a rejected construct fails before compiling, and a Slang error is reported against the C# line it came from. |
 
-References: Rin.Shade, Rin.Shade.Transpiler, Slang/Rin.Slang.Compiler, plus `Rin.Shade.Tests/TestDoubles.cs` and `TestBuffer.cs` as linked files. Packages: NUnit, NUnit3TestAdapter, NUnit.Analyzers, Microsoft.NET.Test.Sdk, Microsoft.CodeAnalysis.CSharp.
+References: Rin.Shade, Rin.Shade.Transpiler, Rin.Shade.MSBuild, Slang/Rin.Slang.Compiler, plus `Rin.Shade.Tests/TestDoubles.cs` and `TestBuffer.cs` as linked files. Packages: NUnit, NUnit3TestAdapter, NUnit.Analyzers, Microsoft.NET.Test.Sdk, Microsoft.CodeAnalysis.CSharp.

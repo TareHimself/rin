@@ -27,4 +27,4 @@ dotnet test Engine/Rin.Graphics.Vulkan.Tests/Rin.Graphics.Vulkan.Tests.csproj -p
 - `FakeNative.cs` binds the fake's `fake*` control exports: the next result code, the text behind a text event, a window's fullscreen flag and its drop callbacks. See [native/Fakes/ReadMe.md](../../native/Fakes/ReadMe.md).
 - `VulkanGraphicsModule` itself is not started here. It needs a real device, so its startup stays an example-level check.
 
-References: Rin.Graphics.Vulkan (internals visible to this project).
+References: Rin.Graphics.Vulkan (internals visible to this project), Rin.Graphics.Null (the graphics module a child window is created through).
