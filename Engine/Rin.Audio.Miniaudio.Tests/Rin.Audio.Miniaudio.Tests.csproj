@@ -23,4 +23,8 @@
         <ProjectReference Include="$(EngineDir)Rin.Audio.Miniaudio\Rin.Audio.Miniaudio.csproj" />
     </ItemGroup>
 
+    <ItemGroup>
+        <Compile Include="$(EngineDir)TestSupport\RepoFiles.cs" Link="RepoFiles.cs" />
+    </ItemGroup>
+
 </Project>

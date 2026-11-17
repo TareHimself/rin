@@ -4,6 +4,7 @@ using System.Text.RegularExpressions;
 using Rin.Core;
 using Rin.Core.Graphics;
 using Rin.Core.Graphics.Windows;
+using Rin.TestSupport;
 using TerraFX.Interop.Vulkan;
 
 namespace Rin.Graphics.Vulkan.Tests;
@@ -157,7 +158,6 @@ public class NativeTests
 
     private static string ReadNativeSource(string file)
     {
-        return File.ReadAllText(Path.Combine(NativeFakeLocator.FindRepoRoot(), "native",
-            "Rin.Graphics.Vulkan.Native", "src", file));
+        return RepoFiles.NativeSource("Rin.Graphics.Vulkan.Native", file);
     }
 }

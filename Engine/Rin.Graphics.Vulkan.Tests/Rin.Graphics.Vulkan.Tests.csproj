@@ -23,4 +23,8 @@
         <ProjectReference Include="$(EngineDir)Rin.Graphics.Vulkan\Rin.Graphics.Vulkan.csproj" />
     </ItemGroup>
 
+    <ItemGroup>
+        <Compile Include="$(EngineDir)TestSupport\RepoFiles.cs" Link="RepoFiles.cs" />
+    </ItemGroup>
+
 </Project>
