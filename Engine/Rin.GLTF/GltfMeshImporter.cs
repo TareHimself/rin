@@ -13,12 +13,12 @@ public static class GltfMeshImporter
 {
     public static MeshHandle? LoadStaticMesh(string filename)
     {
-        var model = ModelRoot.Load(filename);
+        var mesh = ModelRoot.Load(filename)?.LogicalMeshes.FirstOrDefault();
+        return mesh == null ? null : CreateStaticMesh(mesh);
+    }
 
-        var mesh = model?.LogicalMeshes.FirstOrDefault();
-
-        if (mesh == null) return null;
-
+    internal static MeshHandle CreateStaticMesh(SharpGLTF.Schema2.Mesh mesh)
+    {
         List<MeshSurface> surfaces = [];
         List<uint> indices = [];
         List<Vertex> vertices = [];
