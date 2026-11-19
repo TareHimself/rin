@@ -1,15 +1,14 @@
 using System.Diagnostics;
 using System.Numerics;
-using System.Runtime.InteropServices;
 using Examples.Common;
 using Examples.Common.Views;
 using Rin.Core;
 using Rin.Core.Extensions;
 using Rin.Core.Graphics;
-using Rin.Core.Shared.Math;
 using Rin.Core.Views;
 using Rin.Core.Views.Composite;
 using Rin.Core.Views.Layouts;
+using Rin.GLTF;
 using Rin.World;
 using Rin.World.Graphics;
 using Rin.World.Transforms;
@@ -55,7 +54,7 @@ public sealed class SponzaExample : Example
                 _render = render;
                 _textures = loaded.Textures;
                 var world = render.World;
-                var camera = SpawnCamera(world);
+                var camera = loaded.StartCamera ?? SpawnCamera(world);
 
                 context.Add(new TestViewport(render, camera));
                 context.Add(new PanelView
@@ -89,16 +88,13 @@ public sealed class SponzaExample : Example
     private static Entity SpawnCamera(World world)
     {
         var camera = world.Spawn();
-        world.SetPosition(camera, new Vector3(0, 100, 0));
-        world.Add(camera, new Camera { Ev100 = 0f });
+        world.SetPosition(camera, new Vector3(0, 0.8f, 0));
+        world.Add(camera, new Camera { Ev100 = 3f });
 
-        foreach (var lumens in new[] { 3000.0f, 1500000.0f })
-        {
-            var light = world.Spawn();
-            world.SetPosition(light, Vector3.Zero);
-            world.SetParent(light, camera);
-            world.Add(light, new PointLight { Lumens = lumens });
-        }
+        var light = world.Spawn();
+        world.SetPosition(light, Vector3.Zero);
+        world.SetParent(light, camera);
+        world.Add(light, new PointLight { Lumens = 800f });
 
         return camera;
     }
@@ -125,110 +121,36 @@ public sealed class SponzaExample : Example
         }
     }
 
-    private sealed record LoadedScene(RenderFeature Render, ResourceHandle[] Textures);
+    private sealed record LoadedScene(RenderFeature Render, ResourceHandle[] Textures, Entity? StartCamera);
 
     private LoadedScene LoadSponza(string filename)
     {
         var model = ModelRoot.Load(filename);
-        var mesh = model?.LogicalMeshes?.FirstOrDefault() ?? throw new NullReferenceException();
-        IMeshMaterial?[] materials = new IMeshMaterial?[mesh.Primitives.Count];
-        List<MeshSurface> surfaces = [];
-        List<uint> indices = [];
-        List<Vertex> vertices = [];
-
         var textures = new Dictionary<int, ResourceHandle>();
 
         Log.Info("Loading textures");
-        mesh.Primitives.Select((c, idx) => (c, idx)).AsParallel().ForAll(data =>
+        var materials = new IMeshMaterial?[model.LogicalMaterials.Count];
+        Parallel.For(0, materials.Length, i => materials[i] = CreateMaterial(model.LogicalMaterials[i], textures));
+
+        Log.Info("Loading scene");
+        var render = new RenderFeature(new World(), new DefaultRenderSystem(), IMeshFactory.Get());
+        var scene = GltfSceneImporter.Load(model, render,
+            material => material is null ? null : materials[material.LogicalIndex]);
+        foreach (var warning in scene.Warnings) Log.Warn(warning);
+
+        return new LoadedScene(render, textures.Values.ToArray(), scene.StartCamera);
+    }
+
+    private IMeshMaterial CreateMaterial(Material material, Dictionary<int, ResourceHandle> textures)
+    {
+        var baseColor = material.FindChannel("BaseColor") ?? throw new NullReferenceException();
+        var normal = material.FindChannel("Normal") ?? throw new NullReferenceException();
+        var metallicRoughness = material.FindChannel("MetallicRoughness") ?? throw new NullReferenceException();
+        return new SurfaceMaterial<SponzaMaterial>(new SponzaMaterial
         {
-            var (primitive, idx) = data;
-            var material = primitive.Material;
-            var baseColor = material.FindChannel("BaseColor") ?? throw new NullReferenceException();
-            var normalColor = material.FindChannel("Normal") ?? throw new NullReferenceException();
-            var pbrColor = material.FindChannel("MetallicRoughness") ?? throw new NullReferenceException();
-            var baseColorImage = LoadImage(baseColor.Texture, textures);
-            var normalImage = LoadImage(normalColor.Texture, textures);
-            var pbrImage = LoadImage(pbrColor.Texture, textures);
-            materials[idx] = new SurfaceMaterial<SponzaMaterial>(new SponzaMaterial
-            {
-                ColorTexture = baseColorImage,
-                NormalTexture = normalImage,
-                MetallicRoughnessTexture = pbrImage
-            });
+            ColorTexture = LoadImage(baseColor.Texture, textures),
+            NormalTexture = LoadImage(normal.Texture, textures),
+            MetallicRoughnessTexture = LoadImage(metallicRoughness.Texture, textures)
         });
-        Log.Info("Loading geometry");
-        foreach (var primitive in mesh.Primitives)
-        {
-            if (primitive == null) continue;
-
-            List<Vertex> surfaceVertices = [];
-            var newSurface = new MeshSurface
-            {
-                VertexStart = (uint)vertices.Count,
-                VertexCount = (uint)primitive.VertexAccessors.First().Value.Count,
-                IndicesStart = (uint)indices.Count,
-                IndicesCount = (uint)primitive.IndexAccessor.Count
-            };
-
-            var initialVertex = vertices.Count;
-
-            {
-                foreach (var idx in primitive.GetIndices()) indices.Add(idx - (uint)initialVertex);
-            }
-
-            {
-                foreach (var (position, normal, uv) in primitive.GetVertices("POSITION")
-                             .AsVector3Array()
-                             .Zip(
-                                 primitive.GetVertices("NORMAL").AsVector3Array(),
-                                 primitive.GetVertices("TEXCOORD_0").AsVector2Array()
-                             ))
-                    surfaceVertices.Add(new Vertex
-                    {
-                        Location = position,
-                        Normal = normal,
-                        UV = uv
-                    });
-            }
-
-            newSurface.Bounds = CollectionsMarshal.AsSpan(surfaceVertices).ComputeBounds();
-            vertices.AddRange(surfaceVertices);
-            surfaces.Add(newSurface);
-        }
-
-        Log.Info("Geometry loaded");
-
-        var sceneBounds = CollectionsMarshal.AsSpan(vertices).ComputeBounds();
-
-        var meshFactory = IMeshFactory.Get();
-        var sponza = meshFactory.CreateMesh<Vertex>(CollectionsMarshal.AsSpan(vertices),
-            CollectionsMarshal.AsSpan(indices), surfaces.ToArray());
-
-        var world = new World();
-        var render = new RenderFeature(world, new DefaultRenderSystem(), meshFactory);
-        world.Add(world.Spawn(), new StaticMesh { Mesh = sponza, Materials = render.Materials.Add(materials) });
-
-        var sceneCenter = (sceneBounds.Min + sceneBounds.Max) / 2f;
-        var sceneHeight = sceneBounds.Max.Y - sceneBounds.Min.Y;
-        var sceneWidth = sceneBounds.Max.X - sceneBounds.Min.X;
-
-        // Offset horizontally - straight down is parallel to Up, degenerate for LookTowards.
-        var sunPosition = new Vector3(sceneCenter.X - sceneWidth * 0.4f, sceneBounds.Max.Y + sceneHeight,
-            sceneCenter.Z);
-        var sunDirection = Vector3.Normalize(sceneCenter - sunPosition);
-        // var sun = world.Spawn();
-        // world.SetRotation(sun, MathR.LookTowards(sunPosition, sunDirection, MathR.Up));
-        // world.Add(sun, new DirectionalLight { Lux = 5 });
-
-        // // Interior fill lights, bright enough to carry across the inverse-square falloff.
-        // var fillHeight = sceneBounds.Min.Y + sceneHeight * 0.6f;
-        // foreach (var xFraction in new[] { 0.2f, 0.5f, 0.8f })
-        // {
-        //     var fill = world.Spawn();
-        //     world.SetPosition(fill, new Vector3(sceneBounds.Min.X + sceneWidth * xFraction, fillHeight, sceneCenter.Z));
-        //     world.Add(fill, new PointLight { Lumens = 12000 });
-        // }
-
-        return new LoadedScene(render, textures.Values.ToArray());
     }
 }
