@@ -41,6 +41,19 @@ public class GltfMeshImporterTests
     }
 
     [Test]
+    public void ImportedVerticesAreMirroredAcrossXIntoRinSpace()
+    {
+        var gltfPositions = SharpGLTF.Schema2.ModelRoot.Load(FoxPath).LogicalMeshes[0].Primitives
+            .SelectMany(p => p.GetVertices("POSITION").AsVector3Array()).ToArray();
+
+        var mesh = GltfMeshImporter.LoadSkinnedMesh(FoxPath);
+
+        var bounds = IMeshFactory.Get().GetMesh(mesh!.Mesh)!.GetSurfaces().Single().Bounds;
+        Assert.That(bounds.Min.X, Is.EqualTo(-gltfPositions.Max(p => p.X)));
+        Assert.That(bounds.Max.Z, Is.EqualTo(gltfPositions.Max(p => p.Z)));
+    }
+
+    [Test]
     public void APrimitiveWithoutIndicesDrawsItsVerticesInOrder()
     {
         Assert.That(GltfMeshImporter.SequentialIndices(4), Is.EqualTo(new uint[] { 0, 1, 2, 3 }));

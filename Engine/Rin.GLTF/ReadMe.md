@@ -1,6 +1,6 @@
 # Rin.GLTF
 
-Imports glTF and glb files into Rin meshes and animation clips: `GltfMeshImporter` loads static and skinned meshes and `GltfAnimationImporter` loads animation clips, both through `SharpGLTF.Core`.
+Imports glTF and glb files into Rin meshes and animation clips: `GltfMeshImporter` loads static and skinned meshes and `GltfAnimationImporter` loads animation clips, both through `SharpGLTF.Core`. glTF is right-handed and Rin left-handed, so the importers mirror X: a model facing glTF's +Z faces Rin's forward, and left and right match what the authoring tool showed.
 
 ```
 dotnet build Engine/Rin.GLTF/Rin.GLTF.csproj
