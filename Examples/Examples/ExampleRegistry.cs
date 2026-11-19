@@ -4,6 +4,7 @@ using Examples.AudioPlayer;
 using Examples.ChildWindows;
 using Examples.Common;
 using Examples.ImageStrip;
+using Examples.Level;
 using Examples.Paint;
 using Examples.RenderGraphViewer;
 using Examples.SceneTest;
@@ -33,6 +34,7 @@ public static class ExampleRegistry
         new ScriptingExample(),
         new SponzaExample(),
         new AssetViewerExample(),
+        new LevelExample(),
         new RenderGraphViewerExample()
     ];
 

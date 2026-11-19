@@ -20,6 +20,9 @@ public class GltfSceneImporterTests
     private static string CubePath => Path.Combine(AppContext.BaseDirectory, "Assets", "cube.glb");
     private static string FoxPath => Path.Combine(AppContext.BaseDirectory, "Assets", "fox.glb");
 
+    // Exported by the rin_blender add-on, see Assets/make_blender_level.py.
+    private static string BlenderLevelPath => Path.Combine(AppContext.BaseDirectory, "Assets", "blender_level.glb");
+
     private Rin.World.World _world = null!;
     private RenderFeature _render = null!;
     private ModelRoot _model = null!;
@@ -174,6 +177,28 @@ public class GltfSceneImporterTests
 
         Assert.That(imported.Warnings, Has.Some.Contains("skinned"));
         Assert.That(imported.Entities.Any(_world.Has<StaticMesh>), Is.False);
+    }
+
+    [Test]
+    public void ABlenderLevelKeepsItsBrightnessAndWhatTheStartCameraSawOnItsRight()
+    {
+        var imported = GltfSceneImporter.Load(BlenderLevelPath, _render, _ => null);
+        _world.Update(0f);
+
+        var lamp = imported.Entities.Single(_world.Has<PointLight>);
+        var sun = imported.Entities.Single(_world.Has<DirectionalLight>);
+        Assert.That(_world.Get<PointLight>(lamp).Lumens, Is.EqualTo(800f).Within(0.01f));
+        Assert.That(_world.Get<DirectionalLight>(sun).Lux, Is.EqualTo(100000f).Within(1f));
+
+        var camera = _world.Get<WorldTransform>(imported.StartCamera!.Value).Matrix;
+        var cubes = imported.Entities.Where(_world.Has<StaticMesh>).ToArray();
+        var toCube = _world.Get<WorldTransform>(cubes[0]).Matrix.Translation - camera.Translation;
+        Assert.That(camera.Translation.Z, Is.EqualTo(10f).Within(Tolerance), "Overview, not the first camera");
+        Assert.That(Vector3.Dot(toCube, Vector3.TransformNormal(MathR.Forward, camera)), Is.GreaterThan(0f));
+        Assert.That(Vector3.Dot(toCube, Vector3.TransformNormal(MathR.Right, camera)), Is.GreaterThan(0f),
+            "the cube sat right of the camera in Blender");
+        Assert.That(_world.Get<StaticMesh>(cubes[1]).Mesh, Is.EqualTo(_world.Get<StaticMesh>(cubes[0]).Mesh),
+            "linked duplicates share one mesh");
     }
 
     private ImportedScene Import() => GltfSceneImporter.Load(_model, _render, _ =>

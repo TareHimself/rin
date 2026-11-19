@@ -1,0 +1,18 @@
+schema_version = "1.0.0"
+
+id = "rin_blender"
+version = "0.1.0"
+name = "Rin Level"
+tagline = "Author Rin levels and export them as glTF"
+maintainer = "Oyintare Ebelo"
+type = "add-on"
+
+blender_version_min = "4.2.0"
+
+license = ["SPDX:MIT"]
+
+[permissions]
+files = "Export levels as glTF files"
+
+[build]
+paths_exclude_pattern = ["__pycache__/"]
