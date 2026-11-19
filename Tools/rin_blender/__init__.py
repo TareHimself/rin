@@ -8,7 +8,7 @@ from bpy_extras.io_utils import ExportHelper
 # W/m^2 * 683 lux, so these fields convert exactly to what Rin reads.
 LUMENS_PER_WATT = 683.0
 
-# Matches GltfSceneImporter: a point light reaches as far as it still gives this much light.
+# Matches Rin's PointLight.CutoffLux: a point light reaches as far as it still gives this much light.
 RADIUS_CUTOFF_LUX = 0.01
 
 START_CAMERA_KEY = "rin_start_camera"

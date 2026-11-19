@@ -92,13 +92,13 @@ public class GltfSceneImporterTests
     }
 
     [Test]
-    public void APointLightWithoutARangeReachesUntilItsLightFallsBelowACutoff()
+    public void APointLightWithoutARangeLeavesItsRadiusToTheLight()
     {
         AddLight("Lamp", PunctualLightType.Point, intensity: 4f);
 
         var light = _world.Get<PointLight>(Import().Entities[0]);
 
-        Assert.That(light.Radius, Is.EqualTo(MathF.Sqrt(4f / 0.01f)).Within(Tolerance));
+        Assert.That(light.Radius, Is.Null);
     }
 
     [Test]

@@ -148,6 +148,18 @@ public class RenderFeatureTests : RenderFeatureFixture
     }
 
     [Test]
+    public void APointLightWithoutARadiusReachesUntilItGivesLessThanTheCutoff()
+    {
+        var entity = _world.Spawn();
+
+        _world.Add(entity, new PointLight { Lumens = 400f });
+
+        var candela = 400f / (4f * MathF.PI);
+        var expected = MathF.Sqrt(candela / PointLight.CutoffLux);
+        Assert.That(_render.CreatedLights.Single().Light.Radius, Is.EqualTo(expected).Within(1e-3f));
+    }
+
+    [Test]
     public void ADirectionalLightProxyCarriesItsLuxAsIntensity()
     {
         var entity = _world.Spawn();

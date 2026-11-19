@@ -23,9 +23,6 @@ public sealed class GltfSceneImporter
     public const string LuxKey = "rin_lux";
     public const string StartCameraKey = "rin_start_camera";
 
-    // A point light without a glTF range reaches as far as it still gives this much light.
-    private const float RadiusCutoffLux = 0.01f;
-
     private static readonly Quaternion HalfTurn = Quaternion.CreateFromAxisAngle(Vector3.UnitY, MathF.PI);
 
     private readonly RenderFeature _render;
@@ -154,14 +151,8 @@ public sealed class GltfSceneImporter
         }
 
         var lumens = ReadFloat(node.Extras, LumensKey) ?? light.Intensity * 4f * MathF.PI;
-        World.Add(entity, new PointLight { Color = color, Lumens = lumens, Radius = RadiusOf(light, lumens) });
-    }
-
-    private static float RadiusOf(PunctualLight light, float lumens)
-    {
-        if (light.Range > 0f && float.IsFinite(light.Range)) return light.Range;
-        var candela = lumens / (4f * MathF.PI);
-        return MathF.Sqrt(candela / RadiusCutoffLux);
+        var range = light.Range > 0f && float.IsFinite(light.Range) ? light.Range : (float?)null;
+        World.Add(entity, new PointLight { Color = color, Lumens = lumens, Radius = range });
     }
 
     private void AddCamera(Entity entity, Node node, GltfCamera camera)
