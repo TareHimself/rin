@@ -10,7 +10,6 @@ public partial class ToneMapShader : Shader
     public struct PushConstants
     {
         public DeviceHandle Scene;
-        public float Exposure;
         public ToneMapCurve Curve;
     }
 
@@ -45,7 +44,7 @@ public partial class ToneMapShader : Shader
     public Vector4 Fragment(FragmentIn input)
     {
         var scene = BindlessData.TexelLoad(Push.Scene, (int)input.Position.X, (int)input.Position.Y).XYZ;
-        var display = ToneMapping.Apply(scene * Push.Exposure, Push.Curve);
+        var display = ToneMapping.Apply(scene, Push.Curve);
         return new Vector4(LightMath.Lin2Rgb(Saturate(display)), 1f);
     }
 }

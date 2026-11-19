@@ -74,12 +74,12 @@ public class RenderExtractTests : RenderFeatureFixture
         _world.Update(0f);
         _render.PushedLights.Clear();
 
-        _world.Get<PointLight>(entity).Radiance = 99f;
+        _world.Get<PointLight>(entity).Lumens = 99f;
         _world.Update(0f);
         _world.Update(0f);
 
         Assert.That(_render.PushedLights, Has.Count.EqualTo(1));
-        Assert.That(_render.PushedLights[0].Light.Radiance, Is.EqualTo(99f));
+        Assert.That(_render.PushedLights[0].Light.Intensity, Is.EqualTo(99f / (4f * MathF.PI)));
         Assert.That(_world.Get<PointLight>(entity).IsDirty, Is.False);
     }
 

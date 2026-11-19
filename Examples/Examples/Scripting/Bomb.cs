@@ -16,7 +16,7 @@ namespace Examples.Scripting;
 public sealed class Bomb(Arena arena) : Script
 {
     private const float FuseSeconds = 4f;
-    private const float MaxGlow = 150f;
+    private const float MaxGlow = 2250f;
     private const int DebrisCount = 14;
     private const float DebrisSpeed = 12f;
     private const float DebrisLifetimeSeconds = 6f;
@@ -59,7 +59,7 @@ public sealed class Bomb(Arena arena) : Script
             var burnt = tick / (float)ticks;
             phase += World.TickInterval * MathF.Tau * (1f + 5f * burnt);
             World.SetScale(Entity, restScale * (1f + 0.2f * MathF.Sin(phase)));
-            World.Get<PointLight>(_glow).Radiance = MaxGlow * burnt;
+            World.Get<PointLight>(_glow).Lumens = MaxGlow * burnt;
             await ctx.NextTick();
         }
     }

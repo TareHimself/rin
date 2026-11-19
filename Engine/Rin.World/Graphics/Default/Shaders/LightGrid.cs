@@ -112,7 +112,7 @@ public static class LightGrid
     public static LightingResult Light(Surface surface, Vector3 location, Vector3 eye, Vector2 pixel, LightGridInfo grid)
     {
         LightingResult result;
-        result.Color = LightMath.Rgb2Lin(new Vector3(surface.Emissive));
+        result.Color = new Vector3(0f);
         result.Radiance = new Vector3(0f);
         result.LightCount = (uint)grid.DirectionalLightCount;
         for (var i = 0; i < grid.DirectionalLightCount; i++)
@@ -167,7 +167,7 @@ public static class LightGrid
     {
         result.Color += DisneyModel.Eval(surface, location, eye, light);
         var noL = Max(Dot(surface.Normal, LightMath.DirectionToLight(light, location)), 0f);
-        result.Radiance += noL * light.Radiance * light.Color * LightMath.Attenuation(light, location);
+        result.Radiance += noL * light.Intensity * light.Color * LightMath.Attenuation(light, location);
     }
 
     /// <summary>

@@ -86,7 +86,7 @@ public sealed class Arena
         var light = World.Spawn();
         World.SetPosition(light, localOffset);
         World.SetParent(light, parent);
-        World.Add(light, new PointLight { Color = color, Radiance = 0f });
+        World.Add(light, new PointLight { Color = color, Lumens = 0f });
         return light;
     }
 

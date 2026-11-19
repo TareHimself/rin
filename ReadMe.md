@@ -39,6 +39,7 @@ Run the examples project without a name for a launcher. `-p:RinShadeSkipCompile=
 | `Slang/` | Managed Slang compiler wrapper and CLI |
 | [`native/`](native/ReadMe.md) | C++ modules, their packaging, and test fakes |
 | `Examples/`, `Experiments/` | Demo apps and prototypes |
+| [`Tools/rin_blender/`](Tools/rin_blender/ReadMe.md) | Blender add-on for authoring levels as glTF |
 | `msbuild/`, `scripts/` | Shared shader build targets and CI helpers |
 
 [ARCHITECTURE.md](ARCHITECTURE.md) shows how the pieces fit. [AGENTS.md](AGENTS.md) has contributor conventions.

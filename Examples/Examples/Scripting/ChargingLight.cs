@@ -16,8 +16,8 @@ public sealed class ChargingLight(Arena arena) : Script
 {
     private const float ChargeSeconds = 6f;
     private const float FlashSeconds = 0.3f;
-    private const float MaxGlow = 150f;
-    private const float FlashGlow = 800f;
+    private const float MaxGlow = 2250f;
+    private const float FlashGlow = 12000f;
     private const float Width = 1.2f;
     private const float MinHeight = 0.4f;
     private const float MaxHeight = 3f;
@@ -71,6 +71,6 @@ public sealed class ChargingLight(Arena arena) : Script
         ref var transform = ref World.Get<LocalTransform>(Entity);
         transform.Position = transform.Position with { Y = height / 2f };
         transform.Scale = new Vector3(Width, height, Width) / 2f;
-        World.Get<PointLight>(_light).Radiance = glow;
+        World.Get<PointLight>(_light).Lumens = glow;
     }
 }

@@ -13,12 +13,12 @@ public static class GltfMeshImporter
 {
     public static MeshHandle? LoadStaticMesh(string filename)
     {
-        var model = ModelRoot.Load(filename);
+        var mesh = ModelRoot.Load(filename)?.LogicalMeshes.FirstOrDefault();
+        return mesh == null ? null : CreateStaticMesh(mesh);
+    }
 
-        var mesh = model?.LogicalMeshes.FirstOrDefault();
-
-        if (mesh == null) return null;
-
+    internal static MeshHandle CreateStaticMesh(SharpGLTF.Schema2.Mesh mesh)
+    {
         List<MeshSurface> surfaces = [];
         List<uint> indices = [];
         List<Vertex> vertices = [];
@@ -29,6 +29,7 @@ public static class GltfMeshImporter
             var positions = primitive.GetVertices("POSITION").AsVector3Array();
             var localIndices = ReadOrSynthesizeIndices(primitive, positions.Count);
             var normals = ReadOrComputeNormals(primitive, positions, localIndices);
+            GltfAxes.ReverseWinding(localIndices);
 
             List<Vertex> surfaceVertices = [];
             var newSurface = new MeshSurface
@@ -53,8 +54,8 @@ public static class GltfMeshImporter
                              ))
                     surfaceVertices.Add(new Vertex
                     {
-                        Location = position,
-                        Normal = normal,
+                        Location = GltfAxes.ToRin(position),
+                        Normal = GltfAxes.ToRin(normal),
                         UV = uv
                     });
             }
@@ -85,8 +86,8 @@ public static class GltfMeshImporter
             return new Bone
             {
                 Name = joint.Name,
-                LocalTransform = Transform.From(joint.LocalMatrix),
-                Bind = inverseBindMatrix
+                LocalTransform = Transform.From(GltfAxes.ToRin(joint.LocalMatrix)),
+                Bind = GltfAxes.ToRin(inverseBindMatrix)
             };
         }).ToArray();
 
@@ -117,6 +118,7 @@ public static class GltfMeshImporter
             var positions = primitive.GetVertices("POSITION").AsVector3Array();
             var localIndices = ReadOrSynthesizeIndices(primitive, positions.Count);
             var normals = ReadOrComputeNormals(primitive, positions, localIndices);
+            GltfAxes.ReverseWinding(localIndices);
 
             List<SkinnedVertex> surfaceVertices = [];
             var newSurface = new MeshSurface
@@ -148,8 +150,8 @@ public static class GltfMeshImporter
                     {
                         Vertex = new Vertex
                         {
-                            Location = position,
-                            Normal = normal,
+                            Location = GltfAxes.ToRin(position),
+                            Normal = GltfAxes.ToRin(normal),
                             UV = uv
                         },
                         BoneIndices = new Int4((int)jointIndices.X, (int)jointIndices.Y, (int)jointIndices.Z,

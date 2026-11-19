@@ -23,11 +23,13 @@ public static class GltfAnimationImporter
                 {
                     case PropertyPath.translation:
                         ImportSampler(channel.GetTranslationSampler(),
-                            (t, v) => curve.AddPositionLinear(t, v), (t, v) => curve.AddPositionStep(t, v));
+                            (t, v) => curve.AddPositionLinear(t, GltfAxes.ToRin(v)),
+                            (t, v) => curve.AddPositionStep(t, GltfAxes.ToRin(v)));
                         break;
                     case PropertyPath.rotation:
                         ImportSampler(channel.GetRotationSampler(),
-                            (t, v) => curve.AddRotationLinear(t, v), (t, v) => curve.AddRotationStep(t, v));
+                            (t, v) => curve.AddRotationLinear(t, GltfAxes.ToRin(v)),
+                            (t, v) => curve.AddRotationStep(t, GltfAxes.ToRin(v)));
                         break;
                     case PropertyPath.scale:
                         ImportSampler(channel.GetScaleSampler(),

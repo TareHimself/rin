@@ -17,14 +17,15 @@ public class CameraExtensionsTests
         world.SetParent(camera, parent);
         world.Add(camera, new Camera
         {
-            FieldOfView = 60f, NearClipPlane = 0.5f, FarClipPlane = 900f, Exposure = 2f,
+            FieldOfView = 60f, NearClipPlane = 0.5f, FarClipPlane = 900f, Ev100 = 1f,
             ToneMapCurve = ToneMapCurve.Neutral
         });
         world.Update(0f);
 
         var view = world.GetCameraView(camera);
 
-        Assert.That((view.Exposure, view.ToneMapCurve), Is.EqualTo((2f, ToneMapCurve.Neutral)));
+        Assert.That(view.Exposure, Is.EqualTo(1f / 2.4f).Within(1e-6f));
+        Assert.That(view.ToneMapCurve, Is.EqualTo(ToneMapCurve.Neutral));
 
         Assert.That(view.World, Is.EqualTo(world.Get<WorldTransform>(camera).Matrix));
         Assert.That(view.World.Translation, Is.EqualTo(new Vector3(0, 10, -5)));

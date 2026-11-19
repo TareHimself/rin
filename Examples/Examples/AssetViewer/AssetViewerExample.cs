@@ -41,15 +41,15 @@ public sealed class AssetViewerExample : Example
 
         var camera = world.Spawn();
         world.SetPosition(camera, Vector3.Zero);
-        world.Add(camera, new Camera { FarClipPlane = 1000f });
+        world.Add(camera, new Camera { FarClipPlane = 1000f, Ev100 = 0f });
 
         var sun = world.Spawn();
         world.SetPosition(sun, new Vector3(0f, 50f, 0f));
-        world.Add(sun, new DirectionalLight { Radiance = 8.0f });
+        world.Add(sun, new DirectionalLight { Lux = 10f });
 
         var fill = world.Spawn();
         world.SetPosition(fill, new Vector3(0f, 20f, -20f));
-        world.Add(fill, new PointLight { Radiance = 800f });
+        world.Add(fill, new PointLight { Lumens = 12000f });
 
         LoadAndSpawnModel(render, camera);
 

@@ -11,6 +11,8 @@ namespace Rin.World.Graphics;
 /// </remarks>
 public struct PointLight() : IComponentData
 {
+    public const float CutoffLux = 0.01f;
+
     public Color Color
     {
         get;
@@ -21,7 +23,7 @@ public struct PointLight() : IComponentData
         }
     } = Color.White;
 
-    public float Radiance
+    public float Lumens
     {
         get;
         set
@@ -29,9 +31,12 @@ public struct PointLight() : IComponentData
             field = value;
             IsDirty = true;
         }
-    } = 5.0f;
+    } = 800.0f;
 
-    public float Radius
+    /// <summary>
+    ///     How far the light reaches. Unset, it reaches until it gives less than <see cref="CutoffLux" />.
+    /// </summary>
+    public float? Radius
     {
         get;
         set
@@ -39,7 +44,11 @@ public struct PointLight() : IComponentData
             field = value;
             IsDirty = true;
         }
-    } = 10000.0f;
+    }
+
+    public readonly float EffectiveRadius => Radius ?? MathF.Sqrt(Candela / CutoffLux);
+
+    private readonly float Candela => Lumens / (4f * MathF.PI);
 
     public bool IsDirty { get; internal set; } = true;
 
@@ -47,8 +56,8 @@ public struct PointLight() : IComponentData
     {
         Color = Color,
         Direction = Vector3.Zero,
-        Radiance = Radiance,
-        Radius = Radius,
+        Intensity = Candela,
+        Radius = EffectiveRadius,
         LightType = LightType.Point,
         Location = world.Translation
     };

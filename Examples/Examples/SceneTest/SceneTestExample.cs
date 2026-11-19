@@ -85,7 +85,7 @@ public sealed class SceneTestExample : Example
         {
             if (_render != render || sky is null) return;
             _sky = world.Spawn();
-            world.Add(_sky.Value, new EnvironmentLight { Map = render.Environments.Create(sky) });
+            world.Add(_sky.Value, new EnvironmentLight { Map = render.Environments.Create(sky), Intensity = SkyIntensityAtEv0 });
         });
 
         Task.Run(() => LoadEnvironment(RoomName)).DispatchMain(room =>
@@ -96,6 +96,7 @@ public sealed class SceneTestExample : Example
             world.Add(volume, new EnvironmentLight
             {
                 Map = render.Environments.Create(room),
+                Intensity = SkyIntensityAtEv0,
                 Extent = RoomHalfSize,
                 BlendDistance = RoomBlendDistance
             });
@@ -114,7 +115,7 @@ public sealed class SceneTestExample : Example
             var sunPosition = new Vector3(0.0f, 200.0f, 0.0f);
             world.SetPosition(sun, sunPosition);
             world.SetRotation(sun, MathR.LookTowards(Vector3.Normalize(Vector3.Zero - sunPosition)));
-            world.Add(sun, new DirectionalLight { Radiance = TrackDirectLight(sun, 10.0f) });
+            world.Add(sun, new DirectionalLight { Lux = TrackDirectLight(sun, 12.0f) });
 
             // Static visible obstacle the dynamic boxes pile against.
             SpawnBox(world, new Vector3(0f, -2.5f, 22f), new Vector3(10f, 5f, 10f), PhysicsState.Static, mesh);
@@ -174,20 +175,20 @@ public sealed class SceneTestExample : Example
         _meshFactory = null;
     }
 
-    private float TrackDirectLight(Entity light, float radiance)
+    private float TrackDirectLight(Entity light, float brightness)
     {
-        _directLights[light] = radiance;
-        return _directLightsOn ? radiance : 0f;
+        _directLights[light] = brightness;
+        return _directLightsOn ? brightness : 0f;
     }
 
     private void ToggleDirectLights(World world)
     {
         _directLightsOn = !_directLightsOn;
-        foreach (var (light, radiance) in _directLights)
+        foreach (var (light, brightness) in _directLights)
         {
-            var applied = _directLightsOn ? radiance : 0f;
-            if (world.Has<PointLight>(light)) world.Get<PointLight>(light).Radiance = applied;
-            else world.Get<DirectionalLight>(light).Radiance = applied;
+            var applied = _directLightsOn ? brightness : 0f;
+            if (world.Has<PointLight>(light)) world.Get<PointLight>(light).Lumens = applied;
+            else world.Get<DirectionalLight>(light).Lux = applied;
         }
     }
 
@@ -196,12 +197,12 @@ public sealed class SceneTestExample : Example
         var camera = world.Spawn();
         world.SetPosition(camera, position);
         world.SetRotation(camera, rotation);
-        world.Add(camera, new Camera());
+        world.Add(camera, new Camera { Ev100 = 0f });
 
         var light = world.Spawn();
         world.SetPosition(light, Vector3.Zero);
         world.SetParent(light, camera);
-        world.Add(light, new PointLight { Radiance = TrackDirectLight(light, 200.0f) });
+        world.Add(light, new PointLight { Lumens = TrackDirectLight(light, 3000.0f) });
         return camera;
     }
 
@@ -209,7 +210,7 @@ public sealed class SceneTestExample : Example
     {
         var light = world.Spawn();
         world.SetPosition(light, position);
-        world.Add(light, new PointLight { Radiance = TrackDirectLight(light, 800.0f) });
+        world.Add(light, new PointLight { Lumens = TrackDirectLight(light, 12000.0f) });
     }
 
     // The physics system multiplies the box size by the entity scale, as the old SceneTest did with the same values.
@@ -351,7 +352,9 @@ public sealed class SceneTestExample : Example
 
     private const float MaxTimeScale = 3f;
 
-    private const float MaxSkyIntensity = 4f;
+    private const float SkyIntensityAtEv0 = 1.2f;
+
+    private const float MaxSkyIntensity = 5f;
 
     private static IView BuildTimeScaleControl(World scene)
     {

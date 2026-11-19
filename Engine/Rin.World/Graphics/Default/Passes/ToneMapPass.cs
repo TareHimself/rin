@@ -34,7 +34,6 @@ public partial class ToneMapPass(DefaultWorldViewData view) : IPass
             .Push(new ToneMapShader.PushConstants
             {
                 Scene = graph.GetImageOrException(view.SceneColorImageId),
-                Exposure = view.Exposure,
                 Curve = view.ToneMapCurve
             })
             .Draw(ScreenTriangle.VertexCount);

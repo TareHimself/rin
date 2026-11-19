@@ -154,7 +154,8 @@ public class DefaultWorldViewData : IWorldCollectedData
             Time = Time,
             Grid = graph.GetBufferOrException(LightGridBufferId).ToDeviceSpan<LightGridInfo>(),
             Channel = Channel,
-            Environment = Environment.Info
+            Environment = Environment.Info,
+            Exposure = Exposure
         };
     }
 

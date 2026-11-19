@@ -43,7 +43,7 @@ public static class DisneyModel
         var normal = surface.Normal;
 
         var radiance = new Vector3(0f);
-        var irradiance = light.Radiance *
+        var irradiance = light.Intensity *
                          LightMath.Attenuation(light, location);
         var noL = Clamp(Dot(normal, toSurface), 0f, 1f);
         

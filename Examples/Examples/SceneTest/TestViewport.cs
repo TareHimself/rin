@@ -11,22 +11,26 @@ namespace Examples.SceneTest;
 
 public class TestViewport : Viewport
 {
-    private const float Speed = 50f;
+    private const float DefaultSpeed = 50f;
 
     private readonly World _world;
     private readonly Entity _camera;
+    private readonly float _speed;
 
     private float _forwardAxis;
     private float _pitch;
     private float _rightAxis;
     private float _yaw;
 
-    // Pass the camera's starting pitch in degrees so the first mouse drag continues from it.
-    public TestViewport(RenderFeature render, Entity camera, float pitch = 0f) : base(render, camera)
+    // Pass the camera's starting pitch and yaw in degrees so the first mouse drag continues from them.
+    public TestViewport(RenderFeature render, Entity camera, float pitch = 0f, float yaw = 0f,
+        float speed = DefaultSpeed) : base(render, camera)
     {
         _world = render.World;
         _camera = camera;
         _pitch = pitch;
+        _yaw = yaw;
+        _speed = speed;
     }
 
     protected override void OnMouseDelta(Vector2 delta)
@@ -45,8 +49,8 @@ public class TestViewport : Viewport
         // The camera is a root entity, so its local transform is its world transform.
         ref var transform = ref _world.Get<LocalTransform>(_camera);
         var position = transform.Position;
-        position += transform.Rotation.GetForward() * _forwardAxis * deltaTime * Speed;
-        position += transform.Rotation.GetRight() * _rightAxis * deltaTime * Speed;
+        position += transform.Rotation.GetForward() * _forwardAxis * deltaTime * _speed;
+        position += transform.Rotation.GetRight() * _rightAxis * deltaTime * _speed;
         transform.Position = position;
     }
 
