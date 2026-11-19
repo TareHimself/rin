@@ -54,7 +54,8 @@ public partial class SkyShader : Shader
     {
         // Screen y is -1 on the top row, while the view's up axis points up.
         var direction = Normalize(Push.Forward + Push.Right * input.Screen.X - Push.Up * input.Screen.Y);
-        var color = EnvironmentLighting.Backdrop(Push.Scene[0].Environment, direction);
-        return new Vector4(color, 1f);
+        var scene = Push.Scene[0];
+        var color = EnvironmentLighting.Backdrop(scene.Environment, direction);
+        return new Vector4(color * scene.Exposure, 1f);
     }
 }

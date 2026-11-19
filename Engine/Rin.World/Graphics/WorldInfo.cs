@@ -17,4 +17,5 @@ public struct WorldInfo
     public DeviceSpan<LightGridInfo> Grid;
     public RenderChannel Channel;
     public EnvironmentInfo Environment;
+    public float Exposure;
 }

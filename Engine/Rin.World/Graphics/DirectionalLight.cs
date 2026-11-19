@@ -22,7 +22,7 @@ public struct DirectionalLight() : IComponentData
         }
     } = Color.White;
 
-    public float Radiance
+    public float Lux
     {
         get;
         set
@@ -30,7 +30,7 @@ public struct DirectionalLight() : IComponentData
             field = value;
             IsDirty = true;
         }
-    } = 5.0f;
+    } = 100000.0f;
 
     public float Radius
     {
@@ -48,7 +48,7 @@ public struct DirectionalLight() : IComponentData
     {
         Color = Color,
         Direction = Transform.From(world).Orientation.GetForward(),
-        Radiance = Radiance,
+        Intensity = Lux,
         Radius = Radius,
         LightType = LightType.Directional,
         Location = world.Translation

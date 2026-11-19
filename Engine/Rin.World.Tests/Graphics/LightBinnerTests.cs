@@ -17,7 +17,7 @@ public class LightBinnerTests
         Radius = radius,
         Direction = Vector3.Zero,
         Color = Vector3.One,
-        Radiance = 1f,
+        Intensity = 1f,
         LightType = LightType.Point
     };
 

@@ -71,7 +71,7 @@ public sealed class ScriptingExample : Example
         var camera = world.Spawn();
         world.SetPosition(camera, new Vector3(0f, 20f, -28f));
         world.SetRotation(camera, MathR.Forward.ToQuaternion().AddLocalPitch(CameraPitch));
-        world.Add(camera, new Camera());
+        world.Add(camera, new Camera { Ev100 = 0f });
         SpawnLights(world);
 
         LoadAssets(context.Application.Textures).DispatchMain(assets =>
@@ -149,11 +149,11 @@ public sealed class ScriptingExample : Example
         var sunPosition = new Vector3(10f, 50f, -20f);
         world.SetPosition(sun, sunPosition);
         world.SetRotation(sun, MathR.LookTowards(-sunPosition));
-        world.Add(sun, new DirectionalLight { Radiance = 4f });
+        world.Add(sun, new DirectionalLight { Lux = 5f });
 
         var fill = world.Spawn();
         world.SetPosition(fill, new Vector3(0f, 25f, -10f));
-        world.Add(fill, new PointLight { Radiance = 400f });
+        world.Add(fill, new PointLight { Lumens = 6000f });
     }
 
     private static IView BuildHelpPanel()

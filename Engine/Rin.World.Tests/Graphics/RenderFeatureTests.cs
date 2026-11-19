@@ -137,14 +137,26 @@ public class RenderFeatureTests : RenderFeatureFixture
         var entity = _world.Spawn();
         _world.SetPosition(entity, new Vector3(1, 2, 3));
 
-        _world.Add(entity, new PointLight { Radiance = 50f, Radius = 7f });
+        _world.Add(entity, new PointLight { Lumens = 50f, Radius = 7f });
 
         var light = _render.CreatedLights.Single().Light;
         Assert.That(light.LightType, Is.EqualTo(LightType.Point));
         Assert.That(light.Location, Is.EqualTo(new Vector3(1, 2, 3)));
-        Assert.That(light.Radiance, Is.EqualTo(50f));
+        Assert.That(light.Intensity, Is.EqualTo(50f / (4f * MathF.PI)));
         Assert.That(light.Radius, Is.EqualTo(7f));
         Assert.That(_world.Get<PointLight>(entity).IsDirty, Is.False);
+    }
+
+    [Test]
+    public void ADirectionalLightProxyCarriesItsLuxAsIntensity()
+    {
+        var entity = _world.Spawn();
+
+        _world.Add(entity, new DirectionalLight { Lux = 1200f });
+
+        var light = _render.CreatedLights.Single().Light;
+        Assert.That(light.LightType, Is.EqualTo(LightType.Directional));
+        Assert.That(light.Intensity, Is.EqualTo(1200f));
     }
 
     [Test]

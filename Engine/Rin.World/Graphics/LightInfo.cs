@@ -13,7 +13,7 @@ public struct LightInfo
 {
     private Vector4 _locationRadius;
     private Vector4 _directionType;
-    private Vector4 _colorRadiance;
+    private Vector4 _colorIntensity;
 
     public LightInfo()
     {
@@ -49,19 +49,22 @@ public struct LightInfo
 
     public required Vector3 Color
     {
-        get => new(_colorRadiance.X, _colorRadiance.Y, _colorRadiance.Z);
+        get => new(_colorIntensity.X, _colorIntensity.Y, _colorIntensity.Z);
         set
         {
-            _colorRadiance.X = value.X;
-            _colorRadiance.Y = value.Y;
-            _colorRadiance.Z = value.Z;
+            _colorIntensity.X = value.X;
+            _colorIntensity.Y = value.Y;
+            _colorIntensity.Z = value.Z;
         }
     }
 
-    public required float Radiance
+    /// <summary>
+    ///     Candela for a point light, lux for a directional light.
+    /// </summary>
+    public required float Intensity
     {
-        get => _colorRadiance.W;
-        set => _colorRadiance.W = value;
+        get => _colorIntensity.W;
+        set => _colorIntensity.W = value;
     }
 
     public required LightType LightType

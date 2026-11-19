@@ -90,14 +90,14 @@ public sealed class SponzaExample : Example
     {
         var camera = world.Spawn();
         world.SetPosition(camera, new Vector3(0, 100, 0));
-        world.Add(camera, new Camera());
+        world.Add(camera, new Camera { Ev100 = 0f });
 
-        foreach (var radiance in new[] { 200.0f, 100000.0f })
+        foreach (var lumens in new[] { 3000.0f, 1500000.0f })
         {
             var light = world.Spawn();
             world.SetPosition(light, Vector3.Zero);
             world.SetParent(light, camera);
-            world.Add(light, new PointLight { Radiance = radiance });
+            world.Add(light, new PointLight { Lumens = lumens });
         }
 
         return camera;
@@ -218,15 +218,15 @@ public sealed class SponzaExample : Example
         var sunDirection = Vector3.Normalize(sceneCenter - sunPosition);
         // var sun = world.Spawn();
         // world.SetRotation(sun, MathR.LookTowards(sunPosition, sunDirection, MathR.Up));
-        // world.Add(sun, new DirectionalLight { Radiance = 4 });
+        // world.Add(sun, new DirectionalLight { Lux = 5 });
 
-        // // Interior fill lights; Radiance is scaled up for inverse-square falloff.
+        // // Interior fill lights, bright enough to carry across the inverse-square falloff.
         // var fillHeight = sceneBounds.Min.Y + sceneHeight * 0.6f;
         // foreach (var xFraction in new[] { 0.2f, 0.5f, 0.8f })
         // {
         //     var fill = world.Spawn();
         //     world.SetPosition(fill, new Vector3(sceneBounds.Min.X + sceneWidth * xFraction, fillHeight, sceneCenter.Z));
-        //     world.Add(fill, new PointLight { Radiance = 800 });
+        //     world.Add(fill, new PointLight { Lumens = 12000 });
         // }
 
         return new LoadedScene(render, textures.Values.ToArray());

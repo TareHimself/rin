@@ -21,7 +21,7 @@ public struct PointLight() : IComponentData
         }
     } = Color.White;
 
-    public float Radiance
+    public float Lumens
     {
         get;
         set
@@ -29,7 +29,7 @@ public struct PointLight() : IComponentData
             field = value;
             IsDirty = true;
         }
-    } = 5.0f;
+    } = 800.0f;
 
     public float Radius
     {
@@ -47,7 +47,7 @@ public struct PointLight() : IComponentData
     {
         Color = Color,
         Direction = Vector3.Zero,
-        Radiance = Radiance,
+        Intensity = Lumens / (4f * MathF.PI),
         Radius = Radius,
         LightType = LightType.Point,
         Location = world.Translation

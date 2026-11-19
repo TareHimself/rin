@@ -77,9 +77,9 @@ The `scripting` example has one small script per pattern (patrol, sequenced door
 | Component | What it does |
 | --- | --- |
 | `StaticMesh`, `SkinnedMesh` | A `MeshHandle` from `IMeshFactory.CreateMesh` plus a `MaterialSet` from `RenderFeature.Materials`. The mesh is drawable as soon as `CreateMesh` returns. Skinned meshes also need a pose source |
-| `PointLight`, `DirectionalLight` | Color, radiance, radius |
+| `PointLight`, `DirectionalLight` | Color and brightness in physical units: `Lumens` for a point light (a household bulb is about 800), `Lux` for a directional light (direct sun is about 100,000). Point lights also have a radius |
 | `EnvironmentLight` | Lights the scene from an environment map: a handle from `RenderFeature.Environments`, an intensity, and an optional box (`Extent`, `BlendDistance`, `Priority`) |
-| `Camera` | `world.GetCameraView(entity)` for a `Viewport`. `Exposure` scales scene brightness and `ToneMapCurve` (`AgX` by default, `Neutral`, `Aces`) picks how it is fitted to the display |
+| `Camera` | `world.GetCameraView(entity)` for a `Viewport`. `Ev100` is the exposure in photographic stops (about 15 for direct sun, 5 to 9 indoors, higher is darker) and `ToneMapCurve` (`AgX` by default, `Neutral`, `Aces`) picks how it is fitted to the display |
 
 One mesh or light per entity, so use child entities for more. Animation runs per frame. `renderFeature.AttachToBone(child, parent, "bone")` makes a child follow a bone, with its `LocalTransform` as the offset from the bone. Call it again to move it to another bone, and `DetachFromBone` to stop.
 
