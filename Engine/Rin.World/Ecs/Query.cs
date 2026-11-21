@@ -238,7 +238,7 @@ internal struct ChunkCursor
 
     public Archetype Current => _archetypes[_index];
 
-    public ChunkEntities Entities => new(Current.EntityIdArray, Current.Count, _store.Ids);
+    public ChunkEntities Entities => new(Current.EntityIdArray, Current.Count, _store.Entities);
 
     public bool MoveNext()
     {

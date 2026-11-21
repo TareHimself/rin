@@ -103,7 +103,7 @@ public sealed class World
 
     /// <summary>
     ///     Overwrites <paramref name="snapshot" /> with the simulation state: every entity with its components and parent,
-    ///     the entity id allocator, <see cref="TickIndex" />, the tick accumulator and <see cref="Random" />.
+    ///     the entity table, <see cref="TickIndex" />, the tick accumulator and <see cref="Random" />.
     ///     <see cref="EcsNotSavedAttribute" /> components are left out.
     /// </summary>
     public void SaveSnapshot(WorldSnapshot snapshot)

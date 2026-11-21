@@ -13,7 +13,7 @@ internal sealed partial class ArchetypeStore
     private readonly List<PendingRemoval> _removing = [];
     private ComponentHooks?[] _hooks = [];
 
-    public bool IsDespawning(Entity entity) => _ids.StateOf(entity) == EntityState.Despawning;
+    public bool IsDespawning(Entity entity) => _entities.StateOf(entity) == EntityState.Despawning;
 
     /// <summary>
     ///     Despawns the entity and all of its descendants. Does nothing for an entity that is not alive or already
@@ -21,7 +21,7 @@ internal sealed partial class ArchetypeStore
     /// </summary>
     public void Despawn(Entity entity)
     {
-        if (_ids.StateOf(entity) != EntityState.Alive) return;
+        if (_entities.StateOf(entity) != EntityState.Alive) return;
         Phase.EnsureCanMoveRows();
 
         using var hooks = Phase.EnterHooks();
@@ -35,7 +35,7 @@ internal sealed partial class ArchetypeStore
         finally
         {
             // After a hook threw, the entities not yet deleted stay alive.
-            for (var i = start; i < _despawning.Count; i++) _ids.CancelDespawning(_despawning[i]);
+            for (var i = start; i < _despawning.Count; i++) _entities.CancelDespawning(_despawning[i]);
             _despawning.RemoveRange(start, _despawning.Count - start);
         }
     }
@@ -52,7 +52,7 @@ internal sealed partial class ArchetypeStore
         Phase.EnsureCanReparent();
         EnsureHierarchyCanChange(child);
         EnsureHierarchyCanChange(parent);
-        for (var ancestor = parent.Id; ancestor != EntityIdAllocator.NoId; ancestor = _hierarchy.ParentOf(ancestor))
+        for (var ancestor = parent.Id; ancestor != EntityTable.NoId; ancestor = _hierarchy.ParentOf(ancestor))
             if (ancestor == child.Id)
                 throw new InvalidOperationException($"{child} cannot be parented under itself or its descendant {parent}.");
 
@@ -73,13 +73,13 @@ internal sealed partial class ArchetypeStore
     {
         Resolve(child);
         var parent = _hierarchy.ParentOf(child.Id);
-        return parent == EntityIdAllocator.NoId ? default : _ids.HandleOf(parent);
+        return parent == EntityTable.NoId ? default : _entities.HandleOf(parent);
     }
 
     public EntityChildren GetChildren(Entity parent)
     {
         Resolve(parent);
-        return new EntityChildren(_hierarchy, parent.Id, _ids);
+        return new EntityChildren(_hierarchy, parent.Id, _entities);
     }
 
     private ComponentHooks? HooksOf(ComponentId id) => id.Value < _hooks.Length ? _hooks[id.Value] : null;
@@ -140,8 +140,8 @@ internal sealed partial class ArchetypeStore
         {
             var id = _walk[^1];
             _walk.RemoveAt(_walk.Count - 1);
-            _ids.MarkDespawning(id);
-            _despawning.Add(_ids.HandleOf(id));
+            _entities.MarkDespawning(id);
+            _despawning.Add(_entities.HandleOf(id));
 
             var children = _hierarchy.ChildrenOf(id);
             for (var i = children.Length - 1; i >= 0; i--) _walk.Add(children[i]);
@@ -154,7 +154,7 @@ internal sealed partial class ArchetypeStore
         {
             var doomed = _despawning[i];
             // The key is read once: hooks may move the entity, and each hook checks the component is still there.
-            foreach (var id in _locations[doomed.Id].Archetype.Key) FireRemoveHooks(doomed, id);
+            foreach (var id in _entities.LocationOf(doomed.Id).Archetype.Key) FireRemoveHooks(doomed, id);
             Delete(doomed.Id);
         }
     }

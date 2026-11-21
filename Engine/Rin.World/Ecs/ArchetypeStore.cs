@@ -4,7 +4,7 @@ namespace Rin.World.Ecs;
 
 /// <summary>
 ///     The entity store behind <see cref="World" />: one <see cref="Archetype" /> table per component set, in creation
-///     order, and each entity's archetype and row.
+///     order, and the <see cref="EntityTable" /> that says where each entity is.
 /// </summary>
 /// <remarks>
 ///     Adding or removing a component follows an edge to the next archetype, built on first use, copies the row there
@@ -13,11 +13,10 @@ namespace Rin.World.Ecs;
 /// </remarks>
 internal sealed partial class ArchetypeStore
 {
-    private readonly EntityIdAllocator _ids = new();
+    private readonly EntityTable _entities = new();
     private readonly List<Archetype> _archetypes = [];
     private readonly Dictionary<ComponentId[], Archetype> _byKey = new(ArchetypeKeyComparer.Instance);
     private readonly Dictionary<ComponentId[], Archetype>.AlternateLookup<ReadOnlySpan<ComponentId>> _byKeySpan;
-    private EntityLocation[] _locations = new EntityLocation[64];
 
     public ArchetypeStore(ComponentSchema schema)
     {
@@ -40,21 +39,19 @@ internal sealed partial class ArchetypeStore
 
     public int EntityCount { get; private set; }
 
-    public EntityIdAllocator Ids => _ids;
+    public EntityTable Entities => _entities;
 
     public StructuralPhase Phase { get; } = new();
 
     public Entity Spawn()
     {
         Phase.EnsureCanSpawn();
-        var entity = _ids.Allocate();
-        EnsureLocation(entity.Id);
-        _locations[entity.Id] = new EntityLocation(Root, Root.AddRow(entity.Id));
+        var entity = _entities.Allocate(Root);
         EntityCount++;
         return entity;
     }
 
-    public bool IsAlive(Entity entity) => _ids.IsAlive(entity);
+    public bool IsAlive(Entity entity) => _entities.IsAlive(entity);
 
     public bool Has<T>(Entity entity) where T : unmanaged
     {
@@ -75,8 +72,8 @@ internal sealed partial class ArchetypeStore
     /// </summary>
     public ref T TryGetRef<T>(Entity entity) where T : unmanaged
     {
-        if (!_ids.IsAlive(entity) || !Schema.TryGetId<T>(out var id)) return ref Unsafe.NullRef<T>();
-        return ref RefAt<T>(_locations[entity.Id], id);
+        if (!_entities.TryLocate(entity, out var location) || !Schema.TryGetId<T>(out var id)) return ref Unsafe.NullRef<T>();
+        return ref RefAt<T>(location, id);
     }
 
     /// <summary>
@@ -95,7 +92,7 @@ internal sealed partial class ArchetypeStore
         EnsureCanGainComponents(entity);
         var id = Schema.IdOf<T>();
         Move(entity.Id, WithComponent(location.Archetype, id));
-        RefAt<T>(_locations[entity.Id], id) = component;
+        RefAt<T>(_entities.LocationOf(entity.Id), id) = component;
         FireAddHooks(entity, id);
         return true;
     }
@@ -110,7 +107,7 @@ internal sealed partial class ArchetypeStore
         FireRemoveHooks(entity, id);
 
         if (!IsAlive(entity)) return false;
-        location = _locations[entity.Id];
+        location = _entities.LocationOf(entity.Id);
         if (!location.Archetype.Has(id)) return false;
         Move(entity.Id, WithoutComponent(location.Archetype, id));
         return true;
@@ -125,23 +122,18 @@ internal sealed partial class ArchetypeStore
         return archetype;
     }
 
-    private void EnsureLocation(int entityId)
-    {
-        if (entityId >= _locations.Length) Array.Resize(ref _locations, int.Max(entityId + 1, _locations.Length * 2));
-    }
-
     private void Delete(int entityId)
     {
-        var location = _locations[entityId];
+        var location = _entities.LocationOf(entityId);
         _hierarchy.Remove(entityId);
         RemoveRow(location.Archetype, location.Row);
-        _ids.Free(entityId);
+        _entities.Free(entityId);
         EntityCount--;
     }
 
     private void Move(int entityId, Archetype target)
     {
-        var source = _locations[entityId];
+        var source = _entities.LocationOf(entityId);
         var targetRow = target.AddRow(entityId);
         var columns = source.Archetype.Columns;
         var columnIds = source.Archetype.ColumnIds;
@@ -152,13 +144,13 @@ internal sealed partial class ArchetypeStore
         }
 
         RemoveRow(source.Archetype, source.Row);
-        _locations[entityId] = new EntityLocation(target, targetRow);
+        _entities.SetLocation(entityId, new EntityLocation(target, targetRow));
     }
 
     private void RemoveRow(Archetype archetype, int row)
     {
         var moved = archetype.RemoveRow(row);
-        if (moved != EntityIdAllocator.NoId) _locations[moved] = new EntityLocation(archetype, row);
+        if (moved != EntityTable.NoId) _entities.SetLocation(moved, new EntityLocation(archetype, row));
     }
 
     private Archetype WithComponent(Archetype source, ComponentId id)
@@ -201,18 +193,13 @@ internal sealed partial class ArchetypeStore
 
     private EntityLocation Resolve(Entity entity)
     {
-        if (!_ids.IsAlive(entity)) throw new InvalidOperationException($"{entity} is not alive.");
-        return _locations[entity.Id];
+        if (!_entities.TryLocate(entity, out var location)) throw new InvalidOperationException($"{entity} is not alive.");
+        return location;
     }
 
     private static InvalidOperationException MissingComponent<T>(Entity entity) =>
         new($"{entity} has no {typeof(T).Name}.");
 }
-
-/// <summary>
-///     Where an entity's components are.
-/// </summary>
-internal readonly record struct EntityLocation(Archetype Archetype, int Row);
 
 /// <summary>
 ///     What a tag's reference points at, since a tag has no column. Tags have no fields, so sharing it loses nothing.
