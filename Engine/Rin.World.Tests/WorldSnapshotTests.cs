@@ -137,8 +137,8 @@ public class WorldSnapshotTests
     {
         var world = new World();
         var fired = 0;
-        world.OnAdd((Entity _, ref Health _) => fired++);
-        world.OnRemove((Entity _, ref Health _) => fired++);
+        world.OnAdd((Entity _, in Health _) => fired++);
+        world.OnRemove((Entity _, in Health _) => fired++);
         world.Add(world.Spawn(), new Health(1));
         var snapshot = new WorldSnapshot();
         world.SaveSnapshot(snapshot);

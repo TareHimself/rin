@@ -25,10 +25,10 @@ public class CommandBufferTests
     {
         var world = new World();
         var log = new List<string>();
-        world.OnAdd<Health>((_, ref _) => log.Add("add Health"));
-        world.OnRemove<Health>((_, ref _) => log.Add("remove Health"));
-        world.OnAdd<Speed>((_, ref _) => log.Add("add Speed"));
-        world.OnRemove<Speed>((_, ref _) => log.Add("remove Speed"));
+        world.OnAdd<Health>((_, in _) => log.Add("add Health"));
+        world.OnRemove<Health>((_, in _) => log.Add("remove Health"));
+        world.OnAdd<Speed>((_, in _) => log.Add("add Speed"));
+        world.OnRemove<Speed>((_, in _) => log.Add("remove Speed"));
 
         var buffer = new CommandBuffer(world);
         var entity = buffer.Spawn();
@@ -68,8 +68,8 @@ public class CommandBufferTests
     {
         var world = new World();
         var log = new List<string>();
-        world.OnAdd((Entity _, ref Health _) => log.Add("add"));
-        world.OnRemove((Entity _, ref Health _) => log.Add("remove"));
+        world.OnAdd((Entity _, in Health _) => log.Add("add"));
+        world.OnRemove((Entity _, in Health _) => log.Add("remove"));
 
         var buffer = new CommandBuffer(world);
         var entity = buffer.Spawn();

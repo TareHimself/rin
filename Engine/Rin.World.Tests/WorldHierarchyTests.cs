@@ -123,7 +123,7 @@ public class WorldHierarchyTests
         var doomed = world.Spawn();
         var outsider = world.Spawn();
         world.Add(doomed, new Health(1));
-        world.OnRemove((Entity entity, ref Health _) => world.SetParent(outsider, entity));
+        world.OnRemove((Entity entity, in Health _) => world.SetParent(outsider, entity));
 
         Assert.Throws<InvalidOperationException>(() => world.Despawn(doomed));
         Assert.That(world.GetParent(outsider).IsValid, Is.False);
@@ -140,7 +140,7 @@ public class WorldHierarchyTests
         world.SetParent(child, doomed);
         var moveFailed = false;
         var clearFailed = false;
-        world.OnRemove((Entity _, ref Health _) =>
+        world.OnRemove((Entity _, in Health _) =>
         {
             moveFailed = Throws(() => world.SetParent(child, refuge));
             clearFailed = Throws(() => world.ClearParent(child));

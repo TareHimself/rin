@@ -8,7 +8,7 @@ public class WorldHookTests
     {
         var world = new World();
         var added = new List<int>();
-        world.OnAdd((Entity _, ref Health health) => added.Add(health.Value));
+        world.OnAdd((Entity _, in Health health) => added.Add(health.Value));
         var entity = world.Spawn();
 
         world.Add(entity, new Health(1));
@@ -22,7 +22,7 @@ public class WorldHookTests
     {
         var world = new World();
         var removed = new List<(Entity, int, bool)>();
-        world.OnRemove((Entity entity, ref Health health) => removed.Add((entity, health.Value, world.Has<Health>(entity))));
+        world.OnRemove((Entity entity, in Health health) => removed.Add((entity, health.Value, world.Has<Health>(entity))));
         var target = world.Spawn();
         world.Add(target, new Health(7));
 
@@ -37,8 +37,8 @@ public class WorldHookTests
     {
         var world = new World();
         var removed = new List<Entity>();
-        world.OnRemove((Entity entity, ref Health _) => removed.Add(entity));
-        world.OnRemove((Entity entity, ref Speed _) => removed.Add(entity));
+        world.OnRemove((Entity entity, in Health _) => removed.Add(entity));
+        world.OnRemove((Entity entity, in Speed _) => removed.Add(entity));
         var parent = world.Spawn();
         var first = world.Spawn();
         var firstChild = world.Spawn();
@@ -60,7 +60,7 @@ public class WorldHookTests
     {
         var world = new World();
         var fired = 0;
-        world.OnAdd((Entity _, ref Speed _) => fired++);
+        world.OnAdd((Entity _, in Speed _) => fired++);
 
         world.Add(world.Spawn(), new Health(1));
 
@@ -72,8 +72,8 @@ public class WorldHookTests
     {
         var world = new World();
         var speedPresentInHook = new List<bool>();
-        world.OnRemove((Entity entity, ref Health _) => world.Remove<Speed>(entity));
-        world.OnRemove((Entity entity, ref Speed _) => speedPresentInHook.Add(world.Has<Speed>(entity)));
+        world.OnRemove((Entity entity, in Health _) => world.Remove<Speed>(entity));
+        world.OnRemove((Entity entity, in Speed _) => speedPresentInHook.Add(world.Has<Speed>(entity)));
         var entity = world.Spawn();
         world.Add(entity, new Health(1));
         world.Add(entity, new Speed(1f));
@@ -93,7 +93,7 @@ public class WorldHookTests
         var first = world.Spawn();
         world.Add(other, new Health(1));
         world.Add(first, new Health(2));
-        world.OnRemove((Entity entity, ref Health _) =>
+        world.OnRemove((Entity entity, in Health _) =>
         {
             removed.Add(entity);
             if (entity == first) world.Despawn(other);
@@ -110,8 +110,8 @@ public class WorldHookTests
     {
         var world = new World();
         var counter = new Counter();
-        world.OnAdd((Entity _, ref Health _) => counter.Value++);
-        world.OnRemove((Entity _, ref Health _) => counter.Value++);
+        world.OnAdd((Entity _, in Health _) => counter.Value++);
+        world.OnRemove((Entity _, in Health _) => counter.Value++);
         var entity = world.Spawn();
         world.Add(entity, new Health(1));
         world.Remove<Health>(entity);
@@ -134,7 +134,7 @@ public class WorldHookTests
     {
         var world = new World();
         var nested = new List<bool>();
-        world.OnRemove((Entity entity, ref Health _) => nested.Add(world.Remove<Health>(entity)));
+        world.OnRemove((Entity entity, in Health _) => nested.Add(world.Remove<Health>(entity)));
         var target = world.Spawn();
         world.Add(target, new Health(1));
 
@@ -150,7 +150,7 @@ public class WorldHookTests
     {
         var world = new World();
         var fired = 0;
-        world.OnRemove((Entity entity, ref Health _) =>
+        world.OnRemove((Entity entity, in Health _) =>
         {
             fired++;
             world.Despawn(entity);
@@ -170,7 +170,7 @@ public class WorldHookTests
     {
         var world = new World();
         var fired = 0;
-        world.OnRemove((Entity entity, ref Health _) =>
+        world.OnRemove((Entity entity, in Health _) =>
         {
             fired++;
             world.Remove<Health>(entity);
@@ -193,7 +193,7 @@ public class WorldHookTests
     {
         var world = new World();
         var shouldThrow = true;
-        world.OnRemove((Entity _, ref Health _) =>
+        world.OnRemove((Entity _, in Health _) =>
         {
             if (shouldThrow) throw new InvalidOperationException("hook failed");
         });
@@ -220,7 +220,7 @@ public class WorldHookTests
         world.Add(target, new Health(1));
         world.SaveSnapshot(snapshot);
         var saveFailed = false;
-        world.OnRemove((Entity _, ref Health _) =>
+        world.OnRemove((Entity _, in Health _) =>
         {
             saveFailed = Throws(() => world.SaveSnapshot(new WorldSnapshot()));
             world.RestoreSnapshot(snapshot);
@@ -240,11 +240,56 @@ public class WorldHookTests
         var world = new World();
         var snapshot = new WorldSnapshot();
         world.SaveSnapshot(snapshot);
-        world.OnAdd((Entity _, ref Health _) => world.RestoreSnapshot(snapshot));
+        world.OnAdd((Entity _, in Health _) => world.RestoreSnapshot(snapshot));
         var target = world.Spawn();
 
         Assert.Throws<InvalidOperationException>(() => world.Add(target, new Health(1)));
         Assert.That(world.IsAlive(target), Is.True);
+    }
+
+    [Test]
+    public void LaterRemoveHooksDoNotRunOnceAnEarlierOneDespawnedTheEntity()
+    {
+        var world = new World();
+        var later = 0;
+        world.OnRemove((Entity entity, in Health _) => world.Despawn(entity));
+        world.OnRemove((Entity _, in Health _) => later++);
+        var target = world.Spawn();
+        world.Add(target, new Health(1));
+
+        world.Remove<Health>(target);
+
+        Assert.That(later, Is.Zero);
+        Assert.That(world.IsAlive(target), Is.False);
+    }
+
+    [Test]
+    public void LaterAddHooksDoNotRunOnceAnEarlierOneRemovedTheComponent()
+    {
+        var world = new World();
+        var later = 0;
+        world.OnAdd((Entity entity, in Health _) => world.Remove<Health>(entity));
+        world.OnAdd((Entity _, in Health _) => later++);
+        var target = world.Spawn();
+
+        world.Add(target, new Health(1));
+
+        Assert.That(later, Is.Zero);
+        Assert.That(world.Has<Health>(target), Is.False);
+    }
+
+    [Test]
+    public void EachHookSeesTheComponentWhereAnEarlierHookMovedIt()
+    {
+        var world = new World();
+        var seen = new List<int>();
+        world.OnAdd((Entity entity, in Health _) => world.Add(entity, new Speed(1f)));
+        world.OnAdd((Entity _, in Health health) => seen.Add(health.Value));
+        var target = world.Spawn();
+
+        world.Add(target, new Health(5));
+
+        Assert.That(seen, Is.EqualTo(new[] { 5 }));
     }
 
     private static bool Throws(Action action)

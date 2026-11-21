@@ -1,3 +1,5 @@
+using System.Runtime.CompilerServices;
+
 namespace Rin.World.Ecs;
 
 /// <summary>
@@ -62,9 +64,21 @@ internal sealed partial class ArchetypeStore
 
     public ref T Get<T>(Entity entity) where T : unmanaged
     {
-        var location = Resolve(entity);
-        var column = Schema.TryGetId<T>(out var id) ? location.Archetype.ColumnOf(id) : -1;
-        if (column < 0) throw MissingComponent<T>(entity);
+        Resolve(entity);
+        ref var component = ref TryGetRef<T>(entity);
+        if (Unsafe.IsNullRef(ref component)) throw MissingComponent<T>(entity);
+        return ref component;
+    }
+
+    /// <summary>
+    ///     The component, or a null reference when the entity is not alive or lacks it.
+    /// </summary>
+    public ref T TryGetRef<T>(Entity entity) where T : unmanaged
+    {
+        if (!_ids.IsAlive(entity) || !Schema.TryGetId<T>(out var id)) return ref Unsafe.NullRef<T>();
+        var location = _locations[entity.Id];
+        var column = location.Archetype.ColumnOf(id);
+        if (column < 0) return ref Unsafe.NullRef<T>();
         return ref location.Archetype.Columns[column].Get<T>(location.Row);
     }
 

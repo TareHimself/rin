@@ -158,7 +158,7 @@ public sealed class ScriptFeature : IWorldRestoreListener
         return scripts;
     }
 
-    private void OnScriptRefRemoved(Entity entity, ref ScriptRef scriptRef)
+    private void OnScriptRefRemoved(Entity entity, in ScriptRef scriptRef)
     {
         if (!scriptRef.IsBound) return;
         var reason = World.IsDespawning(entity) ? CancelReason.Despawned : CancelReason.Detached;

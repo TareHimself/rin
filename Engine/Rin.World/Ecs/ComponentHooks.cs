@@ -1,3 +1,5 @@
+using System.Runtime.CompilerServices;
+
 namespace Rin.World.Ecs;
 
 internal abstract class ComponentHooks
@@ -18,15 +20,16 @@ internal sealed class ComponentHooks<T> : ComponentHooks where T : unmanaged, IC
 
     public override void FireAdded(ArchetypeStore store, Entity entity) => Fire(_added, store, entity);
 
-    public override void FireRemoved(ArchetypeStore store, Entity entity)
-    {
-        // During despawn an earlier remove hook may already have removed this component or despawned the entity.
-        if (store.IsAlive(entity) && store.Has<T>(entity)) Fire(_removed, store, entity);
-    }
+    public override void FireRemoved(ArchetypeStore store, Entity entity) => Fire(_removed, store, entity);
 
     private static void Fire(List<ComponentHook<T>> handlers, ArchetypeStore store, Entity entity)
     {
-        // The component is looked up per handler because an earlier handler may have moved the entity.
-        for (var i = 0; i < handlers.Count; i++) handlers[i](entity, ref store.Get<T>(entity));
+        // Looked up per handler: an earlier one may have moved the entity, removed the component or despawned it.
+        for (var i = 0; i < handlers.Count; i++)
+        {
+            ref var component = ref store.TryGetRef<T>(entity);
+            if (Unsafe.IsNullRef(ref component)) return;
+            handlers[i](entity, in component);
+        }
     }
 }

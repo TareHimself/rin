@@ -39,7 +39,7 @@ flowchart LR
 | `Entity` | Id plus generation, stale after despawn |
 | `Query<T1..T4>` | `foreach` gives one `Span<T>` per component. Structural changes inside the loop throw, so use `world.Commands`. `world.Query<A, B>()` is cached and free to call every frame. `.With<T>()` and `.Without<T>()` filter by a component or tag and make a new query, so build it once in the system's constructor |
 | Hierarchy | `SetParent` and friends. Despawn removes descendants too |
-| Hooks | `OnAdd<T>`, `OnRemove<T>`. Features create and destroy proxies and bodies from them |
+| Hooks | `OnAdd<T>`, `OnRemove<T>`. Features create and destroy proxies and bodies from them. The component comes as `in T`, stale after a structural change in the handler, so `world.Get<T>` it again to read or write |
 | Transforms | `LocalTransform` (setters mark it dirty) and `WorldTransform`, propagated once per frame |
 
 `World.Update(dt)` runs fixed ticks (1/60 s by default), then the frame phases:
