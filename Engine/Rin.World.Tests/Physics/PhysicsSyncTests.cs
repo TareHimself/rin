@@ -145,7 +145,7 @@ public class PhysicsSyncTests : PhysicsFeatureFixture
     }
 
     [Test]
-    public void ADirtyVelocityIsPushedBeforeTheStep()
+    public void AChangedVelocityIsPushedBeforeTheStep()
     {
         var entity = _world.Spawn();
         _world.Add(entity, new Velocity());
@@ -157,11 +157,10 @@ public class PhysicsSyncTests : PhysicsFeatureFixture
         Tick();
 
         Assert.That(stepped, Is.EqualTo(new Vector3(4, 5, 6)));
-        Assert.That(_world.Get<Velocity>(entity).IsDirty, Is.False);
     }
 
     [Test]
-    public void ASimulatedBodyWritesItsSteppedVelocityBackWithoutMarkingItDirty()
+    public void ASimulatedBodyWritesItsSteppedVelocityBackWithoutPushingItAgain()
     {
         var entity = _world.Spawn();
         _world.Add(entity, new Velocity());
@@ -177,11 +176,16 @@ public class PhysicsSyncTests : PhysicsFeatureFixture
         var velocity = _world.Get<Velocity>(entity);
         Assert.That(velocity.Linear, Is.EqualTo(new Vector3(7, 0, 0)));
         Assert.That(velocity.Angular, Is.EqualTo(new Vector3(0, 0, 1)));
-        Assert.That(velocity.IsDirty, Is.False);
+
+        _physics.OnUpdate = null;
+        _physics.SetLinearVelocity(HandleOf(entity), new Vector3(2, 0, 0));
+        Tick();
+
+        Assert.That(_physics.GetLinearVelocity(HandleOf(entity)), Is.EqualTo(new Vector3(2, 0, 0)));
     }
 
     [Test]
-    public void ACleanVelocityIsNotPushedOverTheBodysOwnVelocity()
+    public void AnUnchangedVelocityIsNotPushedOverTheBodysOwnVelocity()
     {
         var entity = _world.Spawn();
         _world.Add(entity, new Velocity());

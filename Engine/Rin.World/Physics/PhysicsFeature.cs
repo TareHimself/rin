@@ -75,17 +75,24 @@ public sealed class PhysicsFeature : IWorldRestoreListener
             {
                 var entity = chunk.Entities[i];
                 ref readonly var rigidBody = ref chunk.Components2[i];
-                var handle = CreateBodyHandle(entity, rigidBody);
-                Bodies.Add(handle, entity);
-                chunk.Write<PhysicsBody>(i) = new PhysicsBody { Handle = handle, State = rigidBody.State };
+                chunk.Write<PhysicsBody>(i) = CreatePhysicsBody(entity, rigidBody);
             }
     }
 
-    private void CreateBody(Entity entity, in RigidBody rigidBody)
+    private void CreateBody(Entity entity, in RigidBody rigidBody) => World.Add(entity, CreatePhysicsBody(entity, rigidBody));
+
+    private PhysicsBody CreatePhysicsBody(Entity entity, in RigidBody rigidBody)
     {
         var handle = CreateBodyHandle(entity, rigidBody);
         Bodies.Add(handle, entity);
-        World.Add(entity, new PhysicsBody { Handle = handle, State = rigidBody.State });
+        var body = new PhysicsBody { Handle = handle, State = rigidBody.State };
+        if (!World.Has<Velocity>(entity)) return body;
+
+        ref readonly var velocity = ref World.Get<Velocity>(entity);
+        PhysicsSystem.SetLinearVelocity(handle, velocity.Linear);
+        PhysicsSystem.SetAngularVelocity(handle, velocity.Angular);
+        body.SyncedVelocity = velocity;
+        return body;
     }
 
     private PhysicsBodyHandle CreateBodyHandle(Entity entity, in RigidBody desc)
@@ -102,14 +109,6 @@ public sealed class PhysicsFeature : IWorldRestoreListener
         PhysicsSystem.SetMass(handle, desc.Mass);
         PhysicsSystem.SetTrigger(handle, desc.IsTrigger);
         PhysicsSystem.SetCollisionChannel(handle, desc.CollisionChannel);
-        if (World.Has<Velocity>(entity))
-        {
-            ref var velocity = ref World.Write<Velocity>(entity);
-            PhysicsSystem.SetLinearVelocity(handle, velocity.Linear);
-            PhysicsSystem.SetAngularVelocity(handle, velocity.Angular);
-            velocity.IsDirty = false;
-        }
-
         return handle;
     }
 

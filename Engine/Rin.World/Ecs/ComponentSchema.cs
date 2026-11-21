@@ -54,28 +54,11 @@ public sealed partial class ComponentSchema
     public ComponentSchema Clone() => new(this);
 
     /// <summary>
-    ///     Stops any further type from being added, lazily or through <see cref="Add" />.
+    ///     Stops any further type from being added by <see cref="IdOf{T}" />.
     /// </summary>
     public void Freeze()
     {
         lock (_gate) IsFrozen = true;
-    }
-
-    /// <summary>
-    ///     Adds a component defined only at run time. C# structs enter through <see cref="IdOf{T}" />, which takes their
-    ///     size from the type.
-    /// </summary>
-    public ComponentId Add(ComponentInfo info)
-    {
-        ArgumentNullException.ThrowIfNull(info);
-        if (info.Type is not null)
-            throw new ArgumentException($"{info.Name} is a C# struct, so it is added by IdOf<{info.Name}>().", nameof(info));
-
-        lock (_gate)
-        {
-            EnsureNotFrozen(info.Name);
-            return Append(info);
-        }
     }
 
     /// <summary>
@@ -120,7 +103,7 @@ public sealed partial class ComponentSchema
         }
 
         _infos[id.Value] = info;
-        if (info.Type is not null) _byType.Add(info.Type, id);
+        _byType.Add(info.Type, id);
         Volatile.Write(ref _count, _count + 1);
         return id;
     }

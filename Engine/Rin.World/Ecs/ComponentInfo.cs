@@ -8,22 +8,35 @@ namespace Rin.World;
 ///     Describes one component type in a <see cref="ComponentSchema" />. A size of zero makes it a tag, which has no
 ///     column.
 /// </summary>
-/// <param name="Type">
-///     The C# struct, or null for a component defined only at run time.
-/// </param>
-/// <param name="IsSaved">
-///     False for <see cref="EcsNotSavedAttribute" /> components, whose values are left out of every save.
-/// </param>
-/// <param name="Fields">
-///     Filled for run-time components. Empty for C# structs for now.
-/// </param>
-public sealed record ComponentInfo(
-    string Name,
-    Type? Type,
-    int Size,
-    bool IsSaved,
-    ComponentField[] Fields)
+/// <remarks>
+///     Every component is a C# struct, so infos come only from <see cref="Of{T}" />.
+/// </remarks>
+public sealed record ComponentInfo
 {
+    private ComponentInfo(string name, Type type, int size, bool isSaved)
+    {
+        Name = name;
+        Type = type;
+        Size = size;
+        IsSaved = isSaved;
+    }
+
+    public string Name { get; }
+
+    public Type Type { get; }
+
+    public int Size { get; }
+
+    /// <summary>
+    ///     False for <see cref="EcsNotSavedAttribute" /> components, whose values are left out of every save.
+    /// </summary>
+    public bool IsSaved { get; }
+
+    /// <summary>
+    ///     Empty until field offsets are generated for the inspector.
+    /// </summary>
+    public ComponentField[] Fields { get; } = [];
+
     public bool IsTag => Size == 0;
 
     /// <summary>
@@ -38,8 +51,7 @@ public sealed record ComponentInfo(
             typeof(T).Name,
             typeof(T),
             isTag ? 0 : Unsafe.SizeOf<T>(),
-            !typeof(T).IsDefined(typeof(EcsNotSavedAttribute), false),
-            []);
+            !typeof(T).IsDefined(typeof(EcsNotSavedAttribute), false));
     }
 
     /// <summary>

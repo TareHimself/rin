@@ -14,4 +14,9 @@ public struct PhysicsBody : IComponentData
     ///     The state the body was created with, which push and pull follow even if <see cref="RigidBody" /> is overwritten.
     /// </summary>
     public PhysicsState State { get; internal set; }
+
+    /// <summary>
+    ///     The <see cref="Velocity" /> the body last received or gave back, so push sends only a changed one.
+    /// </summary>
+    internal Velocity SyncedVelocity { get; set; }
 }
