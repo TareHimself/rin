@@ -43,6 +43,8 @@ internal sealed partial class ArchetypeStore
 
     public StructuralPhase Phase { get; } = new();
 
+    public ChangeClock Clock { get; } = new();
+
     public Entity Spawn()
     {
         Phase.EnsureCanSpawn();
@@ -85,7 +87,7 @@ internal sealed partial class ArchetypeStore
         var hasId = Schema.TryGetId<T>(out var existing);
         if (hasId && location.Archetype.Has(existing))
         {
-            RefAt<T>(location, existing) = component;
+            WriteAt<T>(location, existing) = component;
             return false;
         }
 
@@ -93,12 +95,34 @@ internal sealed partial class ArchetypeStore
         EnsureCanGainComponents(entity);
         var id = hasId ? existing : Schema.IdOf<T>();
         var moved = Move(entity.Id, location.Row, WithComponent(location.Archetype, id));
-        RefAt<T>(moved, id) = component;
+        WriteAt<T>(moved, id) = component;
         FireAddHooks(entity, id);
         return true;
     }
 
-    public void Set<T>(Entity entity, in T component) where T : unmanaged => Get<T>(entity) = component;
+    public void Set<T>(Entity entity, in T component) where T : unmanaged => Write<T>(entity) = component;
+
+    /// <summary>
+    ///     The component, with its row stamped as changed at the clock's current tick.
+    /// </summary>
+    public ref T Write<T>(Entity entity) where T : unmanaged
+    {
+        var location = Resolve(entity);
+        if (!Schema.TryGetId<T>(out var id) || !location.Archetype.Has(id)) throw MissingComponent<T>(entity);
+        return ref WriteAt<T>(location, id);
+    }
+
+    /// <summary>
+    ///     Whether the component was written after <paramref name="tick" />. Throws for a tag, which has no change ticks.
+    /// </summary>
+    public bool HasChangedSince<T>(Entity entity, uint tick) where T : unmanaged
+    {
+        var location = Resolve(entity);
+        if (!Schema.TryGetId<T>(out var id) || !location.Archetype.Has(id)) throw MissingComponent<T>(entity);
+        var column = location.Archetype.ColumnOf(id);
+        if (column < 0) throw new InvalidOperationException($"{typeof(T).Name} is a tag, so it has no change ticks.");
+        return location.Archetype.Columns[column].ChangeTickAt(location.Row) > tick;
+    }
 
     public bool Remove<T>(Entity entity) where T : unmanaged
     {
@@ -183,6 +207,13 @@ internal sealed partial class ArchetypeStore
         var column = archetype.ColumnOf(id);
         if (column >= 0) return ref archetype.Columns[column].Get<T>(location.Row);
         return ref archetype.Has(id) ? ref TagValue<T>.Shared : ref Unsafe.NullRef<T>();
+    }
+
+    private ref T WriteAt<T>(EntityLocation location, ComponentId id) where T : unmanaged
+    {
+        var column = location.Archetype.ColumnOf(id);
+        if (column >= 0) location.Archetype.Columns[column].Stamp(location.Row, Clock.Current);
+        return ref RefAt<T>(location, id);
     }
 
     private EntityLocation Resolve(Entity entity)

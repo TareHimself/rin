@@ -11,7 +11,8 @@ namespace Rin.World.Ecs;
 ///     Component ids are only valid within one schema, so <see cref="Validate" /> checks that the store's schema
 ///     describes every used id the same way before a restore changes anything. Entities go straight back into their
 ///     archetype in the saved order, so query order after a restore matches the order at save time.
-///     <see cref="EcsNotSavedAttribute" /> columns are cleared rather than copied.
+///     <see cref="EcsNotSavedAttribute" /> columns are cleared rather than copied. Change ticks are not saved: a restore
+///     stamps every row with a fresh tick, so every change query sees every restored row as changed.
 /// </remarks>
 internal sealed partial class ArchetypeStore
 {
@@ -47,6 +48,7 @@ internal sealed partial class ArchetypeStore
         _hierarchy.Clear();
         EntityCount = 0;
         _entities.Restore(ref reader);
+        Clock.Advance();
 
         var archetypeCount = reader.Read<int>();
         for (var i = 0; i < archetypeCount; i++) RestoreArchetype(ref reader);
@@ -158,6 +160,7 @@ internal sealed partial class ArchetypeStore
             var column = columns[i];
             if (Schema[archetype.ColumnIds[i]].IsSaved) reader.ReadBytes(count * column.Stride).CopyTo(column.Bytes(start, count));
             else column.ClearRows(start, count);
+            column.StampRows(start, count, Clock.Current);
         }
     }
 

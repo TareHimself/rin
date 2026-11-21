@@ -1,9 +1,12 @@
+using Rin.World.Ecs;
+
 namespace Rin.World.Scheduling;
 
 /// <summary>
-///     One ordered list per phase. Systems run in registration order, nothing is sorted or reordered.
+///     One ordered list per phase. Systems run in registration order, nothing is sorted or reordered. The only place the
+///     <see cref="ChangeClock" /> advances during an update: before and after every system run.
 /// </summary>
-internal sealed class SystemSchedule
+internal sealed class SystemSchedule(ChangeClock clock)
 {
     private readonly List<TickSystem> _input = [];
     private readonly List<TickSystem> _gameplay = [];
@@ -32,14 +35,24 @@ internal sealed class SystemSchedule
         Run(_extract, context);
     }
 
-    private static void Run(List<TickSystem> systems, in TickContext context)
+    private void Run(List<TickSystem> systems, in TickContext context)
     {
-        for (var i = 0; i < systems.Count; i++) systems[i].Tick(context);
+        for (var i = 0; i < systems.Count; i++)
+        {
+            clock.Advance();
+            systems[i].Tick(context);
+            clock.Advance();
+        }
     }
 
-    private static void Run(List<FrameSystem> systems, in FrameContext context)
+    private void Run(List<FrameSystem> systems, in FrameContext context)
     {
-        for (var i = 0; i < systems.Count; i++) systems[i].Update(context);
+        for (var i = 0; i < systems.Count; i++)
+        {
+            clock.Advance();
+            systems[i].Update(context);
+            clock.Advance();
+        }
     }
 
     private List<TickSystem> TickList(TickPhase phase) => phase switch

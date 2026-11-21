@@ -14,7 +14,7 @@ public sealed class World
     private const int SnapshotFormat = 0x52534E32;
 
     private readonly ArchetypeStore _store;
-    private readonly SystemSchedule _schedule = new();
+    private readonly SystemSchedule _schedule;
     private readonly List<IWorldRestoreListener> _restoreListeners = [];
     private float _accumulator;
     private bool _updating;
@@ -30,6 +30,7 @@ public sealed class World
     public World(ComponentSchema schema)
     {
         _store = new ArchetypeStore(schema);
+        _schedule = new SystemSchedule(_store.Clock);
         Commands = new CommandBuffer(this);
         _schedule.Add(FramePhase.Extract, new TransformPropagation(this));
     }
@@ -64,6 +65,12 @@ public sealed class World
     public float InterpolationAlpha { get; private set; }
 
     public ComponentSchema Schema => _store.Schema;
+
+    /// <summary>
+    ///     The tick component writes are stamped with now. It goes up before and after every system run and on every
+    ///     snapshot restore, and is never saved.
+    /// </summary>
+    public uint ChangeTick => _store.Clock.Current;
 
     public int EntityCount => _store.EntityCount;
 
@@ -193,6 +200,12 @@ public sealed class World
     ///     Overwrites a component the entity already has.
     /// </summary>
     public void Set<T>(Entity entity, in T component) where T : unmanaged, IComponentData => _store.Set(entity, component);
+
+    /// <summary>
+    ///     Whether the component was added or written after <paramref name="changeTick" />, a past <see cref="ChangeTick" />.
+    /// </summary>
+    public bool HasChangedSince<T>(Entity entity, uint changeTick) where T : unmanaged, IComponentData =>
+        _store.HasChangedSince<T>(entity, changeTick);
 
     public bool Remove<T>(Entity entity) where T : unmanaged, IComponentData => _store.Remove<T>(entity);
 

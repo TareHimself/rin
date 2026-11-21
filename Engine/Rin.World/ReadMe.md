@@ -39,6 +39,7 @@ flowchart LR
 | `Entity` | Id plus generation, stale after despawn |
 | Tags | An empty struct marked `ITagData` is a component without a column: `world.Add(entity, new Stunned())`, `Has<T>`, `Remove<T>`, hooks and queries all work the same |
 | `Query<T1..T4>` | `foreach` gives one `Span<T>` per component. Structural changes inside the loop throw, so use `world.Commands`. `world.Query<A, B>()` is cached and free to call every frame. `.With<T>()` and `.Without<T>()` filter by a component or tag and make a new query, so build it once in the system's constructor |
+| Change ticks | `Add`, `Set` and command playback stamp the row with `world.ChangeTick`, which goes up before and after every system run. `world.HasChangedSince<T>(entity, tick)` says whether a component was written after a tick the caller kept. Ticks are not saved: a restore stamps every row with a fresh one |
 | Hierarchy | `SetParent` and friends. Despawn removes descendants too |
 | Hooks | `OnAdd<T>`, `OnRemove<T>`. Features create and destroy proxies and bodies from them. The component comes as `in T`, stale after a structural change in the handler, so `world.Get<T>` it again to read or write |
 | Transforms | `LocalTransform` (setters mark it dirty) and `WorldTransform`, propagated once per frame |
