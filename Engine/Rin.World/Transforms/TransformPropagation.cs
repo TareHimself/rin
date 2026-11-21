@@ -18,6 +18,7 @@ internal sealed class TransformPropagation : FrameSystem
 {
     private readonly World _world;
     private readonly Query<LocalTransform, WorldTransform> _transforms;
+    private readonly ComponentId[] _changeSources;
     private ChangeWindow _window;
     private PendingNode[] _pending = new PendingNode[64];
     private int _pendingCount;
@@ -26,6 +27,7 @@ internal sealed class TransformPropagation : FrameSystem
     {
         _world = world;
         _transforms = world.Query<LocalTransform, WorldTransform>();
+        _changeSources = [world.Schema.IdOf<LocalTransform>(), world.Schema.IdOf<WorldTransform>(), world.Schema.IdOf<AttachSocket>()];
         world.OnRemove<AttachSocket>(MarkLocalChanged);
     }
 
@@ -49,7 +51,7 @@ internal sealed class TransformPropagation : FrameSystem
 
         var worldMatrix = _world.Get<WorldTransform>(entity).Matrix;
         var changed = false;
-        if (node.ParentChanged || HasChanged(entity))
+        if (node.ParentChanged || _world.HasAnyChangedSince(entity, _changeSources, _window.Since))
         {
             var matrix = _world.ComputeLocalMatrix(entity, _world.Get<LocalTransform>(entity)) * node.ParentWorld;
             if (matrix != worldMatrix)
@@ -62,14 +64,6 @@ internal sealed class TransformPropagation : FrameSystem
 
         var children = _world.GetChildren(entity);
         for (var i = children.Count - 1; i >= 0; i--) Push(new PendingNode(children[i], worldMatrix, changed));
-    }
-
-    private bool HasChanged(Entity entity)
-    {
-        var since = _window.Since;
-        return _world.HasChangedSince<LocalTransform>(entity, since) ||
-               _world.HasChangedSince<WorldTransform>(entity, since) ||
-               (_world.Has<AttachSocket>(entity) && _world.HasChangedSince<AttachSocket>(entity, since));
     }
 
     // Removing the socket changes no transform row, so stamp one to have the entity placed relative to its parent again.

@@ -277,6 +277,12 @@ public sealed class World
     }
 
     /// <summary>
+    ///     Whether any of <paramref name="ids" /> that the entity has was written after <paramref name="changeTick" />.
+    /// </summary>
+    internal bool HasAnyChangedSince(Entity entity, ReadOnlySpan<ComponentId> ids, uint changeTick) =>
+        _store.HasAnyChangedSince(entity, ids, changeTick);
+
+    /// <summary>
     ///     Whether <paramref name="entity" /> is collected by a despawn whose remove hooks have not finished.
     /// </summary>
     internal bool IsDespawning(Entity entity) => _store.IsDespawning(entity);

@@ -124,6 +124,22 @@ internal sealed partial class ArchetypeStore
         return location.Archetype.Columns[column].ChangeTickAt(location.Row) > tick;
     }
 
+    /// <summary>
+    ///     Whether any of <paramref name="ids" /> that the entity has a column for was written after
+    ///     <paramref name="tick" />, with one location lookup for all of them.
+    /// </summary>
+    public bool HasAnyChangedSince(Entity entity, ReadOnlySpan<ComponentId> ids, uint tick)
+    {
+        var location = Resolve(entity);
+        foreach (var id in ids)
+        {
+            var column = location.Archetype.ColumnOf(id);
+            if (column >= 0 && location.Archetype.Columns[column].ChangeTickAt(location.Row) > tick) return true;
+        }
+
+        return false;
+    }
+
     public bool Remove<T>(Entity entity) where T : unmanaged
     {
         var location = Resolve(entity);
