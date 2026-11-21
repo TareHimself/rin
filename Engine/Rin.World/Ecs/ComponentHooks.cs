@@ -1,10 +1,10 @@
-using FrifloEntity = Friflo.Engine.ECS.Entity;
-
 namespace Rin.World.Ecs;
 
 internal abstract class ComponentHooks
 {
-    public abstract void FireRemoved(FrifloEntity entity, Entity handle);
+    public abstract void FireAdded(ArchetypeStore store, Entity entity);
+
+    public abstract void FireRemoved(ArchetypeStore store, Entity entity);
 }
 
 internal sealed class ComponentHooks<T> : ComponentHooks where T : struct, IComponentData
@@ -16,17 +16,17 @@ internal sealed class ComponentHooks<T> : ComponentHooks where T : struct, IComp
 
     public void OnRemove(ComponentHook<T> handler) => _removed.Add(handler);
 
-    public void FireAdded(FrifloEntity entity, Entity handle) => Fire(_added, entity, handle);
+    public override void FireAdded(ArchetypeStore store, Entity entity) => Fire(_added, store, entity);
 
-    public override void FireRemoved(FrifloEntity entity, Entity handle)
+    public override void FireRemoved(ArchetypeStore store, Entity entity)
     {
-        // During despawn an earlier remove hook may already have removed this component.
-        if (entity.HasComponent<T>()) Fire(_removed, entity, handle);
+        // During despawn an earlier remove hook may already have removed this component or despawned the entity.
+        if (store.IsAlive(entity) && store.Has<T>(entity)) Fire(_removed, store, entity);
     }
 
-    private static void Fire(List<ComponentHook<T>> handlers, FrifloEntity entity, Entity handle)
+    private static void Fire(List<ComponentHook<T>> handlers, ArchetypeStore store, Entity entity)
     {
         // The component is looked up per handler because an earlier handler may have moved the entity.
-        for (var i = 0; i < handlers.Count; i++) handlers[i](handle, ref entity.GetComponent<T>());
+        for (var i = 0; i < handlers.Count; i++) handlers[i](entity, ref store.Get<T>(entity));
     }
 }

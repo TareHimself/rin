@@ -51,13 +51,6 @@ public sealed partial class ArchetypeStore
 
     public bool IsAlive(Entity entity) => _ids.IsAlive(entity);
 
-    public void Despawn(Entity entity)
-    {
-        if (!IsAlive(entity)) return;
-        EnsureNotIterating();
-        Delete(entity.Id);
-    }
-
     public EntityLocation LocationOf(Entity entity) => Resolve(entity);
 
     public bool Has<T>(Entity entity) where T : struct
@@ -89,6 +82,7 @@ public sealed partial class ArchetypeStore
         }
 
         location.Archetype.Columns[location.Archetype.ColumnOf(id)].Get<T>(location.Row) = component;
+        if (isNew) HooksOf(id)?.FireAdded(this, entity);
         return isNew;
     }
 
@@ -98,6 +92,12 @@ public sealed partial class ArchetypeStore
     {
         var location = Resolve(entity);
         if (!Schema.TryGetId<T>(out var id) || !location.Archetype.Has(id)) return false;
+        EnsureNotIterating();
+        HooksOf(id)?.FireRemoved(this, entity);
+
+        if (!IsAlive(entity)) return false;
+        location = _locations[entity.Id];
+        if (!location.Archetype.Has(id)) return false;
         Move(entity.Id, WithoutComponent(location.Archetype, id));
         return true;
     }
@@ -125,6 +125,7 @@ public sealed partial class ArchetypeStore
     private void Delete(int entityId)
     {
         var location = _locations[entityId];
+        _hierarchy.Remove(entityId);
         RemoveRow(location.Archetype, location.Row);
         _ids.Free(entityId);
         EntityCount--;

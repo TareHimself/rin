@@ -164,6 +164,162 @@ public class ArchetypeStoreTests
         Assert.That(allocated, Is.Zero);
     }
 
+    [Test]
+    public void OnAddFiresOnlyForANewComponent()
+    {
+        var store = new ArchetypeStore(new ComponentSchema());
+        var added = new List<int>();
+        store.OnAdd((Entity _, ref Health health) => added.Add(health.Value));
+        var entity = store.Spawn();
+
+        store.Add(entity, new Health(1));
+        store.Add(entity, new Health(2));
+
+        Assert.That(added, Is.EqualTo(new[] { 1 }));
+    }
+
+    [Test]
+    public void OnRemoveSeesTheComponentBeforeItIsRemoved()
+    {
+        var store = new ArchetypeStore(new ComponentSchema());
+        var seen = new List<(int, bool)>();
+        store.OnRemove((Entity entity, ref Health health) => seen.Add((health.Value, store.Has<Health>(entity))));
+        var target = store.Spawn();
+        store.Add(target, new Health(7));
+
+        store.Remove<Health>(target);
+
+        Assert.That(seen, Is.EqualTo(new[] { (7, true) }));
+        Assert.That(store.Has<Health>(target), Is.False);
+    }
+
+    [Test]
+    public void DespawnFiresRemoveHooksDepthFirstWithParentsBeforeChildren()
+    {
+        var store = new ArchetypeStore(new ComponentSchema());
+        var removed = new List<Entity>();
+        store.OnRemove((Entity entity, ref Health _) => removed.Add(entity));
+        var root = SpawnWithHealth(store);
+        var first = SpawnWithHealth(store);
+        var grandchild = SpawnWithHealth(store);
+        var second = SpawnWithHealth(store);
+        store.SetParent(first, root);
+        store.SetParent(grandchild, first);
+        store.SetParent(second, root);
+
+        store.Despawn(root);
+
+        Assert.That(removed, Is.EqualTo(new[] { root, first, grandchild, second }));
+        Assert.That(store.EntityCount, Is.Zero);
+    }
+
+    [Test]
+    public void ARemoveHookMayDespawnAnotherEntity()
+    {
+        var store = new ArchetypeStore(new ComponentSchema());
+        var removed = new List<Entity>();
+        var other = SpawnWithHealth(store);
+        var first = SpawnWithHealth(store);
+        store.OnRemove((Entity entity, ref Health _) =>
+        {
+            removed.Add(entity);
+            if (entity == first) store.Despawn(other);
+        });
+
+        store.Despawn(first);
+
+        Assert.That(removed, Is.EqualTo(new[] { first, other }));
+        Assert.That(store.IsAlive(other), Is.False);
+        Assert.That(store.EntityCount, Is.Zero);
+    }
+
+    [Test]
+    public void DespawnSkipsTheRemoveHookOfAComponentAnEarlierHookRemoved()
+    {
+        var store = new ArchetypeStore(new ComponentSchema());
+        var speedHooks = 0;
+        store.OnRemove((Entity entity, ref Health _) => store.Remove<Speed>(entity));
+        store.OnRemove((Entity _, ref Speed _) => speedHooks++);
+        var entity = SpawnWithHealth(store);
+        store.Add(entity, new Speed(1f));
+
+        store.Despawn(entity);
+
+        Assert.That(speedHooks, Is.EqualTo(1), "only the Remove inside the Health hook");
+        Assert.That(store.IsAlive(entity), Is.False);
+    }
+
+    [Test]
+    public void SetParentAppendsTheChildAndMovesItFromItsOldParent()
+    {
+        var store = new ArchetypeStore(new ComponentSchema());
+        var oldParent = store.Spawn();
+        var parent = store.Spawn();
+        var first = store.Spawn();
+        var second = store.Spawn();
+        store.SetParent(second, oldParent);
+
+        store.SetParent(first, parent);
+        store.SetParent(second, parent);
+
+        Assert.That(Children(store, parent), Is.EqualTo(new[] { first, second }));
+        Assert.That(store.ChildCount(oldParent), Is.Zero);
+        Assert.That(store.GetParent(second), Is.EqualTo(parent));
+    }
+
+    [Test]
+    public void ClearingAChildKeepsTheOrderOfTheOthers()
+    {
+        var store = new ArchetypeStore(new ComponentSchema());
+        var parent = store.Spawn();
+        var children = new[] { store.Spawn(), store.Spawn(), store.Spawn() };
+        foreach (var child in children) store.SetParent(child, parent);
+
+        store.ClearParent(children[1]);
+
+        Assert.That(Children(store, parent), Is.EqualTo(new[] { children[0], children[2] }));
+        Assert.That(store.GetParent(children[1]).IsValid, Is.False);
+    }
+
+    [Test]
+    public void ParentingAnEntityUnderItselfOrItsDescendantThrows()
+    {
+        var store = new ArchetypeStore(new ComponentSchema());
+        var root = store.Spawn();
+        var child = store.Spawn();
+        store.SetParent(child, root);
+
+        Assert.Throws<InvalidOperationException>(() => store.SetParent(root, child));
+        Assert.Throws<InvalidOperationException>(() => store.SetParent(root, root));
+    }
+
+    [Test]
+    public void DespawningAChildRemovesItFromItsParent()
+    {
+        var store = new ArchetypeStore(new ComponentSchema());
+        var parent = store.Spawn();
+        var child = store.Spawn();
+        store.SetParent(child, parent);
+
+        store.Despawn(child);
+
+        Assert.That(store.ChildCount(parent), Is.Zero);
+        Assert.That(store.ChildCount(store.Spawn()), Is.Zero, "the reused id starts without children");
+    }
+
+    [Test]
+    public void ParentingMovesNoRows()
+    {
+        var store = new ArchetypeStore(new ComponentSchema());
+        var parent = SpawnWithHealth(store);
+        var child = SpawnWithHealth(store);
+        var before = store.LocationOf(child);
+
+        store.SetParent(child, parent);
+
+        Assert.That(store.LocationOf(child), Is.EqualTo(before));
+    }
+
     private static void Churn(ArchetypeStore store, Entity[] entities)
     {
         foreach (var entity in entities)
@@ -201,6 +357,20 @@ public class ArchetypeStoreTests
         foreach (var entity in entities)
             if (store.IsAlive(entity)) rows.Add((store.LocationOf(entity).Archetype.Index, store.LocationOf(entity).Row));
         return rows;
+    }
+
+    private static Entity SpawnWithHealth(ArchetypeStore store)
+    {
+        var entity = store.Spawn();
+        store.Add(entity, new Health(1));
+        return entity;
+    }
+
+    private static List<Entity> Children(ArchetypeStore store, Entity parent)
+    {
+        var children = new List<Entity>();
+        for (var i = 0; i < store.ChildCount(parent); i++) children.Add(store.ChildAt(parent, i));
+        return children;
     }
 
     internal record struct Named(string Name) : IComponentData;

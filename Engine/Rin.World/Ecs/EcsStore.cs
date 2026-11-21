@@ -15,7 +15,7 @@ internal sealed partial class EcsStore
 {
     private readonly EntityStore _store = new() { RecycleIds = false };
     private readonly EntityIdAllocator _ids = new();
-    private readonly ComponentHooks?[] _hooks = new ComponentHooks?[EntityStore.GetEntitySchema().Components.Length];
+    private readonly FrifloHooks?[] _hooks = new FrifloHooks?[EntityStore.GetEntitySchema().Components.Length];
     private readonly List<Entity> _despawning = [];
     private readonly List<int> _walk = [];
     private Entity _firingDespawnHooks;
@@ -148,14 +148,14 @@ internal sealed partial class EcsStore
             _hooks[componentType.StructIndex]?.FireRemoved(entity, handle);
     }
 
-    private ComponentHooks<T>? HooksOf<T>() where T : struct, IComponentData =>
-        (ComponentHooks<T>?)_hooks[ComponentIndex<T>.Value];
+    private FrifloHooks<T>? HooksOf<T>() where T : struct, IComponentData =>
+        (FrifloHooks<T>?)_hooks[ComponentIndex<T>.Value];
 
-    private ComponentHooks<T> GetOrCreateHooks<T>() where T : struct, IComponentData
+    private FrifloHooks<T> GetOrCreateHooks<T>() where T : struct, IComponentData
     {
         ref var slot = ref _hooks[ComponentIndex<T>.Value];
-        slot ??= new ComponentHooks<T>();
-        return (ComponentHooks<T>)slot;
+        slot ??= new FrifloHooks<T>();
+        return (FrifloHooks<T>)slot;
     }
 
     private FrifloEntity Resolve(Entity entity)
@@ -194,4 +194,33 @@ internal sealed partial class EcsStore
 
     private static InvalidOperationException MissingComponent<T>(Entity entity) =>
         new($"{entity} has no {typeof(T).Name}.");
+
+    private abstract class FrifloHooks
+    {
+        public abstract void FireRemoved(FrifloEntity entity, Entity handle);
+    }
+
+    private sealed class FrifloHooks<T> : FrifloHooks where T : struct, IComponentData
+    {
+        private readonly List<ComponentHook<T>> _added = [];
+        private readonly List<ComponentHook<T>> _removed = [];
+
+        public void OnAdd(ComponentHook<T> handler) => _added.Add(handler);
+
+        public void OnRemove(ComponentHook<T> handler) => _removed.Add(handler);
+
+        public void FireAdded(FrifloEntity entity, Entity handle) => Fire(_added, entity, handle);
+
+        public override void FireRemoved(FrifloEntity entity, Entity handle)
+        {
+            // During despawn an earlier remove hook may already have removed this component.
+            if (entity.HasComponent<T>()) Fire(_removed, entity, handle);
+        }
+
+        private static void Fire(List<ComponentHook<T>> handlers, FrifloEntity entity, Entity handle)
+        {
+            // The component is looked up per handler because an earlier handler may have moved the entity.
+            for (var i = 0; i < handlers.Count; i++) handlers[i](handle, ref entity.GetComponent<T>());
+        }
+    }
 }
