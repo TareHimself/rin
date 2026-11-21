@@ -16,11 +16,11 @@ internal abstract class ComponentColumn
     /// </summary>
     public abstract bool IsSaved { get; }
 
-    public abstract void Save(Archetype archetype, WorldSnapshot snapshot);
+    public abstract void Save(Friflo.Engine.ECS.Archetype archetype, WorldSnapshot snapshot);
 
-    public abstract void Restore(Archetype archetype, int start, int count, ref SnapshotReader reader);
+    public abstract void Restore(Friflo.Engine.ECS.Archetype archetype, int start, int count, ref SnapshotReader reader);
 
-    public abstract void Clear(Archetype archetype, int start, int count);
+    public abstract void Clear(Friflo.Engine.ECS.Archetype archetype, int start, int count);
 }
 
 internal sealed class ComponentColumn<T> : ComponentColumn where T : struct, IComponent
@@ -29,7 +29,7 @@ internal sealed class ComponentColumn<T> : ComponentColumn where T : struct, ICo
 
     public override bool IsSaved => !Derived;
 
-    public override void Save(Archetype archetype, WorldSnapshot snapshot)
+    public override void Save(Friflo.Engine.ECS.Archetype archetype, WorldSnapshot snapshot)
     {
         if (RuntimeHelpers.IsReferenceOrContainsReferences<T>())
             throw new InvalidOperationException(
@@ -37,12 +37,12 @@ internal sealed class ComponentColumn<T> : ComponentColumn where T : struct, ICo
         snapshot.WriteBytes(MemoryMarshal.AsBytes(Column(archetype, 0, archetype.Count)));
     }
 
-    public override void Restore(Archetype archetype, int start, int count, ref SnapshotReader reader) =>
+    public override void Restore(Friflo.Engine.ECS.Archetype archetype, int start, int count, ref SnapshotReader reader) =>
         reader.ReadBytes(count * Unsafe.SizeOf<T>()).CopyTo(MemoryMarshal.AsBytes(Column(archetype, start, count)));
 
-    public override void Clear(Archetype archetype, int start, int count) => Column(archetype, start, count).Clear();
+    public override void Clear(Friflo.Engine.ECS.Archetype archetype, int start, int count) => Column(archetype, start, count).Clear();
 
-    private static Span<T> Column(Archetype archetype, int start, int count) => archetype.Components<T>().Slice(start, count);
+    private static Span<T> Column(Friflo.Engine.ECS.Archetype archetype, int start, int count) => archetype.Components<T>().Slice(start, count);
 }
 
 /// <summary>

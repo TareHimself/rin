@@ -46,7 +46,7 @@ internal sealed partial class EcsStore
         RestoreChildren(ref reader);
     }
 
-    private static void SaveArchetype(Archetype archetype, WorldSnapshot snapshot)
+    private static void SaveArchetype(Friflo.Engine.ECS.Archetype archetype, WorldSnapshot snapshot)
     {
         snapshot.Write(archetype.ComponentTypes);
         snapshot.Write(archetype.Tags);
@@ -60,7 +60,7 @@ internal sealed partial class EcsStore
         }
     }
 
-    private void SaveChildren(Archetype archetype, WorldSnapshot snapshot)
+    private void SaveChildren(Friflo.Engine.ECS.Archetype archetype, WorldSnapshot snapshot)
     {
         var ids = archetype.EntityIds;
         var trees = archetype.Components<TreeNode>();
