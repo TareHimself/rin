@@ -188,6 +188,14 @@ internal static class Diagnostics
             category: "Rin.World",
             defaultSeverity: DiagnosticSeverity.Error,
             isEnabledByDefault: true);
+
+        public static readonly DiagnosticDescriptor UnknownFieldType = new(
+            id: "RIN00028",
+            title: "Component field has no known type",
+            messageFormat: "Field '{0}' of component '{1}' cannot be described by the component schema because {2}. Use a known field type, or mark the field [EcsProcessLocal] if it only means something in the running process.",
+            category: "Rin.World",
+            defaultSeverity: DiagnosticSeverity.Error,
+            isEnabledByDefault: true);
     }
 
     internal static class Providers

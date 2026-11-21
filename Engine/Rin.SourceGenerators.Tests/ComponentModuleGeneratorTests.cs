@@ -43,7 +43,7 @@ namespace Apple { public struct Bravo : IComponentData { public int Value; } }
     }
 
     [Fact]
-    public void OnlyPublicInstanceFieldsBecomeFields()
+    public void EveryInstanceFieldBecomesAFieldWithAutoPropertiesUnderTheirPropertyName()
     {
         var info = Single(@"
 public struct Mixed : IComponentData
@@ -54,12 +54,105 @@ public struct Mixed : IComponentData
     private int _private;
     public static int Static;
     public const int Constant = 1;
-    public int Property { get; set; }
+    public long Property { get; set; }
 }
 ");
 
-        Assert.Equal(["Visible", "ReadOnlyVisible"], info.Fields.Select(field => field.Name));
-        Assert.Equal([typeof(int), typeof(float)], info.Fields.Select(field => field.Type));
+        Assert.Equal(["Visible", "ReadOnlyVisible", "Internal", "_private", "Property"], info.Fields.Select(field => field.Name));
+        Assert.Equal([FieldKind.Int32, FieldKind.Float32, FieldKind.Int32, FieldKind.Int32, FieldKind.Int64],
+            info.Fields.Select(field => field.Type.Kind));
+        Assert.Equal([0, 4, 8, 12, 16], info.Fields.Select(field => field.Offset));
+    }
+
+    [Fact]
+    public void APositionalRecordStructIsDescribedByItsParameters()
+    {
+        var info = Single("public record struct Health(int Current, float Regen) : IComponentData;");
+
+        Assert.Equal(["Current", "Regen"], info.Fields.Select(field => field.Name));
+        Assert.Equal([0, 4], info.Fields.Select(field => field.Offset));
+    }
+
+    [Fact]
+    public void KnownTypesGetTheirOwnKind()
+    {
+        var info = Single(@"
+public enum Mode { Off, On }
+public struct Known : IComponentData
+{
+    public bool Flag;
+    public double Wide;
+    public System.Numerics.Vector3 Position;
+    public System.Numerics.Quaternion Rotation;
+    public Mode Mode;
+    public Entity Target;
+}
+");
+
+        Assert.Equal(
+            [FieldKind.Bool, FieldKind.Float64, FieldKind.Vector3, FieldKind.Quaternion, FieldKind.Enum, FieldKind.Entity],
+            info.Fields.Select(field => field.Type.Kind));
+    }
+
+    [Fact]
+    public void ANestedStructIsDescribedByItsOwnFieldsAndSharedByEveryFieldOfItsType()
+    {
+        var module = ModuleOf(@"
+public struct Range { public float Min; public float Max; }
+public struct Bounds : IComponentData { public Range X; public Range Y; }
+public struct Spread : IComponentData { public byte Pad; public Range Angle; }
+");
+        var bounds = module.Single(info => info.Name == "Bounds");
+        var spread = module.Single(info => info.Name == "Spread");
+        var range = bounds.Fields[0].Type;
+
+        Assert.Equal(FieldKind.Struct, range.Kind);
+        Assert.Equal(8, range.Size);
+        Assert.Equal([("Min", 0), ("Max", 4)], range.Fields.Select(field => (field.Name, field.Offset)));
+        Assert.Same(range, bounds.Fields[1].Type);
+        Assert.Same(range, spread.Fields[1].Type);
+        Assert.Equal(4, spread.Fields[1].Offset);
+    }
+
+    [Fact]
+    public void AProcessLocalFieldOfAnUnknownTypeIsOpaque()
+    {
+        var info = Single(@"
+public struct Handle { private ulong _data; private System.IntPtr _native; }
+public struct Drawn : IComponentData
+{
+    [EcsProcessLocal] public Handle Mesh;
+    [EcsProcessLocal] public int Slot;
+    public float Scale;
+}
+");
+
+        Assert.Equal([FieldKind.Opaque, FieldKind.Int32, FieldKind.Float32], info.Fields.Select(field => field.Type.Kind));
+        Assert.Equal([true, true, false], info.Fields.Select(field => field.IsProcessLocal));
+    }
+
+    [Theory]
+    [InlineData("public System.IntPtr Native;", "Native")]
+    [InlineData("public char Letter;", "Letter")]
+    [InlineData("public float? Radius;", "Radius")]
+    [InlineData("public Inner Nested; public struct Inner { public System.UIntPtr Raw; }", "Nested.Raw")]
+    public void AFieldWithNoKnownTypeIsAnErrorNamingItsPath(string members, string path)
+    {
+        var runResult = Run("public struct Bad : IComponentData { " + members + " }");
+
+        var diagnostic = Assert.Single(runResult.Diagnostics);
+        Assert.Equal("RIN00028", diagnostic.Id);
+        Assert.Contains("'" + path + "'", diagnostic.GetMessage());
+        Assert.Empty(runResult.GeneratedTrees);
+    }
+
+    [Fact]
+    public void ANotSavedComponentIsNotChecked()
+    {
+        var info = Single("[EcsNotSaved] public struct Native : IComponentData { public System.IntPtr Pointer; }");
+
+        Assert.False(info.IsSaved);
+        Assert.Empty(info.Fields);
     }
 
     [Fact]

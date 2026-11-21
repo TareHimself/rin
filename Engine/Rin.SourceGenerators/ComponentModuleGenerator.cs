@@ -11,19 +11,25 @@ namespace Rin.SourceGenerators;
 
 /// <summary>
 /// Emits one <c>Rin.World.ComponentModule</c> per assembly that declares <c>IComponentData</c> structs: every
-/// component and tag sorted by full type name, each with its public instance fields and their offsets.
+/// component and tag sorted by full type name, each saved component with its fields, their offsets and their
+/// <c>FieldType</c>s.
 /// </summary>
 /// <remarks>
 /// The module is <c>GeneratedComponents.Module</c> in a namespace named after the assembly, and an assembly attribute
 /// derived from <c>ComponentModuleAttribute</c> exposes it to <c>ComponentModule.Of</c>. Offsets come from
 /// <c>Unsafe.ByteOffset</c> between refs into a default instance, so they need no reflection under NativeAOT.
-/// Generic, inaccessible and invalid structs are left out with a diagnostic.
+/// Generic, inaccessible and invalid structs are left out with a diagnostic, and so is any saved component with a field
+/// the schema cannot describe (see <see cref="ComponentLayoutReader" />).
 /// </remarks>
 [Generator]
 public class ComponentModuleGenerator : IIncrementalGenerator
 {
     private const string ComponentDataName = "Rin.World.IComponentData";
     private const string TagDataName = "Rin.World.ITagData";
+    private const string NotSavedName = "Rin.World.EcsNotSavedAttribute";
+    private const string FieldType = "global::Rin.World.FieldType";
+    private const string FieldKind = "global::Rin.World.FieldKind";
+    private const string ComponentField = "global::Rin.World.ComponentField";
     private const string ComponentInfo = "global::Rin.World.ComponentInfo";
     private const string ComponentModule = "global::Rin.World.ComponentModule";
     private const string Unsafe = "global::System.Runtime.CompilerServices.Unsafe";
@@ -62,13 +68,19 @@ public class ComponentModuleGenerator : IIncrementalGenerator
 
         var tagData = compilation.GetTypeByMetadataName(TagDataName);
         var isTag = tagData is not null && Implements(type, tagData);
-        return new ComponentDeclaration(
-            FullNameOf(type),
-            type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),
-            isTag,
-            isTag ? [] : PublicFieldsOf(type),
-            ProblemOf(type, isTag));
+        var fullName = FullNameOf(type);
+        var typeExpression = type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
+
+        var problem = ProblemOf(type, isTag);
+        if (problem is not null || isTag || HasAttribute(type, NotSavedName))
+            return new ComponentDeclaration(fullName, typeExpression, isTag, [], [], problem is null ? [] : [problem]);
+
+        var layout = ComponentLayoutReader.Read(compilation, type);
+        return new ComponentDeclaration(fullName, typeExpression, isTag, layout.Fields, layout.Types, layout.Problems);
     }
+
+    private static bool HasAttribute(INamedTypeSymbol type, string attributeName) =>
+        type.GetAttributes().Any(attribute => attribute.AttributeClass?.ToDisplayString() == attributeName);
 
     private static bool Implements(INamedTypeSymbol type, INamedTypeSymbol @interface) =>
         type.AllInterfaces.Contains(@interface, SymbolEqualityComparer.Default);
@@ -80,17 +92,6 @@ public class ComponentModuleGenerator : IIncrementalGenerator
             name = outer.MetadataName + "+" + name;
         return type.ContainingNamespace.IsGlobalNamespace ? name : type.ContainingNamespace.ToDisplayString() + "." + name;
     }
-
-    private static ImmutableArray<ComponentFieldDeclaration> PublicFieldsOf(INamedTypeSymbol type) =>
-        type.GetMembers()
-            .OfType<IFieldSymbol>()
-            .Where(static field => !field.IsStatic && field.DeclaredAccessibility == Accessibility.Public)
-            .Where(static field => !field.IsFixedSizeBuffer && field.Type is not (IPointerTypeSymbol or IFunctionPointerTypeSymbol))
-            .Select(static field => new ComponentFieldDeclaration(
-                field.Name,
-                EscapeKeyword(field.Name),
-                field.Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat)))
-            .ToImmutableArray();
 
     private static Diagnostic? ProblemOf(INamedTypeSymbol type, bool isTag)
     {
@@ -134,19 +135,29 @@ public class ComponentModuleGenerator : IIncrementalGenerator
     {
         var unique = declarations.GroupBy(static declaration => declaration.FullName).Select(static group => group.First()).ToList();
         foreach (var declaration in unique)
-            if (declaration.Problem is not null) context.ReportDiagnostic(declaration.Problem);
+        foreach (var problem in declaration.Problems)
+            context.ReportDiagnostic(problem);
 
         var components = unique
-            .Where(static declaration => declaration.Problem is null)
+            .Where(static declaration => declaration.Problems.IsEmpty)
             .OrderBy(static declaration => declaration.FullName, StringComparer.Ordinal)
             .ToList();
         if (components.Count == 0) return;
 
-        context.AddSource("ComponentModule.g.cs", ModuleSource(NamespaceOf(assemblyName), components).ToSourceText());
+        var fieldTypes = components
+            .SelectMany(static component => component.FieldTypes)
+            .GroupBy(static type => type.TypeExpression)
+            .Select(static group => group.First())
+            .ToList();
+        context.AddSource("ComponentModule.g.cs", ModuleSource(NamespaceOf(assemblyName), components, fieldTypes).ToSourceText());
     }
 
-    private static SourceBuilder ModuleSource(string namespaceName, List<ComponentDeclaration> components)
+    private static SourceBuilder ModuleSource(string namespaceName, List<ComponentDeclaration> components,
+        List<FieldTypeDeclaration> fieldTypes)
     {
+        var typeNames = new Dictionary<string, string>();
+        for (var i = 0; i < fieldTypes.Count; i++) typeNames[fieldTypes[i].TypeExpression] = $"FieldType{i}";
+
         var output = new SourceBuilder()
             .Line("// <auto-generated/>")
             .Line($"[assembly: global::{namespaceName}.GeneratedComponentModuleAttribute]")
@@ -154,18 +165,25 @@ public class ComponentModuleGenerator : IIncrementalGenerator
             .Line($"namespace {namespaceName};")
             .Line()
             .Line("internal static class GeneratedComponents")
-            .OpenBrace()
-            .Line($"public static {ComponentModule} Module {{ get; }} = new(")
-            .Indent();
+            .OpenBrace();
 
+        // Static initializers run in textual order, so every field type is built before the module that uses it.
+        for (var i = 0; i < fieldTypes.Count; i++)
+            output.Line($"private static readonly {FieldType} FieldType{i} = {FieldTypeValue(fieldTypes[i], i)};");
+
+        if (fieldTypes.Count > 0) output.Line();
+        output.Line($"public static {ComponentModule} Module {{ get; }} = new(").Indent();
         for (var i = 0; i < components.Count; i++)
             output.Line($"Component{i}(){(i < components.Count - 1 ? "," : ");")}");
         output.Outdent();
 
-        for (var i = 0; i < components.Count; i++)
+        for (var i = 0; i < components.Count; i++) WriteComponentMethod(output, i, components[i], typeNames);
+
+        for (var i = 0; i < fieldTypes.Count; i++)
         {
+            if (fieldTypes[i].Kind != "Struct") continue;
             output.Line();
-            WriteComponentMethod(output, i, components[i]);
+            WriteFieldsMethod(output, $"FieldsOfType{i}", fieldTypes[i].TypeExpression, fieldTypes[i].Fields, typeNames);
         }
 
         output
@@ -180,28 +198,54 @@ public class ComponentModuleGenerator : IIncrementalGenerator
         return output;
     }
 
-    private static void WriteComponentMethod(SourceBuilder output, int index, ComponentDeclaration component)
+    private static string FieldTypeValue(FieldTypeDeclaration type, int index) =>
+        type.Kind == "Struct"
+            ? $"{FieldType}.Struct<{type.TypeExpression}>(FieldsOfType{index}())"
+            : $"{FieldType}.Of<{type.TypeExpression}>({FieldKind}.{type.Kind})";
+
+    private static void WriteComponentMethod(SourceBuilder output, int index, ComponentDeclaration component,
+        Dictionary<string, string> typeNames)
     {
-        var type = component.TypeExpression;
-        output.Line($"private static {ComponentInfo} Component{index}()").OpenBrace();
+        output.Line();
         if (component.Fields.IsEmpty)
         {
-            output.Line($"return {ComponentInfo}.Of<{type}>();").CloseBrace();
+            output.Line($"private static {ComponentInfo} Component{index}() => {ComponentInfo}.Of<{component.TypeExpression}>();");
             return;
         }
 
         output
-            .Line($"var probe = default({type});")
-            .Line($"ref var start = ref {Unsafe}.As<{type}, byte>(ref probe);")
-            .Line($"return {ComponentInfo}.Of<{type}>([")
+            .Line($"private static {ComponentInfo} Component{index}() => {ComponentInfo}.Of<{component.TypeExpression}>(FieldsOfComponent{index}());")
+            .Line();
+        WriteFieldsMethod(output, $"FieldsOfComponent{index}", component.TypeExpression, component.Fields, typeNames);
+    }
+
+    private static void WriteFieldsMethod(SourceBuilder output, string methodName, string ownerType,
+        ImmutableArray<FieldDeclaration> fields, Dictionary<string, string> typeNames)
+    {
+        var hidden = new List<(string Accessor, FieldDeclaration Field)>();
+        output
+            .Line($"private static {ComponentField}[] {methodName}()")
+            .OpenBrace()
+            .Line($"var probe = default({ownerType});")
+            .Line($"ref var start = ref {Unsafe}.As<{ownerType}, byte>(ref probe);")
+            .Line("return [")
             .Indent();
-        foreach (var field in component.Fields)
+        foreach (var field in fields)
         {
-            var fieldRef = $"ref {Unsafe}.As<{field.TypeExpression}, byte>(ref {Unsafe}.AsRef(in probe.{field.Identifier}))";
-            output.Line($"new(\"{field.Name}\", typeof({field.TypeExpression}), OffsetOf(ref start, {fieldRef})),");
+            var target = field.IsVisible ? $"{Unsafe}.AsRef(in probe.{field.Identifier})" : $"{methodName}_{field.Name}(ref probe)";
+            if (!field.IsVisible) hidden.Add(($"{methodName}_{field.Name}", field));
+            var fieldRef = $"ref {Unsafe}.As<{field.TypeExpression}, byte>(ref {target})";
+            var isProcessLocal = field.IsProcessLocal ? "true" : "false";
+            output.Line($"new(\"{field.Name}\", {typeNames[field.TypeExpression]}, OffsetOf(ref start, {fieldRef}), {isProcessLocal}),");
         }
 
-        output.Outdent().Line("]);").CloseBrace();
+        output.Outdent().Line("];").CloseBrace();
+
+        foreach (var (accessor, field) in hidden)
+            output
+                .Line()
+                .Line($"[global::System.Runtime.CompilerServices.UnsafeAccessor(global::System.Runtime.CompilerServices.UnsafeAccessorKind.Field, Name = \"{field.Identifier}\")]")
+                .Line($"private static extern ref {field.TypeExpression} {accessor}(ref {ownerType} owner);");
     }
 
     private static string NamespaceOf(string assemblyName) =>

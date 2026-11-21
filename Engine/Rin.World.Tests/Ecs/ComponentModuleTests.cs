@@ -1,4 +1,6 @@
 using System.Numerics;
+using Rin.World.Graphics;
+using Rin.World.Physics;
 using Rin.World.Transforms;
 
 namespace Rin.World.Tests.Ecs;
@@ -19,18 +21,54 @@ public class ComponentModuleTests
     }
 
     [Test]
-    public void TheEngineModuleGivesEachPublicFieldItsOffset()
+    public void TheEngineModuleGivesEachFieldItsKindAndOffset()
     {
-        ComponentInfo? localTransform = null;
-        foreach (var info in ComponentModule.Engine.Components)
-            if (info.Type == typeof(LocalTransform)) localTransform = info;
+        var fields = InfoOf<LocalTransform>().Fields;
 
-        Assert.That(localTransform!.Fields, Is.EqualTo(new ComponentField[]
+        Assert.That(fields.Select(field => (field.Name, field.Type.Kind, field.Offset)), Is.EqualTo(new[]
         {
-            new(nameof(LocalTransform.Position), typeof(Vector3), 0),
-            new(nameof(LocalTransform.Rotation), typeof(Quaternion), 12),
-            new(nameof(LocalTransform.Scale), typeof(Vector3), 28)
+            (nameof(LocalTransform.Position), FieldKind.Vector3, 0),
+            (nameof(LocalTransform.Rotation), FieldKind.Quaternion, 12),
+            (nameof(LocalTransform.Scale), FieldKind.Vector3, 28)
         }));
+    }
+
+    [Test]
+    public void MeshHandlesAreProcessLocal()
+    {
+        var fields = InfoOf<StaticMesh>().Fields;
+
+        Assert.That(fields.Select(field => (field.Name, field.IsProcessLocal)), Is.EqualTo(new[]
+        {
+            (nameof(StaticMesh.Mesh), true),
+            (nameof(StaticMesh.Materials), true)
+        }));
+    }
+
+    [Test]
+    public void AComposedSchemaListsEveryFieldTypeOnce()
+    {
+        var vector3 = ComponentSchema.Engine.FieldTypeOf(typeof(Vector3));
+
+        Assert.That(vector3!.Kind, Is.EqualTo(FieldKind.Vector3));
+        Assert.That(InfoOf<LocalTransform>().Fields[0].Type, Is.SameAs(vector3));
+        Assert.That(ComponentSchema.Engine.FieldTypes, Is.Unique);
+    }
+
+    [Test]
+    public void RenamingAFieldChangesTheLayoutHash()
+    {
+        var info = InfoOf<Velocity>();
+        var renamed = ComponentInfo.Of<Velocity>([info.Fields[0] with { Name = "Speed" }, info.Fields[1]]);
+
+        Assert.That(renamed.LayoutHash(), Is.Not.EqualTo(info.LayoutHash()));
+    }
+
+    private static ComponentInfo InfoOf<T>() where T : unmanaged
+    {
+        foreach (var info in ComponentModule.Engine.Components)
+            if (info.Type == typeof(T)) return info;
+        throw new InvalidOperationException($"{typeof(T).Name} is not in the engine module.");
     }
 
     [Test]

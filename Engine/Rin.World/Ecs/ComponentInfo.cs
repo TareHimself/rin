@@ -13,6 +13,8 @@ namespace Rin.World;
 /// </remarks>
 public sealed record ComponentInfo
 {
+    private readonly ulong _layoutHash;
+
     private ComponentInfo(string name, Type type, int typeIndex, int size, bool isSaved, ComponentField[] fields)
     {
         Name = name;
@@ -21,6 +23,7 @@ public sealed record ComponentInfo
         Size = size;
         IsSaved = isSaved;
         Fields = fields;
+        _layoutHash = ComputeLayoutHash();
     }
 
     public string Name { get; }
@@ -40,7 +43,8 @@ public sealed record ComponentInfo
     public bool IsSaved { get; }
 
     /// <summary>
-    ///     The public instance fields, filled by a generated <see cref="ComponentModule" /> and empty otherwise.
+    ///     The instance fields, filled by a generated <see cref="ComponentModule" /> for saved components and empty
+    ///     otherwise.
     /// </summary>
     public ComponentField[] Fields { get; }
 
@@ -69,19 +73,30 @@ public sealed record ComponentInfo
     }
 
     /// <summary>
-    ///     A hash of the name, size and <see cref="IsSaved" />, the same in every process, so a snapshot can check it
-    ///     restores into a schema that lays its components out the same way.
+    ///     A hash of the name, size, <see cref="IsSaved" /> and fields, the same in every process, so a snapshot can check
+    ///     it restores into a schema that lays its components out the same way.
     /// </summary>
-    public ulong LayoutHash()
+    public ulong LayoutHash() => _layoutHash;
+
+    private ulong ComputeLayoutHash()
     {
-        var hash = Fnv.Basis;
-        foreach (var c in Name) hash = Fnv.Mix(hash, c);
+        var hash = Fnv.Mix(Fnv.Basis, Name);
         hash = Fnv.Mix(hash, (uint)Size);
-        return Fnv.Mix(hash, IsSaved ? 1u : 0u);
+        hash = Fnv.Mix(hash, IsSaved ? 1u : 0u);
+        foreach (var field in Fields) hash = field.Mix(hash);
+        return hash;
     }
 }
 
 /// <summary>
-///     One field of a component, for code that reads and writes components by name.
+///     One field of a component or of a <see cref="FieldKind.Struct" />, for code that reads and writes it by name.
 /// </summary>
-public readonly record struct ComponentField(string Name, Type Type, int Offset);
+/// <param name="Offset">Bytes from the start of the struct that declares the field.</param>
+public readonly record struct ComponentField(string Name, FieldType Type, int Offset, bool IsProcessLocal)
+{
+    internal ulong Mix(ulong hash)
+    {
+        hash = Fnv.Mix(Fnv.Mix(hash, Name), (ulong)Offset);
+        return Type.Mix(Fnv.Mix(hash, IsProcessLocal ? 1u : 0u));
+    }
+}

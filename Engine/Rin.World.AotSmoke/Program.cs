@@ -1,5 +1,6 @@
 using System.Numerics;
 using Rin.World;
+using Rin.World.Physics;
 using Rin.World.Transforms;
 
 var world = new World();
@@ -37,6 +38,11 @@ Check(!world.IsAlive(child) && world.EntityCount == 1, "despawning the parent de
 world.RestoreSnapshot(snapshot);
 Check(world.EntityCount == 3 && world.GetParent(child) == parent, "the restore brought back the hierarchy");
 Check(world.Get<Health>(child).Value == 15 && world.Has<Poisoned>(child), "the restore brought back components and tags");
+
+var rigidBody = ComponentSchema.Engine[ComponentSchema.Engine.IdOf<RigidBody>()];
+var shape = rigidBody.Fields[0].Type;
+Check(shape.Kind == FieldKind.Struct && shape.Fields[1].Name == "Size" && shape.Fields[1].Offset == 4 && shape.Fields[3].Offset == 20,
+    "the engine module reached auto-property fields through UnsafeAccessor");
 
 Console.WriteLine("Rin.World AOT smoke test passed.");
 return 0;

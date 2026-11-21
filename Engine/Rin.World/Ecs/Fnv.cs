@@ -10,4 +10,10 @@ internal static class Fnv
     private const ulong Prime = 1099511628211;
 
     public static ulong Mix(ulong hash, ulong value) => (hash ^ value) * Prime;
+
+    public static ulong Mix(ulong hash, string text)
+    {
+        foreach (var c in text) hash = Mix(hash, c);
+        return Mix(hash, (ulong)text.Length);
+    }
 }
