@@ -146,6 +146,95 @@ public class ComponentSchemaTests
         Assert.That(world.Has<Speed>(entity), Is.False);
     }
 
+    [Test]
+    public void TheSameModulesInTheSameOrderGiveTheSameIdsAndFingerprint()
+    {
+        var first = ComponentSchema.Compose(ComponentModule.Engine, Combat, Movement);
+        var second = ComponentSchema.Compose(ComponentModule.Engine, Combat, Movement);
+
+        Assert.That(second.IdOf<Health>(), Is.EqualTo(first.IdOf<Health>()));
+        Assert.That(second.IdOf<Speed>(), Is.EqualTo(first.IdOf<Speed>()));
+        Assert.That(second.Fingerprint(), Is.EqualTo(first.Fingerprint()));
+        Assert.That(first.IsFrozen, Is.True);
+    }
+
+    [Test]
+    public void IdsFollowModuleOrderThenEachModulesOrder()
+    {
+        var schema = ComponentSchema.Compose(Movement, Combat);
+
+        Assert.That(schema.IdOf<Speed>().Value, Is.Zero);
+        Assert.That(schema.IdOf<Health>().Value, Is.EqualTo(1));
+        Assert.That(schema.IdOf<Armor>().Value, Is.EqualTo(2));
+        Assert.That(schema.Fingerprint(), Is.Not.EqualTo(ComponentSchema.Compose(Combat, Movement).Fingerprint()));
+    }
+
+    [Test]
+    public void ComposingAnotherModuleKeepsEveryEarlierIdAsAPrefix()
+    {
+        var shorter = ComponentSchema.Compose(Combat, Movement);
+        var longer = ComponentSchema.Compose(Combat, Movement, Status);
+
+        for (var i = 0; i < shorter.Count; i++)
+            Assert.That(longer[new ComponentId(i)], Is.SameAs(shorter[new ComponentId(i)]));
+        Assert.That(longer.Count, Is.EqualTo(shorter.Count + 2));
+        Assert.That(longer.Fingerprint(), Is.Not.EqualTo(shorter.Fingerprint()));
+    }
+
+    [Test]
+    public void AModuleOrTypeIncludedTwiceKeepsItsFirstPlace()
+    {
+        var withHealthAgain = new ComponentModule(ComponentInfo.Of<Ammo>(), ComponentInfo.Of<Health>());
+
+        var schema = ComponentSchema.Compose(Combat, Movement, Combat, withHealthAgain);
+
+        Assert.That(schema.Count, Is.EqualTo(4));
+        Assert.That(schema.IdOf<Health>().Value, Is.Zero);
+        Assert.That(schema.IdOf<Ammo>().Value, Is.EqualTo(3));
+        Assert.That(schema.Fingerprint(), Is.EqualTo(ComponentSchema.Compose(Combat, Movement, withHealthAgain).Fingerprint()));
+    }
+
+    [Test]
+    public void AComposedSchemaRejectsAMissingTypeNamingItAndItsModule()
+    {
+        var schema = ComponentSchema.Compose(Combat);
+
+        var error = Assert.Throws<InvalidOperationException>(() => schema.IdOf<Speed>());
+
+        Assert.That(error!.Message, Does.Contain(typeof(Speed).FullName).And.Contain(typeof(Speed).Assembly.GetName().Name));
+        Assert.That(schema.Count, Is.EqualTo(2));
+    }
+
+    [Test]
+    public void ACloneOfAComposedSchemaStillAddsTypesOnFirstUse()
+    {
+        var composed = ComponentSchema.Compose(Combat);
+
+        var clone = composed.Clone();
+
+        Assert.That(clone.IsFrozen, Is.False);
+        Assert.That(clone.IdOf<Speed>().Value, Is.EqualTo(composed.Count));
+    }
+
+    [Test]
+    public void ADefaultWorldStartsFromAnUnfrozenCopyOfTheEngineSchema()
+    {
+        var world = new World();
+
+        world.Add(world.Spawn(), new Health(1));
+
+        Assert.That(world.Schema, Is.Not.SameAs(ComponentSchema.Engine));
+        Assert.That(world.Schema.IsFrozen, Is.False);
+        Assert.That(world.Schema.IdOf<LocalTransform>(), Is.EqualTo(ComponentSchema.Engine.IdOf<LocalTransform>()));
+        Assert.That(world.Schema.Count, Is.EqualTo(ComponentSchema.Engine.Count + 1));
+    }
+
+    private static readonly ComponentModule Combat = new(ComponentInfo.Of<Health>(), ComponentInfo.Of<Armor>());
+
+    private static readonly ComponentModule Movement = new(ComponentInfo.Of<Speed>());
+
+    private static readonly ComponentModule Status = new(ComponentInfo.Of<Stunned>(), ComponentInfo.Of<Ammo>());
+
     private struct TagWithField : ITagData
     {
         public int Value { get; set; }

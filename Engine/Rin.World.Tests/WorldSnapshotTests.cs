@@ -138,6 +138,23 @@ public class WorldSnapshotTests
     }
 
     [Test]
+    public void ASnapshotRestoresIntoASchemaComposedWithMoreModules()
+    {
+        var combat = new ComponentModule(ComponentInfo.Of<Health>());
+        var movement = new ComponentModule(ComponentInfo.Of<Speed>());
+        var source = new World(ComponentSchema.Compose(ComponentModule.Engine, combat));
+        var entity = source.Spawn();
+        source.Add(entity, new Health(4));
+        var snapshot = new WorldSnapshot();
+        source.SaveSnapshot(snapshot);
+
+        var target = new World(ComponentSchema.Compose(ComponentModule.Engine, combat, movement));
+        target.RestoreSnapshot(snapshot);
+
+        Assert.That(target.Get<Health>(entity).Value, Is.EqualTo(4));
+    }
+
+    [Test]
     public void RestoringIntoAWorldWhoseSchemaDiffersThrowsBeforeAnythingChanges()
     {
         var sourceSchema = ComponentSchema.Engine.Clone();

@@ -72,13 +72,12 @@ public sealed record ComponentInfo
     ///     A hash of the name, size and <see cref="IsSaved" />, the same in every process, so a snapshot can check it
     ///     restores into a schema that lays its components out the same way.
     /// </summary>
-    internal ulong LayoutHash()
+    public ulong LayoutHash()
     {
-        const ulong prime = 1099511628211;
-        var hash = 14695981039346656037;
-        foreach (var c in Name) hash = (hash ^ c) * prime;
-        hash = (hash ^ (uint)Size) * prime;
-        return (hash ^ (IsSaved ? 1u : 0u)) * prime;
+        var hash = Fnv.Basis;
+        foreach (var c in Name) hash = Fnv.Mix(hash, c);
+        hash = Fnv.Mix(hash, (uint)Size);
+        return Fnv.Mix(hash, IsSaved ? 1u : 0u);
     }
 }
 

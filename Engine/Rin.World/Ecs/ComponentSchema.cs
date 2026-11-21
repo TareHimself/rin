@@ -39,7 +39,7 @@ public sealed class ComponentSchema
     /// <summary>
     ///     <see cref="ComponentModule.Engine" />, frozen, so clones of it never collide with a later append.
     /// </summary>
-    public static ComponentSchema Engine { get; } = CreateEngine();
+    public static ComponentSchema Engine { get; } = Compose(ComponentModule.Engine);
 
     public int Count => Volatile.Read(ref _count);
 
@@ -48,6 +48,21 @@ public sealed class ComponentSchema
     public ComponentInfo this[ComponentId id] =>
         (uint)id.Value < (uint)Count ? _infos[id.Value] : throw new ArgumentOutOfRangeException(nameof(id), id, null);
 
+    /// <summary>
+    ///     A frozen schema holding <paramref name="modules" /> in order, so the same modules in the same order always give
+    ///     the same ids. A module or type already placed is skipped.
+    /// </summary>
+    public static ComponentSchema Compose(params ReadOnlySpan<ComponentModule> modules)
+    {
+        var schema = new ComponentSchema();
+        foreach (var module in modules) schema.AppendModule(module);
+        schema.Freeze();
+        return schema;
+    }
+
+    /// <summary>
+    ///     An unfrozen copy with the same ids, for worlds that add types on first use.
+    /// </summary>
     public ComponentSchema Clone() => new(this);
 
     /// <summary>
@@ -56,6 +71,19 @@ public sealed class ComponentSchema
     public void Freeze()
     {
         lock (_gate) IsFrozen = true;
+    }
+
+    /// <summary>
+    ///     A hash of every component's <see cref="ComponentInfo.LayoutHash" /> in id order, so two processes can check
+    ///     they agree on every id.
+    /// </summary>
+    public ulong Fingerprint()
+    {
+        var count = Count;
+        var infos = Volatile.Read(ref _infos);
+        var hash = Fnv.Basis;
+        for (var i = 0; i < count; i++) hash = Fnv.Mix(hash, infos[i].LayoutHash());
+        return hash;
     }
 
     /// <summary>
@@ -70,12 +98,10 @@ public sealed class ComponentSchema
         return id.Value != Absent;
     }
 
-    private static ComponentSchema CreateEngine()
+    private void AppendModule(ComponentModule module)
     {
-        var schema = new ComponentSchema();
-        foreach (var info in ComponentModule.Engine.Components) schema.Append(info);
-        schema.Freeze();
-        return schema;
+        foreach (var info in module.Components)
+            if (LocalIdOf(info.TypeIndex) == Absent) Append(info);
     }
 
     private int LocalIdOf(int typeIndex)
@@ -89,7 +115,7 @@ public sealed class ComponentSchema
         lock (_gate)
         {
             if (TryGetId<T>(out var existing)) return existing;
-            EnsureNotFrozen(typeof(T).Name);
+            EnsureNotFrozen(typeof(T));
             return Append(ComponentInfo.Of<T>());
         }
     }
@@ -125,8 +151,10 @@ public sealed class ComponentSchema
         Volatile.Write(ref _localIds[typeIndex], id.Value);
     }
 
-    private void EnsureNotFrozen(string name)
+    private void EnsureNotFrozen(Type type)
     {
-        if (IsFrozen) throw new InvalidOperationException($"{name} cannot be added because the schema is frozen.");
+        if (IsFrozen)
+            throw new InvalidOperationException(
+                $"{type.FullName} is not in this frozen schema. Compose it with the component module of {type.Assembly.GetName().Name}.");
     }
 }
