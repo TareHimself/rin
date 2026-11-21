@@ -126,6 +126,13 @@ internal sealed partial class ArchetypeStore
             throw new InvalidOperationException($"{entity} is being despawned, so it cannot gain, lose or change a parent or child.");
     }
 
+    // Its remove hooks were chosen when the despawn began, so a new component would never see one.
+    private void EnsureCanGainComponents(Entity entity)
+    {
+        if (IsDespawning(entity))
+            throw new InvalidOperationException($"{entity} is being despawned, so it cannot gain a component.");
+    }
+
     private void CollectDepthFirst(int root)
     {
         _walk.Add(root);

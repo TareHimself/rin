@@ -95,6 +95,7 @@ internal sealed partial class ArchetypeStore
         }
 
         Phase.EnsureCanMoveRows();
+        EnsureCanGainComponents(entity);
         var id = Schema.IdOf<T>();
         Move(entity.Id, WithComponent(location.Archetype, id));
         location = _locations[entity.Id];

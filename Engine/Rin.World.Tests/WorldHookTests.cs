@@ -189,6 +189,21 @@ public class WorldHookTests
     }
 
     [Test]
+    public void ADespawnHookCannotGiveItsEntityANewComponent()
+    {
+        var world = new World();
+        Exception? thrown = null;
+        world.OnRemove((Entity entity, in Health _) => thrown = Assert.Catch(() => world.Add(entity, new Armor(1))));
+        var target = world.Spawn();
+        world.Add(target, new Health(1));
+
+        world.Despawn(target);
+
+        Assert.That(thrown, Is.InstanceOf<InvalidOperationException>());
+        Assert.That(world.IsAlive(target), Is.False);
+    }
+
+    [Test]
     public void ADespawnWhoseHookThrowsLeavesTheEntitiesAliveAndDespawnableAgain()
     {
         var world = new World();
