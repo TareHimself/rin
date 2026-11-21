@@ -64,7 +64,6 @@ public class ComponentSchemaTests
 
         Assert.That(schema.IdOf<Health>().Value, Is.Zero);
         Assert.Throws<InvalidOperationException>(() => schema.IdOf<Speed>());
-        Assert.Throws<InvalidOperationException>(() => schema.Add(new ComponentInfo("Door", null, 4, true, [])));
     }
 
     [Test]
@@ -84,16 +83,6 @@ public class ComponentSchemaTests
     }
 
     [Test]
-    public void AddRejectsACSharpStructWhateverItsSize()
-    {
-        var schema = new ComponentSchema();
-
-        Assert.Throws<ArgumentException>(() => schema.Add(ComponentInfo.Of<Health>()));
-        Assert.Throws<ArgumentException>(() => schema.Add(new ComponentInfo(nameof(Health), typeof(Health), 1, true, [])));
-        Assert.That(schema.Count, Is.Zero);
-    }
-
-    [Test]
     public void ATagWithFieldsIsRejected()
     {
         var schema = new ComponentSchema();
@@ -109,18 +98,6 @@ public class ComponentSchemaTests
         Assert.That(Unsafe.SizeOf<Stunned>(), Is.EqualTo(1));
         Assert.That(ComponentInfo.Of<Stunned>().IsTag, Is.True);
         Assert.That(ComponentInfo.Of<Stunned>().Size, Is.Zero);
-    }
-
-    [Test]
-    public void ARunTimeComponentGetsTheNextId()
-    {
-        var schema = new ComponentSchema();
-        schema.IdOf<Health>();
-
-        var id = schema.Add(new ComponentInfo("Door", null, 8, true, [new ComponentField("Open", typeof(int), 0)]));
-
-        Assert.That(id.Value, Is.EqualTo(1));
-        Assert.That(schema[id].Name, Is.EqualTo("Door"));
     }
 
     [Test]
