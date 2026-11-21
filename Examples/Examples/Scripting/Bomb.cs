@@ -59,14 +59,14 @@ public sealed class Bomb(Arena arena) : Script
             var burnt = tick / (float)ticks;
             phase += World.TickInterval * MathF.Tau * (1f + 5f * burnt);
             World.SetScale(Entity, restScale * (1f + 0.2f * MathF.Sin(phase)));
-            World.Get<PointLight>(_glow).Lumens = MaxGlow * burnt;
+            World.Write<PointLight>(_glow).Lumens = MaxGlow * burnt;
             await ctx.NextTick();
         }
     }
 
     private async GameTask ShrinkAway(TaskContext ctx)
     {
-        World.Get<PointLight>(_glow).Color = Color.FromRgb(0.2f, 1f, 0.3f);
+        World.Write<PointLight>(_glow).Color = Color.FromRgb(0.2f, 1f, 0.3f);
         var startScale = World.Get<LocalTransform>(Entity).Scale;
         var steps = (int)MathF.Ceiling(0.5f / World.TickInterval);
         for (var step = 1; step <= steps; step++)

@@ -167,12 +167,13 @@ public class DeterminismTests
     {
         public override void Tick(in TickContext context)
         {
-            foreach (var (locals, speeds) in context.World.Query<LocalTransform, Speed>())
-                for (var i = 0; i < locals.Length; i++)
+            foreach (var chunk in context.World.Query<LocalTransform, Speed>())
+                for (var i = 0; i < chunk.Length; i++)
                 {
-                    ref var local = ref locals[i];
-                    local.Rotation = Quaternion.Normalize(local.Rotation * Quaternion.CreateFromAxisAngle(Vector3.UnitY, speeds[i].Value * context.DeltaSeconds));
-                    local.Position += new Vector3(context.Random.NextFloat(-1, 1) * speeds[i].Value * context.DeltaSeconds, 0, 0);
+                    var speed = chunk.Components2[i].Value;
+                    ref var local = ref chunk.Write<LocalTransform>(i);
+                    local.Rotation = Quaternion.Normalize(local.Rotation * Quaternion.CreateFromAxisAngle(Vector3.UnitY, speed * context.DeltaSeconds));
+                    local.Position += new Vector3(context.Random.NextFloat(-1, 1) * speed * context.DeltaSeconds, 0, 0);
                 }
         }
     }
@@ -185,7 +186,7 @@ public class DeterminismTests
             {
                 scenario.ContactsSeen++;
                 if (contact.A.IsValid && context.World.IsAlive(contact.A) && context.World.Has<Speed>(contact.A))
-                    context.World.Get<Speed>(contact.A).Value *= 0.9f;
+                    context.World.Write<Speed>(contact.A).Value *= 0.9f;
             }
         }
     }
@@ -208,7 +209,7 @@ public class DeterminismTests
             while (true)
             {
                 await ctx.Until(() => World.TickIndex >= World.Get<DirectorState>(Entity).NextTick);
-                ref var state = ref World.Get<DirectorState>(Entity);
+                ref var state = ref World.Write<DirectorState>(Entity);
                 state.Fired++;
                 state.NextTick += World.Random.NextInt(3, 9);
 
@@ -224,7 +225,7 @@ public class DeterminismTests
             while (true)
             {
                 var ping = await ctx.Event<Ping>(Entity);
-                World.Get<DirectorState>(Entity).Heard += ping.Value;
+                World.Write<DirectorState>(Entity).Heard += ping.Value;
             }
         }
     }

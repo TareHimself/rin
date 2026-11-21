@@ -4,18 +4,30 @@ namespace Rin.World.Ecs;
 ///     The archetypes that have every required and no excluded component. Archetypes are only ever appended, so each
 ///     update checks only the ones created since the last.
 /// </summary>
+/// <remarks>
+///     A query with <see cref="Changed" /> components keeps its own <see cref="ChangeWindow" /> and skips archetypes
+///     where none of them changed since its last run.
+/// </remarks>
 internal sealed class QueryState
 {
     private readonly ComponentId[] _required;
     private readonly ComponentId[] _excluded;
+    private readonly ComponentId[] _changed;
     private readonly List<Archetype> _matched = [];
     private int _archetypesSeen;
+    private ChangeWindow _window;
 
     public QueryState(ArchetypeStore store, ComponentId[] required, ComponentId[] excluded)
+        : this(store, required, excluded, [])
+    {
+    }
+
+    private QueryState(ArchetypeStore store, ComponentId[] required, ComponentId[] excluded, ComponentId[] changed)
     {
         Store = store;
         _required = required;
         _excluded = excluded;
+        _changed = changed;
     }
 
     public ArchetypeStore Store { get; }
@@ -49,11 +61,49 @@ internal sealed class QueryState
         }
     }
 
-    public QueryState With(ComponentId id) => new(Store, [.. _required, id], _excluded);
+    public bool TracksChanges => _changed.Length > 0;
 
-    public QueryState Without(ComponentId id) => new(Store, _required, [.. _excluded, id]);
+    public QueryState With(ComponentId id) => new(Store, [.. _required, id], _excluded, _changed);
+
+    public QueryState Without(ComponentId id) => new(Store, _required, [.. _excluded, id], _changed);
+
+    /// <summary>
+    ///     A new query that also requires <paramref name="id" /> and visits only archetypes where one of its changed
+    ///     components was written since its last run.
+    /// </summary>
+    public QueryState Changed(ComponentId id)
+    {
+        if (Store.Schema[id].IsTag)
+            throw new ArgumentException($"{Store.Schema[id].Name} is a tag, so it has no change ticks.", nameof(id));
+        ComponentId[] required = _required.AsSpan().Contains(id) ? _required : [.. _required, id];
+        return new QueryState(Store, required, _excluded, [.. _changed, id]);
+    }
 
     public bool Matches(Archetype archetype) => archetype.HasAll(_required) && !archetype.HasAny(_excluded);
+
+    /// <summary>
+    ///     Starts a loop over the query and returns the tick its rows are compared against. Throws for a change query
+    ///     during the tick.
+    /// </summary>
+    public uint BeginRun()
+    {
+        if (!TracksChanges) return 0;
+        Store.Clock.EnsureCanRunChangeQuery();
+        _window.BeginRun(Store.Clock.Current);
+        return _window.Since;
+    }
+
+    /// <summary>
+    ///     Whether a loop that started at <paramref name="since" /> visits <paramref name="archetype" />.
+    /// </summary>
+    public bool Visits(Archetype archetype, uint since)
+    {
+        if (archetype.Count == 0) return false;
+        if (!TracksChanges) return true;
+        foreach (var id in _changed)
+            if (archetype.Columns[archetype.ColumnOf(id)].LastChangeTick > since) return true;
+        return false;
+    }
 
     private void Update()
     {

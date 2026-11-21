@@ -36,13 +36,13 @@ internal sealed class PhysicsPull : TickSystem
 
     private void PullPoses(bool roots)
     {
-        foreach (var (bodies, locals, entities) in _poses)
-            for (var i = 0; i < bodies.Length; i++)
+        foreach (var chunk in _poses)
+            for (var i = 0; i < chunk.Length; i++)
             {
-                ref readonly var body = ref bodies[i];
+                ref readonly var body = ref chunk.Components1[i];
                 if (body.State != PhysicsState.Simulated) continue;
 
-                var parent = _world.GetParent(entities[i]);
+                var parent = _world.GetParent(chunk.Entities[i]);
                 if (parent.IsValid == roots) continue;
 
                 var position = _physics.GetPosition(body.Handle);
@@ -50,9 +50,12 @@ internal sealed class PhysicsPull : TickSystem
                 if (parent.IsValid) ToParentSpace(parent, ref position, ref rotation);
 
                 // Writing only real changes keeps resting bodies from dirtying propagation every tick.
-                ref var local = ref locals[i];
-                if (local.Position != position) local.Position = position;
-                if (local.Rotation != rotation) local.Rotation = rotation;
+                ref readonly var local = ref chunk.Components2[i];
+                if (local.Position == position && local.Rotation == rotation) continue;
+
+                ref var written = ref chunk.Write<LocalTransform>(i);
+                written.Position = position;
+                written.Rotation = rotation;
             }
     }
 
@@ -68,12 +71,12 @@ internal sealed class PhysicsPull : TickSystem
 
     private void PullVelocities()
     {
-        foreach (var (bodies, velocities) in _velocities)
-            for (var i = 0; i < bodies.Length; i++)
+        foreach (var chunk in _velocities)
+            for (var i = 0; i < chunk.Length; i++)
             {
-                ref readonly var body = ref bodies[i];
+                ref readonly var body = ref chunk.Components1[i];
                 if (body.State != PhysicsState.Simulated) continue;
-                velocities[i].PullFromBody(_physics.GetLinearVelocity(body.Handle), _physics.GetAngularVelocity(body.Handle));
+                chunk.Write<Velocity>(i).PullFromBody(_physics.GetLinearVelocity(body.Handle), _physics.GetAngularVelocity(body.Handle));
             }
     }
 }

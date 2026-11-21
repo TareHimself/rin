@@ -153,7 +153,7 @@ public class PhysicsSyncTests : PhysicsFeatureFixture
         var stepped = Vector3.Zero;
         _physics.OnUpdate = _ => stepped = _physics.GetLinearVelocity(HandleOf(entity));
 
-        _world.Get<Velocity>(entity).Linear = new Vector3(4, 5, 6);
+        _world.Write<Velocity>(entity).Linear = new Vector3(4, 5, 6);
         Tick();
 
         Assert.That(stepped, Is.EqualTo(new Vector3(4, 5, 6)));

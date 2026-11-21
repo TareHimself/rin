@@ -21,10 +21,8 @@ public class QueryBenchmarks
     public void IterateOne()
     {
         foreach (var chunk in _world.Query<Position>())
-        {
-            var positions = chunk.Components1;
-            for (var i = 0; i < positions.Length; i++) positions[i].X += 1f;
-        }
+            for (var i = 0; i < chunk.Length; i++)
+                chunk.Write<Position>(i).X += 1f;
     }
 
     [Benchmark]
@@ -32,9 +30,8 @@ public class QueryBenchmarks
     {
         foreach (var chunk in _world.Query<Position, Velocity>())
         {
-            var positions = chunk.Components1;
             var velocities = chunk.Components2;
-            for (var i = 0; i < positions.Length; i++) positions[i].X += velocities[i].X;
+            for (var i = 0; i < chunk.Length; i++) chunk.Write<Position>(i).X += velocities[i].X;
         }
     }
 
@@ -43,12 +40,11 @@ public class QueryBenchmarks
     {
         foreach (var chunk in _world.Query<Position, Velocity, Health, Mass>())
         {
-            var positions = chunk.Components1;
             var velocities = chunk.Components2;
             var healths = chunk.Components3;
             var masses = chunk.Components4;
-            for (var i = 0; i < positions.Length; i++)
-                positions[i].X += velocities[i].X * masses[i].Value + healths[i].Value;
+            for (var i = 0; i < chunk.Length; i++)
+                chunk.Write<Position>(i).X += velocities[i].X * masses[i].Value + healths[i].Value;
         }
     }
 }

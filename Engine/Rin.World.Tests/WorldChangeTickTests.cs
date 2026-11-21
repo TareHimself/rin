@@ -33,6 +33,23 @@ public class WorldChangeTickTests
     }
 
     [Test]
+    public void WriteStampsTheRowAndGetDoesNot()
+    {
+        var world = new World();
+        var entity = world.Spawn();
+        world.Add(entity, new Health(1));
+        var added = world.ChangeTick;
+        AdvanceClock(world);
+
+        _ = world.Get<Health>(entity);
+        Assert.That(world.HasChangedSince<Health>(entity, added), Is.False);
+
+        world.Write<Health>(entity).Value = 2;
+        Assert.That(world.HasChangedSince<Health>(entity, added), Is.True);
+        Assert.That(world.Get<Health>(entity).Value, Is.EqualTo(2));
+    }
+
+    [Test]
     public void AMoveToAnotherArchetypeKeepsTheTicksOfTheComponentsItCarries()
     {
         var world = new World();

@@ -189,7 +189,15 @@ public sealed class World
 
     public bool Has<T>(Entity entity) where T : unmanaged, IComponentData => _store.Has<T>(entity);
 
-    public ref T Get<T>(Entity entity) where T : unmanaged, IComponentData => ref _store.Get<T>(entity);
+    /// <summary>
+    ///     Read-only, so a write cannot skip the change tick. Use <see cref="Write{T}" /> to change the component.
+    /// </summary>
+    public ref readonly T Get<T>(Entity entity) where T : unmanaged, IComponentData => ref _store.Get<T>(entity);
+
+    /// <summary>
+    ///     The component to change in place, stamped with <see cref="ChangeTick" />.
+    /// </summary>
+    public ref T Write<T>(Entity entity) where T : unmanaged, IComponentData => ref _store.Write<T>(entity);
 
     /// <summary>
     ///     Adds the component, or overwrites it when present. <see cref="OnAdd{T}" /> hooks fire only for a new component.
@@ -259,8 +267,12 @@ public sealed class World
 
     private void RunTick()
     {
-        _schedule.RunTick(new TickContext(this, TickIndex, TickInterval));
-        Commands.Playback();
+        using (_store.Clock.EnterTickPhase())
+        {
+            _schedule.RunTick(new TickContext(this, TickIndex, TickInterval));
+            Commands.Playback();
+        }
+
         TickIndex++;
     }
 
@@ -271,6 +283,6 @@ public sealed class World
 
     private void MarkTransformDirty(Entity entity)
     {
-        if (_store.Has<LocalTransform>(entity)) _store.Get<LocalTransform>(entity).IsDirty = true;
+        if (_store.Has<LocalTransform>(entity)) _store.Write<LocalTransform>(entity).IsDirty = true;
     }
 }

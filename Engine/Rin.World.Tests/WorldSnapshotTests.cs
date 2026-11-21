@@ -29,7 +29,7 @@ public class WorldSnapshotTests
         world.SaveSnapshot(snapshot);
         var draws = Draw(world.Random);
 
-        world.Get<Health>(parent) = new Health(0);
+        world.Write<Health>(parent) = new Health(0);
         world.Remove<Speed>(first);
         world.Remove<Stunned>(second);
         world.Despawn(second);

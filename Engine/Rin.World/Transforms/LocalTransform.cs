@@ -6,7 +6,7 @@ namespace Rin.World.Transforms;
 ///     Position, rotation and scale relative to the parent entity, or to the world for a root.
 /// </summary>
 /// <remarks>
-///     Every setter marks the transform dirty, so writes through a query span are picked up by
+///     Every setter marks the transform dirty, so writes through a query chunk are picked up by
 ///     <see cref="TransformPropagation" /> without a structural change.
 /// </remarks>
 public struct LocalTransform() : IComponentData

@@ -187,8 +187,8 @@ public sealed class SceneTestExample : Example
         foreach (var (light, brightness) in _directLights)
         {
             var applied = _directLightsOn ? brightness : 0f;
-            if (world.Has<PointLight>(light)) world.Get<PointLight>(light).Lumens = applied;
-            else world.Get<DirectionalLight>(light).Lux = applied;
+            if (world.Has<PointLight>(light)) world.Write<PointLight>(light).Lumens = applied;
+            else world.Write<DirectionalLight>(light).Lux = applied;
         }
     }
 
@@ -369,7 +369,7 @@ public sealed class SceneTestExample : Example
             () => SkyIntensity(scene) / MaxSkyIntensity,
             frac =>
             {
-                if (_sky is { } sky) scene.Get<EnvironmentLight>(sky).Intensity = frac * MaxSkyIntensity;
+                if (_sky is { } sky) scene.Write<EnvironmentLight>(sky).Intensity = frac * MaxSkyIntensity;
             });
     }
 

@@ -156,7 +156,7 @@ public class ScriptFeatureRestoreTests
                 while (true)
                 {
                     await ctx.NextTick();
-                    if (World.Has<Health>(Entity)) World.Get<Health>(Entity).Value++;
+                    if (World.Has<Health>(Entity)) World.Write<Health>(Entity).Value++;
                 }
             }
             finally

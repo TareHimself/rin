@@ -61,14 +61,14 @@ internal sealed class PhysicsPush : TickSystem
 
     private void PushDirtyVelocities()
     {
-        foreach (var (bodies, velocities) in _velocities)
-            for (var i = 0; i < bodies.Length; i++)
+        foreach (var chunk in _velocities)
+            for (var i = 0; i < chunk.Length; i++)
             {
-                ref var velocity = ref velocities[i];
-                if (!velocity.IsDirty) continue;
+                if (!chunk.Components2[i].IsDirty) continue;
 
-                _physics.SetLinearVelocity(bodies[i].Handle, velocity.Linear);
-                _physics.SetAngularVelocity(bodies[i].Handle, velocity.Angular);
+                ref var velocity = ref chunk.Write<Velocity>(i);
+                _physics.SetLinearVelocity(chunk.Components1[i].Handle, velocity.Linear);
+                _physics.SetAngularVelocity(chunk.Components1[i].Handle, velocity.Angular);
                 velocity.IsDirty = false;
             }
     }

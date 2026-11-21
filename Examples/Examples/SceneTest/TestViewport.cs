@@ -47,7 +47,7 @@ public class TestViewport : Viewport
         if (!IsFocused) return;
 
         // The camera is a root entity, so its local transform is its world transform.
-        ref var transform = ref _world.Get<LocalTransform>(_camera);
+        ref var transform = ref _world.Write<LocalTransform>(_camera);
         var position = transform.Position;
         position += transform.Rotation.GetForward() * _forwardAxis * deltaTime * _speed;
         position += transform.Rotation.GetRight() * _rightAxis * deltaTime * _speed;

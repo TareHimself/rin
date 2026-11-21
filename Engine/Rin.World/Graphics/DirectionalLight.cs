@@ -8,7 +8,7 @@ namespace Rin.World.Graphics;
 ///     A light shining along the entity's world forward axis.
 /// </summary>
 /// <remarks>
-///     Every setter marks the light dirty, so <see cref="RenderFeature" /> pushes a change written through a query span.
+///     Every setter marks the light dirty, so <see cref="RenderFeature" /> pushes a change written through a query chunk.
 /// </remarks>
 public struct DirectionalLight() : IComponentData
 {

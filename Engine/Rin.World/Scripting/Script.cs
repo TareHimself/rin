@@ -33,9 +33,13 @@ public abstract class Script
 
     protected T? GetScript<T>(Entity entity) where T : Script => Feature.GetScript<T>(entity);
 
-    protected ref T GetComponent<T>() where T : unmanaged, IComponentData => ref World.Get<T>(Entity);
+    protected ref readonly T GetComponent<T>() where T : unmanaged, IComponentData => ref World.Get<T>(Entity);
 
-    protected ref T GetComponent<T>(Entity entity) where T : unmanaged, IComponentData => ref World.Get<T>(entity);
+    protected ref readonly T GetComponent<T>(Entity entity) where T : unmanaged, IComponentData => ref World.Get<T>(entity);
+
+    protected ref T WriteComponent<T>() where T : unmanaged, IComponentData => ref World.Write<T>(Entity);
+
+    protected ref T WriteComponent<T>(Entity entity) where T : unmanaged, IComponentData => ref World.Write<T>(entity);
 
     protected bool HasComponent<T>() where T : unmanaged, IComponentData => World.Has<T>(Entity);
 

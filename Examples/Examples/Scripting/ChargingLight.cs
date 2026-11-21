@@ -68,9 +68,9 @@ public sealed class ChargingLight(Arena arena) : Script
     private void ShowCharge(float charge, float glow)
     {
         var height = MinHeight + (MaxHeight - MinHeight) * charge;
-        ref var transform = ref World.Get<LocalTransform>(Entity);
+        ref var transform = ref World.Write<LocalTransform>(Entity);
         transform.Position = transform.Position with { Y = height / 2f };
         transform.Scale = new Vector3(Width, height, Width) / 2f;
-        World.Get<PointLight>(_light).Lumens = glow;
+        World.Write<PointLight>(_light).Lumens = glow;
     }
 }

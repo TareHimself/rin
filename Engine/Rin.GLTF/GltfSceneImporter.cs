@@ -85,7 +85,7 @@ public sealed class GltfSceneImporter
     {
         if (node.Mesh is null && !node.VisualChildren.Any())
         {
-            ref var transform = ref World.Get<LocalTransform>(entity);
+            ref var transform = ref World.Write<LocalTransform>(entity);
             transform.Rotation *= HalfTurn;
             return entity;
         }

@@ -134,7 +134,7 @@ public class ScriptFeatureTests
             _log.Add("unowned");
         });
 
-        _world.Get<Health>(first) = new Health(1);
+        _world.Write<Health>(first) = new Health(1);
         _scripts.Restore();
         Tick(3);
 
@@ -314,7 +314,7 @@ public class ScriptFeatureTests
             OwnHealth = GetComponent<Health>().Value;
             HasSpeed = HasComponent<Speed>() || TryGetComponent<Speed>(out _);
             FoundOtherHealth = TryGetComponent<Health>(other, out var health) ? health.Value : null;
-            GetComponent<Health>(other).Value++;
+            WriteComponent<Health>(other).Value++;
         }
     }
 
@@ -384,7 +384,7 @@ public class ScriptFeatureTests
             while (World.Get<Health>(Entity).Value > 0)
             {
                 await ctx.NextTick();
-                World.Get<Health>(Entity).Value--;
+                World.Write<Health>(Entity).Value--;
             }
 
             log.Add($"{Entity} done@{World.TickIndex}");

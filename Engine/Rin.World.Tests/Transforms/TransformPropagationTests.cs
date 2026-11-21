@@ -178,10 +178,10 @@ public class TransformPropagationTests
 
         public override void Tick(in TickContext context)
         {
-            foreach (var (transforms, entities) in _transforms)
-                for (var i = 0; i < transforms.Length; i++)
-                    if (!context.World.GetParent(entities[i]).IsValid)
-                        transforms[i].Position += Vector3.UnitY;
+            foreach (var chunk in _transforms)
+                for (var i = 0; i < chunk.Length; i++)
+                    if (!context.World.GetParent(chunk.Entities[i]).IsValid)
+                        chunk.Write<LocalTransform>(i).Position += Vector3.UnitY;
         }
     }
 

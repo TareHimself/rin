@@ -91,12 +91,12 @@ public sealed class RenderFeature : IWorldRestoreListener
 
     void IWorldRestoreListener.AfterRestore()
     {
-        foreach (var (proxies, entities) in _proxies)
-            for (var i = 0; i < proxies.Length; i++)
+        foreach (var chunk in _proxies)
+            for (var i = 0; i < chunk.Length; i++)
             {
-                var entity = entities[i];
+                var entity = chunk.Entities[i];
                 if (TryRecreateProxy(entity, out var handle, out var version))
-                    proxies[i] = new RenderProxy { Handle = handle, LastPushedVersion = version };
+                    chunk.Write<RenderProxy>(i) = new RenderProxy { Handle = handle, LastPushedVersion = version };
                 else
                     _lostProxies.Add(entity);
             }
@@ -111,9 +111,9 @@ public sealed class RenderFeature : IWorldRestoreListener
         version = transform.Version;
         if (World.Has<StaticMesh>(entity)) handle = CreateStaticMeshHandle(World.Get<StaticMesh>(entity), transform.Matrix);
         else if (World.Has<SkinnedMesh>(entity)) handle = CreateSkinnedMeshHandle(World.Get<SkinnedMesh>(entity), transform.Matrix);
-        else if (World.Has<PointLight>(entity)) handle = CreateLightHandle(ref World.Get<PointLight>(entity), transform.Matrix);
-        else if (World.Has<DirectionalLight>(entity)) handle = CreateLightHandle(ref World.Get<DirectionalLight>(entity), transform.Matrix);
-        else if (World.Has<EnvironmentLight>(entity)) handle = CreateEnvironmentHandle(ref World.Get<EnvironmentLight>(entity), transform.Matrix);
+        else if (World.Has<PointLight>(entity)) handle = CreateLightHandle(ref World.Write<PointLight>(entity), transform.Matrix);
+        else if (World.Has<DirectionalLight>(entity)) handle = CreateLightHandle(ref World.Write<DirectionalLight>(entity), transform.Matrix);
+        else if (World.Has<EnvironmentLight>(entity)) handle = CreateEnvironmentHandle(ref World.Write<EnvironmentLight>(entity), transform.Matrix);
         else handle = default;
         return handle.IsValid;
     }
@@ -139,21 +139,21 @@ public sealed class RenderFeature : IWorldRestoreListener
     {
         EnsureNoProxy(entity);
         var transform = CurrentWorldTransform(entity);
-        AddProxy(entity, CreateLightHandle(ref World.Get<PointLight>(entity), transform.Matrix), transform.Version);
+        AddProxy(entity, CreateLightHandle(ref World.Write<PointLight>(entity), transform.Matrix), transform.Version);
     }
 
     private void CreateDirectionalLightProxy(Entity entity, in DirectionalLight _)
     {
         EnsureNoProxy(entity);
         var transform = CurrentWorldTransform(entity);
-        AddProxy(entity, CreateLightHandle(ref World.Get<DirectionalLight>(entity), transform.Matrix), transform.Version);
+        AddProxy(entity, CreateLightHandle(ref World.Write<DirectionalLight>(entity), transform.Matrix), transform.Version);
     }
 
     private void CreateEnvironmentLightProxy(Entity entity, in EnvironmentLight _)
     {
         EnsureNoProxy(entity);
         var transform = CurrentWorldTransform(entity);
-        var handle = CreateEnvironmentHandle(ref World.Get<EnvironmentLight>(entity), transform.Matrix);
+        var handle = CreateEnvironmentHandle(ref World.Write<EnvironmentLight>(entity), transform.Matrix);
         if (!handle.IsValid)
             throw new InvalidOperationException($"The map of {entity} is not a live map of {nameof(Environments)}.");
 

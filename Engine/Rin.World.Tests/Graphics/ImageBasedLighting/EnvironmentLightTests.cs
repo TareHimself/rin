@@ -69,7 +69,7 @@ public class EnvironmentLightTests : RenderFeatureFixture
         _world.Update(0f);
         _render.PushedEnvironments.Clear();
 
-        _world.Get<EnvironmentLight>(entity).Extent = new Vector3(4f);
+        _world.Write<EnvironmentLight>(entity).Extent = new Vector3(4f);
         _world.Update(0f);
         _world.Update(0f);
 
@@ -90,7 +90,7 @@ public class EnvironmentLightTests : RenderFeatureFixture
         _world.Update(0f);
         _render.PushedEnvironments.Clear();
 
-        _world.Get<LocalTransform>(entity).Position = new Vector3(5f, 0f, 0f);
+        _world.Write<LocalTransform>(entity).Position = new Vector3(5f, 0f, 0f);
         _world.Update(0f);
 
         Assert.Multiple(() =>

@@ -7,7 +7,7 @@ namespace Rin.World.Graphics;
 ///     A light at the entity's world position.
 /// </summary>
 /// <remarks>
-///     Every setter marks the light dirty, so <see cref="RenderFeature" /> pushes a change written through a query span.
+///     Every setter marks the light dirty, so <see cref="RenderFeature" /> pushes a change written through a query chunk.
 /// </remarks>
 public struct PointLight() : IComponentData
 {

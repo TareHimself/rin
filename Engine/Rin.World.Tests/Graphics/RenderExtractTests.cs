@@ -74,7 +74,7 @@ public class RenderExtractTests : RenderFeatureFixture
         _world.Update(0f);
         _render.PushedLights.Clear();
 
-        _world.Get<PointLight>(entity).Lumens = 99f;
+        _world.Write<PointLight>(entity).Lumens = 99f;
         _world.Update(0f);
         _world.Update(0f);
 
@@ -106,9 +106,9 @@ public class RenderExtractTests : RenderFeatureFixture
         _world.Update(0f);
         _render.PushedLights.Clear();
 
-        foreach (var (lights, _) in _world.Query<DirectionalLight>())
-            for (var i = 0; i < lights.Length; i++)
-                lights[i].Color = new Color(1f, 0f, 0f, 1f);
+        foreach (var chunk in _world.Query<DirectionalLight>())
+            for (var i = 0; i < chunk.Length; i++)
+                chunk.Write<DirectionalLight>(i).Color = new Color(1f, 0f, 0f, 1f);
         _world.Update(0f);
 
         Assert.That(_render.PushedLights.Single().Light.Color, Is.EqualTo(new Vector3(1f, 0f, 0f)));

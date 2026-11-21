@@ -38,10 +38,10 @@ flowchart LR
 | --- | --- |
 | `Entity` | Id plus generation, stale after despawn |
 | Tags | An empty struct marked `ITagData` is a component without a column: `world.Add(entity, new Stunned())`, `Has<T>`, `Remove<T>`, hooks and queries all work the same |
-| `Query<T1..T4>` | `foreach` gives one `Span<T>` per component. Structural changes inside the loop throw, so use `world.Commands`. `world.Query<A, B>()` is cached and free to call every frame. `.With<T>()` and `.Without<T>()` filter by a component or tag and make a new query, so build it once in the system's constructor |
-| Change ticks | `Add`, `Set` and command playback stamp the row with `world.ChangeTick`, which goes up before and after every system run. `world.HasChangedSince<T>(entity, tick)` says whether a component was written after a tick the caller kept. Ticks are not saved: a restore stamps every row with a fresh one |
+| `Query<T1..T4>` | `foreach` gives a chunk with one `ReadOnlySpan<T>` per component; `chunk.Write<T>(i)` changes a row. Structural changes inside the loop throw, so use `world.Commands`. `world.Query<A, B>()` is cached and free to call every frame. `.With<T>()` and `.Without<T>()` filter by a component or tag and make a new query, so build it once in the system's constructor |
+| Writes and change ticks | `world.Get<T>` and the chunk spans are read-only. `world.Write<T>`, `chunk.Write<T>(i)`, `Add`, `Set` and command playback stamp the row with `world.ChangeTick`, which goes up before and after every system run, so a system never sees its own writes as changed. `query.Changed<T>()` makes a query with its own last run that skips archetypes where `T` was not written since, and `chunk.HasChanged<T>(i)` checks a row. Change queries are for frame systems and throw during the tick, because ticks are not saved: a restore stamps every row with a fresh one |
 | Hierarchy | `SetParent` and friends. Despawn removes descendants too |
-| Hooks | `OnAdd<T>`, `OnRemove<T>`. Features create and destroy proxies and bodies from them. The component comes as `in T`, stale after a structural change in the handler, so `world.Get<T>` it again to read or write |
+| Hooks | `OnAdd<T>`, `OnRemove<T>`. Features create and destroy proxies and bodies from them. The component comes as `in T`, stale after a structural change in the handler, so `world.Get<T>` it again to read or `world.Write<T>` to write |
 | Transforms | `LocalTransform` (setters mark it dirty) and `WorldTransform`, propagated once per frame |
 
 `World.Update(dt)` runs fixed ticks (1/60 s by default), then the frame phases:

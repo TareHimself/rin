@@ -49,7 +49,7 @@ public sealed class LevelExample : Example
         foreach (var warning in level.Warnings) Log.Warn(warning);
 
         var camera = level.StartCamera ?? SpawnCamera(render.World);
-        render.World.Get<Camera>(camera).Ev100 = ReadEv100(context.Args);
+        render.World.Write<Camera>(camera).Ev100 = ReadEv100(context.Args);
         render.World.Update(0f);
 
         var (pitch, yaw) = PitchAndYawOf(render.World.Get<LocalTransform>(camera).Rotation);

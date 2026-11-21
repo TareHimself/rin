@@ -25,9 +25,9 @@ Check(world.Get<WorldTransform>(child).Matrix.Translation == new Vector3(1, 2, 0
 
 foreach (var chunk in world.Query<Health>())
     for (var i = 0; i < chunk.Length; i++)
-        if (world.Has<Poisoned>(chunk.Entities[i])) chunk.Components1[i].Value -= 5;
+        if (world.Has<Poisoned>(chunk.Entities[i])) chunk.Write<Health>(i).Value -= 5;
 
-Check(world.Get<Health>(child).Value == 15 && world.Get<Health>(queued).Value == 25, "the query wrote through its span");
+Check(world.Get<Health>(child).Value == 15 && world.Get<Health>(queued).Value == 25, "the query wrote through its chunk");
 Check(world.Get<Health>(parent).Value == 10, "the untagged entity was left alone");
 
 world.SaveSnapshot(snapshot);

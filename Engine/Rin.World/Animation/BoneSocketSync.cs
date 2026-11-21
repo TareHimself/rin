@@ -24,17 +24,17 @@ internal sealed class BoneSocketSync : FrameSystem
 
     public override void Update(in FrameContext context)
     {
-        foreach (var (sockets, locals, entities) in _sockets)
-            for (var i = 0; i < sockets.Length; i++)
+        foreach (var chunk in _sockets)
+            for (var i = 0; i < chunk.Length; i++)
             {
-                ref var socket = ref sockets[i];
-                if (!TryGetBoneMatrices(entities[i], out var bones) || (uint)socket.BoneIndex >= (uint)bones.Length) continue;
+                ref readonly var socket = ref chunk.Components1[i];
+                if (!TryGetBoneMatrices(chunk.Entities[i], out var bones) || (uint)socket.BoneIndex >= (uint)bones.Length) continue;
 
                 ref readonly var bone = ref bones[socket.BoneIndex];
                 if (bone == socket.SocketMatrix) continue;
 
-                socket.SocketMatrix = bone;
-                locals[i].IsDirty = true;
+                chunk.Write<AttachSocket>(i).SocketMatrix = bone;
+                chunk.Write<LocalTransform>(i).IsDirty = true;
             }
     }
 

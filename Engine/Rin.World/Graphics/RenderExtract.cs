@@ -55,13 +55,13 @@ internal sealed class RenderExtract : FrameSystem
     private void PushMeshTransforms<TMesh>(Query<TMesh, WorldTransform, RenderProxy> meshes)
         where TMesh : unmanaged, IComponentData
     {
-        foreach (var (_, transforms, proxies) in meshes)
-            for (var i = 0; i < transforms.Length; i++)
+        foreach (var chunk in meshes)
+            for (var i = 0; i < chunk.Length; i++)
             {
-                ref readonly var transform = ref transforms[i];
-                ref var proxy = ref proxies[i];
-                if (transform.Version == proxy.LastPushedVersion) continue;
+                ref readonly var transform = ref chunk.Components2[i];
+                if (transform.Version == chunk.Components3[i].LastPushedVersion) continue;
 
+                ref var proxy = ref chunk.Write<RenderProxy>(i);
                 _renderSystem.UpdateProxyTransform(proxy.Handle, transform.Matrix);
                 proxy.LastPushedVersion = transform.Version;
             }
@@ -77,14 +77,14 @@ internal sealed class RenderExtract : FrameSystem
 
     private void PushPointLights()
     {
-        foreach (var (lights, proxies, entities) in _pointLights)
-            for (var i = 0; i < lights.Length; i++)
+        foreach (var chunk in _pointLights)
+            for (var i = 0; i < chunk.Length; i++)
             {
-                ref var light = ref lights[i];
-                ref var proxy = ref proxies[i];
-                var (matrix, version) = TransformOf(entities[i]);
-                if (!light.IsDirty && version == proxy.LastPushedVersion) continue;
+                var (matrix, version) = TransformOf(chunk.Entities[i]);
+                if (!chunk.Components1[i].IsDirty && version == chunk.Components2[i].LastPushedVersion) continue;
 
+                ref var light = ref chunk.Write<PointLight>(i);
+                ref var proxy = ref chunk.Write<RenderProxy>(i);
                 _renderSystem.UpdateLightProxy(proxy.Handle, light.ToLightInfo(matrix));
                 light.IsDirty = false;
                 proxy.LastPushedVersion = version;
@@ -93,14 +93,14 @@ internal sealed class RenderExtract : FrameSystem
 
     private void PushDirectionalLights()
     {
-        foreach (var (lights, proxies, entities) in _directionalLights)
-            for (var i = 0; i < lights.Length; i++)
+        foreach (var chunk in _directionalLights)
+            for (var i = 0; i < chunk.Length; i++)
             {
-                ref var light = ref lights[i];
-                ref var proxy = ref proxies[i];
-                var (matrix, version) = TransformOf(entities[i]);
-                if (!light.IsDirty && version == proxy.LastPushedVersion) continue;
+                var (matrix, version) = TransformOf(chunk.Entities[i]);
+                if (!chunk.Components1[i].IsDirty && version == chunk.Components2[i].LastPushedVersion) continue;
 
+                ref var light = ref chunk.Write<DirectionalLight>(i);
+                ref var proxy = ref chunk.Write<RenderProxy>(i);
                 _renderSystem.UpdateLightProxy(proxy.Handle, light.ToLightInfo(matrix));
                 light.IsDirty = false;
                 proxy.LastPushedVersion = version;
@@ -109,13 +109,14 @@ internal sealed class RenderExtract : FrameSystem
 
     private void PushEnvironmentLights()
     {
-        foreach (var (lights, proxies, entities) in _environmentLights)
-            for (var i = 0; i < lights.Length; i++)
+        foreach (var chunk in _environmentLights)
+            for (var i = 0; i < chunk.Length; i++)
             {
-                ref var light = ref lights[i];
-                ref var proxy = ref proxies[i];
-                var (matrix, version) = TransformOf(entities[i]);
-                if (!light.IsDirty && version == proxy.LastPushedVersion) continue;
+                var (matrix, version) = TransformOf(chunk.Entities[i]);
+                if (!chunk.Components1[i].IsDirty && version == chunk.Components2[i].LastPushedVersion) continue;
+
+                ref var light = ref chunk.Write<EnvironmentLight>(i);
+                ref var proxy = ref chunk.Write<RenderProxy>(i);
 
                 if (_environments.TryDescribe(light, matrix, out var volume))
                     _renderSystem.UpdateEnvironmentProxy(proxy.Handle, volume);

@@ -7,7 +7,7 @@ namespace Rin.World.Graphics.ImageBasedLighting;
 ///     otherwise it is a box around the entity that takes over for views inside it.
 /// </summary>
 /// <remarks>
-///     Every setter marks the light dirty, so <see cref="RenderFeature" /> pushes a change written through a query span.
+///     Every setter marks the light dirty, so <see cref="RenderFeature" /> pushes a change written through a query chunk.
 /// </remarks>
 public struct EnvironmentLight() : IComponentData
 {

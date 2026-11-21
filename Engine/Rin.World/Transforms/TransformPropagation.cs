@@ -43,30 +43,31 @@ internal sealed class TransformPropagation : FrameSystem
         var entity = node.Entity;
         if (!_world.Has<LocalTransform>(entity) || !_world.Has<WorldTransform>(entity)) return;
 
-        ref var local = ref _world.Get<LocalTransform>(entity);
-        var dirty = local.IsDirty;
-        local.IsDirty = false;
+        var dirty = _world.Get<LocalTransform>(entity).IsDirty;
+        if (dirty) _world.Write<LocalTransform>(entity).IsDirty = false;
 
-        ref var worldTransform = ref _world.Get<WorldTransform>(entity);
+        var worldMatrix = _world.Get<WorldTransform>(entity).Matrix;
         var changed = false;
         if (dirty || node.ParentChanged)
         {
-            var matrix = _world.ComputeLocalMatrix(entity, local) * node.ParentWorld;
-            if (matrix != worldTransform.Matrix)
+            var matrix = _world.ComputeLocalMatrix(entity, _world.Get<LocalTransform>(entity)) * node.ParentWorld;
+            if (matrix != worldMatrix)
             {
+                ref var worldTransform = ref _world.Write<WorldTransform>(entity);
                 worldTransform.Matrix = matrix;
                 worldTransform.Version++;
+                worldMatrix = matrix;
                 changed = true;
             }
         }
 
         var children = _world.GetChildren(entity);
-        for (var i = children.Count - 1; i >= 0; i--) Push(new PendingNode(children[i], worldTransform.Matrix, changed));
+        for (var i = children.Count - 1; i >= 0; i--) Push(new PendingNode(children[i], worldMatrix, changed));
     }
 
     private void MarkDirty(Entity entity, in AttachSocket socket)
     {
-        if (_world.Has<LocalTransform>(entity)) _world.Get<LocalTransform>(entity).IsDirty = true;
+        if (_world.Has<LocalTransform>(entity)) _world.Write<LocalTransform>(entity).IsDirty = true;
     }
 
     private void Push(in PendingNode node)

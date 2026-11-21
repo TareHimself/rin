@@ -67,7 +67,7 @@ internal sealed class Archetype
     public int ColumnOf(ComponentId id) =>
         (uint)id.Value < (uint)_slots.Length && _slots[id.Value] >= 0 ? _slots[id.Value] : -1;
 
-    public Span<T> Span<T>(ComponentId id) where T : unmanaged => _columns[ColumnOf(id)].Span<T>(Count);
+    public Column ColumnFor(ComponentId id) => _columns[ColumnOf(id)];
 
     public bool HasAll(ReadOnlySpan<ComponentId> ids)
     {
