@@ -20,7 +20,6 @@ public sealed record ComponentInfo(
     string Name,
     Type? Type,
     int Size,
-    int Alignment,
     bool IsSaved,
     ComponentField[] Fields)
 {
@@ -38,12 +37,10 @@ public sealed record ComponentInfo(
             typeof(T).Name,
             typeof(T),
             isTag ? 0 : Unsafe.SizeOf<T>(),
-            isTag ? 1 : Unsafe.SizeOf<AlignmentProbe<T>>() - Unsafe.SizeOf<T>(),
             !typeof(T).IsDefined(typeof(EcsNotSavedAttribute), false),
             []);
     }
 
-    // Its size is the struct's size plus the padding a byte in front of it needs, which is its alignment.
     /// <summary>
     ///     A hash of the name, size and <see cref="IsSaved" />, the same in every process, so a snapshot can check it
     ///     restores into a schema that lays its components out the same way.
@@ -55,14 +52,6 @@ public sealed record ComponentInfo(
         foreach (var c in Name) hash = (hash ^ c) * prime;
         hash = (hash ^ (uint)Size) * prime;
         return (hash ^ (IsSaved ? 1u : 0u)) * prime;
-    }
-
-    private struct AlignmentProbe<T> where T : unmanaged
-    {
-#pragma warning disable CS0169
-        private byte _pad;
-        private T _value;
-#pragma warning restore CS0169
     }
 }
 

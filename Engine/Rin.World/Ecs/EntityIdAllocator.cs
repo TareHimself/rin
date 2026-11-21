@@ -6,7 +6,12 @@ namespace Rin.World.Ecs;
 /// </summary>
 internal sealed class EntityIdAllocator
 {
-    private const int FirstId = 1;
+    /// <summary>
+    ///     Never handed out, so it means "no entity" wherever an entity id is stored.
+    /// </summary>
+    public const int NoId = 0;
+
+    private const int FirstId = NoId + 1;
 
     private short[] _generations = new short[64];
     private EntityState[] _states = new EntityState[64];

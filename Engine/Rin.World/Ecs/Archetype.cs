@@ -111,12 +111,13 @@ internal sealed class Archetype
     }
 
     /// <summary>
-    ///     Removes the row by moving the last row into it, and returns the id of the entity that moved, or 0 if none did.
+    ///     Removes the row by moving the last row into it, and returns the id of the entity that moved, or
+    ///     <see cref="EntityIdAllocator.NoId" /> if none did.
     /// </summary>
     public int RemoveRow(int row)
     {
         var last = Count - 1;
-        var moved = 0;
+        var moved = EntityIdAllocator.NoId;
         if (row != last)
         {
             moved = _entityIds[last];

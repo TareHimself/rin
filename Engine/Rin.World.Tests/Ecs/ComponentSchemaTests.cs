@@ -63,7 +63,7 @@ public class ComponentSchemaTests
 
         Assert.That(schema.IdOf<Health>().Value, Is.Zero);
         Assert.Throws<InvalidOperationException>(() => schema.IdOf<Speed>());
-        Assert.Throws<InvalidOperationException>(() => schema.Add(new ComponentInfo("Door", null, 4, 4, true, [])));
+        Assert.Throws<InvalidOperationException>(() => schema.Add(new ComponentInfo("Door", null, 4, true, [])));
     }
 
     [Test]
@@ -88,7 +88,7 @@ public class ComponentSchemaTests
         var schema = new ComponentSchema();
 
         Assert.Throws<ArgumentException>(() => schema.Add(ComponentInfo.Of<Health>()));
-        Assert.Throws<ArgumentException>(() => schema.Add(new ComponentInfo(nameof(Health), typeof(Health), 1, 1, true, [])));
+        Assert.Throws<ArgumentException>(() => schema.Add(new ComponentInfo(nameof(Health), typeof(Health), 1, true, [])));
         Assert.That(schema.Count, Is.Zero);
     }
 
@@ -108,7 +108,7 @@ public class ComponentSchemaTests
         var schema = new ComponentSchema();
         schema.IdOf<Health>();
 
-        var id = schema.Add(new ComponentInfo("Door", null, 8, 4, true, [new ComponentField("Open", typeof(int), 0)]));
+        var id = schema.Add(new ComponentInfo("Door", null, 8, true, [new ComponentField("Open", typeof(int), 0)]));
 
         Assert.That(id.Value, Is.EqualTo(1));
         Assert.That(schema[id].Name, Is.EqualTo("Door"));

@@ -55,6 +55,19 @@ public class EntityIdAllocatorTests
         Assert.That(world.EntityCount, Is.EqualTo(1));
     }
 
+    [Test]
+    public void NoSpawnedEntityIsTheDefaultHandleAndTheDefaultHandleIsNeverAlive()
+    {
+        var world = new World();
+        var first = world.Spawn();
+        world.Despawn(first);
+        var spawned = new List<Entity> { first, world.Spawn(), world.Spawn() };
+
+        Assert.That(spawned, Has.All.Matches<Entity>(entity => entity.IsValid));
+        Assert.That(world.IsAlive(default), Is.False);
+        Assert.That(world.GetParent(spawned[1]), Is.EqualTo(default(Entity)), "a root's parent is the default handle");
+    }
+
     private static List<Entity> RunSequence(World world)
     {
         var handles = new List<Entity>();

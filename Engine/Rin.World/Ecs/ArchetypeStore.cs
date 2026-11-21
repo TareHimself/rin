@@ -174,7 +174,7 @@ internal sealed partial class ArchetypeStore
     private void RemoveRow(Archetype archetype, int row)
     {
         var moved = archetype.RemoveRow(row);
-        if (moved != 0) _locations[moved] = new EntityLocation(archetype, row);
+        if (moved != EntityIdAllocator.NoId) _locations[moved] = new EntityLocation(archetype, row);
     }
 
     private Archetype WithComponent(Archetype source, ComponentId id)

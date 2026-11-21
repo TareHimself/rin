@@ -5,17 +5,16 @@ namespace Rin.World.Ecs;
 /// <summary>
 ///     The entity part of a <see cref="WorldSnapshot" />: a layout hash per component id the snapshot uses, the id
 ///     allocator, then every non-empty archetype with its key, entity ids and one raw byte block per saved column, then
-///     each parent's children.
+///     each parent's children, ended by <see cref="EntityIdAllocator.NoId" />.
 /// </summary>
 /// <remarks>
 ///     Component ids are only valid within one schema, so <see cref="Validate" /> checks that the store's schema
-///     describes every used id the same way before a restore changes anything. Entities go straight back into their archetype in the saved order, so query order after a restore matches the
-///     order at save time. Derived columns are cleared rather than copied.
+///     describes every used id the same way before a restore changes anything. Entities go straight back into their
+///     archetype in the saved order, so query order after a restore matches the order at save time.
+///     <see cref="EcsNotSavedAttribute" /> columns are cleared rather than copied.
 /// </remarks>
 internal sealed partial class ArchetypeStore
 {
-    private const int EndOfHierarchy = 0;
-
     private ComponentId[] _keyBuffer = new ComponentId[16];
 
     public void Save(WorldSnapshot snapshot)
@@ -34,7 +33,7 @@ internal sealed partial class ArchetypeStore
         foreach (var archetype in _archetypes)
         foreach (var id in archetype.EntityIds)
             SaveChildren(id, snapshot);
-        snapshot.Write(EndOfHierarchy);
+        snapshot.Write(EntityIdAllocator.NoId);
     }
 
     /// <summary>
@@ -168,7 +167,7 @@ internal sealed partial class ArchetypeStore
 
     private void RestoreChildren(ref SnapshotReader reader)
     {
-        for (var parent = reader.Read<int>(); parent != EndOfHierarchy; parent = reader.Read<int>())
+        for (var parent = reader.Read<int>(); parent != EntityIdAllocator.NoId; parent = reader.Read<int>())
         {
             var count = reader.Read<int>();
             for (var i = 0; i < count; i++) _hierarchy.SetParent(reader.Read<int>(), parent);

@@ -52,7 +52,7 @@ internal sealed partial class ArchetypeStore
         Phase.EnsureCanReparent();
         EnsureHierarchyCanChange(child);
         EnsureHierarchyCanChange(parent);
-        for (var ancestor = parent.Id; ancestor != 0; ancestor = _hierarchy.ParentOf(ancestor))
+        for (var ancestor = parent.Id; ancestor != EntityIdAllocator.NoId; ancestor = _hierarchy.ParentOf(ancestor))
             if (ancestor == child.Id)
                 throw new InvalidOperationException($"{child} cannot be parented under itself or its descendant {parent}.");
 
@@ -73,7 +73,7 @@ internal sealed partial class ArchetypeStore
     {
         Resolve(child);
         var parent = _hierarchy.ParentOf(child.Id);
-        return parent == 0 ? default : _ids.HandleOf(parent);
+        return parent == EntityIdAllocator.NoId ? default : _ids.HandleOf(parent);
     }
 
     public EntityChildren GetChildren(Entity parent)
