@@ -155,6 +155,41 @@ internal static class Diagnostics
             isEnabledByDefault: true);
     }
 
+    internal static class Components
+    {
+        public static readonly DiagnosticDescriptor GenericComponent = new(
+            id: "RIN00024",
+            title: "Generic component is not in the component module",
+            messageFormat: "Component '{0}' is generic, so it is left out of the assembly's component module and gets an id only on first use",
+            category: "Rin.World",
+            defaultSeverity: DiagnosticSeverity.Warning,
+            isEnabledByDefault: true);
+
+        public static readonly DiagnosticDescriptor InaccessibleComponent = new(
+            id: "RIN00025",
+            title: "Inaccessible component is not in the component module",
+            messageFormat: "Component '{0}' is not visible to the rest of its assembly, so it is left out of the assembly's component module and gets an id only on first use",
+            category: "Rin.World",
+            defaultSeverity: DiagnosticSeverity.Info,
+            isEnabledByDefault: true);
+
+        public static readonly DiagnosticDescriptor ComponentMustBeUnmanaged = new(
+            id: "RIN00026",
+            title: "Component must be unmanaged",
+            messageFormat: "Component '{0}' must be an unmanaged struct",
+            category: "Rin.World",
+            defaultSeverity: DiagnosticSeverity.Error,
+            isEnabledByDefault: true);
+
+        public static readonly DiagnosticDescriptor TagMustNotHaveFields = new(
+            id: "RIN00027",
+            title: "Tag must not have fields",
+            messageFormat: "Tag '{0}' is an ITagData, so it cannot have fields",
+            category: "Rin.World",
+            defaultSeverity: DiagnosticSeverity.Error,
+            isEnabledByDefault: true);
+    }
+
     internal static class Providers
     {
         public static readonly DiagnosticDescriptor ContainingTypeMustBePartial = new(

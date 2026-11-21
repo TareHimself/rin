@@ -11,19 +11,17 @@ namespace Rin.World;
 ///     changing its layout means a new schema. <see cref="Clone" /> copies every id, which keeps the
 ///     <see cref="Engine" /> ids the same in every schema made from it.
 /// </remarks>
-public sealed partial class ComponentSchema
+public sealed class ComponentSchema
 {
     private const int Absent = -1;
 
     private readonly Lock _gate = new();
-    private readonly Dictionary<Type, ComponentId> _byType;
     private ComponentInfo[] _infos;
     private int[] _localIds;
     private int _count;
 
     public ComponentSchema()
     {
-        _byType = [];
         _infos = new ComponentInfo[16];
         _localIds = [];
     }
@@ -32,7 +30,6 @@ public sealed partial class ComponentSchema
     {
         lock (source._gate)
         {
-            _byType = new Dictionary<Type, ComponentId>(source._byType);
             _infos = (ComponentInfo[])source._infos.Clone();
             _localIds = (int[])source._localIds.Clone();
             _count = source._count;
@@ -40,7 +37,7 @@ public sealed partial class ComponentSchema
     }
 
     /// <summary>
-    ///     Every component and tag of Rin.World, frozen, so clones of it never collide with a later append.
+    ///     <see cref="ComponentModule.Engine" />, frozen, so clones of it never collide with a later append.
     /// </summary>
     public static ComponentSchema Engine { get; } = CreateEngine();
 
@@ -69,11 +66,22 @@ public sealed partial class ComponentSchema
 
     public bool TryGetId<T>(out ComponentId id) where T : unmanaged
     {
-        var index = TypeIndex<T>.Value;
+        id = new ComponentId(LocalIdOf(TypeIndex<T>.Value));
+        return id.Value != Absent;
+    }
+
+    private static ComponentSchema CreateEngine()
+    {
+        var schema = new ComponentSchema();
+        foreach (var info in ComponentModule.Engine.Components) schema.Append(info);
+        schema.Freeze();
+        return schema;
+    }
+
+    private int LocalIdOf(int typeIndex)
+    {
         var localIds = Volatile.Read(ref _localIds);
-        var value = index < localIds.Length ? localIds[index] : Absent;
-        id = new ComponentId(value);
-        return value != Absent;
+        return typeIndex < localIds.Length ? localIds[typeIndex] : Absent;
     }
 
     private ComponentId AddLazily<T>() where T : unmanaged
@@ -81,14 +89,8 @@ public sealed partial class ComponentSchema
         lock (_gate)
         {
             if (TryGetId<T>(out var existing)) return existing;
-            if (!_byType.TryGetValue(typeof(T), out var id))
-            {
-                EnsureNotFrozen(typeof(T).Name);
-                id = Append(ComponentInfo.Of<T>());
-            }
-
-            MapTypeIndex(TypeIndex<T>.Value, id);
-            return id;
+            EnsureNotFrozen(typeof(T).Name);
+            return Append(ComponentInfo.Of<T>());
         }
     }
 
@@ -103,8 +105,8 @@ public sealed partial class ComponentSchema
         }
 
         _infos[id.Value] = info;
-        _byType.Add(info.Type, id);
         Volatile.Write(ref _count, _count + 1);
+        MapTypeIndex(info.TypeIndex, id);
         return id;
     }
 

@@ -67,19 +67,23 @@ public class ComponentSchemaTests
     }
 
     [Test]
-    public void TheEngineSchemaIsFrozenAndHoldsEveryRinWorldComponentAndTag()
+    public void TheEngineSchemaIsFrozenAndHoldsTheEngineModuleInOrder()
     {
-        var tryGetId = typeof(ComponentSchema).GetMethod(nameof(ComponentSchema.TryGetId))!;
-        var missing = new List<string>();
-        foreach (var type in typeof(World).Assembly.GetTypes())
-        {
-            if (!type.IsValueType || !typeof(IComponentData).IsAssignableFrom(type)) continue;
-            object?[] arguments = [null];
-            if (!(bool)tryGetId.MakeGenericMethod(type).Invoke(ComponentSchema.Engine, arguments)!) missing.Add(type.FullName!);
-        }
+        var schema = ComponentSchema.Engine;
+        var module = ComponentModule.Engine.Components;
 
-        Assert.That(ComponentSchema.Engine.IsFrozen, Is.True);
-        Assert.That(missing, Is.Empty, "add them to ComponentSchema.CreateEngine");
+        Assert.That(schema.IsFrozen, Is.True);
+        Assert.That(schema.Count, Is.EqualTo(module.Length));
+        for (var i = 0; i < module.Length; i++) Assert.That(schema[new ComponentId(i)], Is.SameAs(module[i]));
+    }
+
+    [Test]
+    public void TryGetIdFindsAModuleTypeThatWasNeverAskedForByIdOf()
+    {
+        var schema = ComponentSchema.Engine.Clone();
+
+        Assert.That(schema.TryGetId<Camera>(out var camera), Is.True);
+        Assert.That(schema[camera].Type, Is.EqualTo(typeof(Camera)));
     }
 
     [Test]
