@@ -29,6 +29,9 @@ public readonly struct Query<T1>
     public QueryEnumerator<T1> GetEnumerator() => new(_state);
 }
 
+/// <summary>
+///     Blocks structural changes until disposed, which <c>foreach</c> does. Dispose one taken by hand exactly once.
+/// </summary>
 public struct QueryEnumerator<T1> : IDisposable
     where T1 : unmanaged, IComponentData
 {
@@ -72,6 +75,9 @@ public readonly struct Query<T1, T2>
     public QueryEnumerator<T1, T2> GetEnumerator() => new(_state);
 }
 
+/// <summary>
+///     Blocks structural changes until disposed, which <c>foreach</c> does. Dispose one taken by hand exactly once.
+/// </summary>
 public struct QueryEnumerator<T1, T2> : IDisposable
     where T1 : unmanaged, IComponentData
     where T2 : unmanaged, IComponentData
@@ -119,6 +125,9 @@ public readonly struct Query<T1, T2, T3>
     public QueryEnumerator<T1, T2, T3> GetEnumerator() => new(_state);
 }
 
+/// <summary>
+///     Blocks structural changes until disposed, which <c>foreach</c> does. Dispose one taken by hand exactly once.
+/// </summary>
 public struct QueryEnumerator<T1, T2, T3> : IDisposable
     where T1 : unmanaged, IComponentData
     where T2 : unmanaged, IComponentData
@@ -170,6 +179,9 @@ public readonly struct Query<T1, T2, T3, T4>
     public QueryEnumerator<T1, T2, T3, T4> GetEnumerator() => new(_state);
 }
 
+/// <summary>
+///     Blocks structural changes until disposed, which <c>foreach</c> does. Dispose one taken by hand exactly once.
+/// </summary>
 public struct QueryEnumerator<T1, T2, T3, T4> : IDisposable
     where T1 : unmanaged, IComponentData
     where T2 : unmanaged, IComponentData
@@ -206,13 +218,15 @@ public struct QueryEnumerator<T1, T2, T3, T4> : IDisposable
 }
 
 /// <summary>
-///     Walks a query's non-empty archetypes and holds the store's structural change guard until disposed.
+///     Walks a query's non-empty archetypes and holds the store's structural change guard until disposed. Disposing the
+///     same cursor again does nothing, but disposing a copy ends the loop a second time, which throws.
 /// </summary>
 internal struct ChunkCursor
 {
     private readonly ArchetypeStore _store;
     private readonly List<Archetype> _archetypes;
     private int _index;
+    private bool _ended;
 
     public ChunkCursor(QueryState state)
     {
@@ -233,5 +247,10 @@ internal struct ChunkCursor
         return false;
     }
 
-    public void Dispose() => _store.Phase.EndIteration();
+    public void Dispose()
+    {
+        if (_ended) return;
+        _ended = true;
+        _store.Phase.EndIteration();
+    }
 }

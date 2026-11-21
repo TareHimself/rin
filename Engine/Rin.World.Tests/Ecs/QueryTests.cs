@@ -197,6 +197,38 @@ public class QueryTests
     }
 
     [Test]
+    public void DisposingTheSameEnumeratorTwiceEndsItsLoopOnce()
+    {
+        var world = new World();
+        var entity = Spawn(world, 1);
+        var enumerator = world.Query<Health>().GetEnumerator();
+
+        enumerator.Dispose();
+        enumerator.Dispose();
+
+        Assert.Throws<InvalidOperationException>(() =>
+        {
+            foreach (var _ in world.Query<Health>()) world.Add(entity, new Speed(1f));
+        }, "the guard still works");
+    }
+
+    [Test]
+    public void DisposingACopyOfAnEndedEnumeratorThrowsAndKeepsTheGuard()
+    {
+        var world = new World();
+        var entity = Spawn(world, 1);
+        var enumerator = world.Query<Health>().GetEnumerator();
+        var copy = enumerator;
+        enumerator.Dispose();
+
+        Assert.Throws<InvalidOperationException>(() => copy.Dispose());
+        Assert.Throws<InvalidOperationException>(() =>
+        {
+            foreach (var _ in world.Query<Health>()) world.Add(entity, new Speed(1f));
+        });
+    }
+
+    [Test]
     public void QueryingInlineAndThroughAFilterDoesNotAllocateOnceWarmedUp()
     {
         var world = new World();
