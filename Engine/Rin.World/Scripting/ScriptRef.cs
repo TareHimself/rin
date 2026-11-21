@@ -3,7 +3,8 @@ namespace Rin.World.Scripting;
 /// <summary>
 ///     Slot of the entity's script list. Removing it detaches every script.
 /// </summary>
-public readonly struct ScriptRef : IDerivedComponentData
+[EcsNotSaved]
+public readonly struct ScriptRef : IComponentData
 {
     private readonly int _slotPlusOne;
 

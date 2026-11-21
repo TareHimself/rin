@@ -23,19 +23,19 @@ public sealed class CommandBuffer
 
     public void Despawn(Entity entity) => _commands.Add(new Command(CommandKind.Despawn, entity, -1, -1));
 
-    public void Add<T>(Entity entity, in T component) where T : struct, IComponentData =>
+    public void Add<T>(Entity entity, in T component) where T : unmanaged, IComponentData =>
         Record(CommandKind.Add, entity, component);
 
-    public void Set<T>(Entity entity, in T component) where T : struct, IComponentData =>
+    public void Set<T>(Entity entity, in T component) where T : unmanaged, IComponentData =>
         Record(CommandKind.Set, entity, component);
 
-    public void Remove<T>(Entity entity) where T : struct, IComponentData =>
+    public void Remove<T>(Entity entity) where T : unmanaged, IComponentData =>
         RecordWithoutValue<ComponentCommands<T>>(CommandKind.Remove, entity, ComponentCommands<T>.Slot);
 
-    public void AddTag<T>(Entity entity) where T : struct, ITagData =>
+    public void AddTag<T>(Entity entity) where T : unmanaged, ITagData =>
         RecordWithoutValue<TagCommands<T>>(CommandKind.AddTag, entity, TagCommands<T>.Slot);
 
-    public void RemoveTag<T>(Entity entity) where T : struct, ITagData =>
+    public void RemoveTag<T>(Entity entity) where T : unmanaged, ITagData =>
         RecordWithoutValue<TagCommands<T>>(CommandKind.RemoveTag, entity, TagCommands<T>.Slot);
 
     public void Playback()
@@ -63,7 +63,7 @@ public sealed class CommandBuffer
         foreach (var typed in _typed) typed?.Clear();
     }
 
-    private void Record<T>(CommandKind kind, Entity entity, in T component) where T : struct, IComponentData
+    private void Record<T>(CommandKind kind, Entity entity, in T component) where T : unmanaged, IComponentData
     {
         var components = GetTyped<ComponentCommands<T>>(ComponentCommands<T>.Slot);
         _commands.Add(new Command(kind, entity, ComponentCommands<T>.Slot, components.Store(component)));
@@ -109,7 +109,7 @@ public sealed class CommandBuffer
         protected static int NextSlot() => Interlocked.Increment(ref _slotCount) - 1;
     }
 
-    private sealed class ComponentCommands<T> : TypedCommands where T : struct, IComponentData
+    private sealed class ComponentCommands<T> : TypedCommands where T : unmanaged, IComponentData
     {
         public static readonly int Slot = NextSlot();
 
@@ -140,7 +140,7 @@ public sealed class CommandBuffer
         public override void Clear() => _values.Clear();
     }
 
-    private sealed class TagCommands<T> : TypedCommands where T : struct, ITagData
+    private sealed class TagCommands<T> : TypedCommands where T : unmanaged, ITagData
     {
         public static readonly int Slot = NextSlot();
 

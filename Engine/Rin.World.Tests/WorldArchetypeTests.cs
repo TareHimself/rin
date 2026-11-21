@@ -65,22 +65,6 @@ public class WorldArchetypeTests
     }
 
     [Test]
-    public void AComponentWithManagedReferencesKeepsItsValueAcrossMoves()
-    {
-        var world = new World();
-        var first = world.Spawn();
-        var second = world.Spawn();
-        world.Add(first, new Named("first"));
-        world.Add(second, new Named("second"));
-
-        world.Add(first, new Health(1));
-        world.Remove<Named>(second);
-
-        Assert.That(world.Get<Named>(first).Name, Is.EqualTo("first"));
-        Assert.That(world.Has<Named>(second), Is.False);
-    }
-
-    [Test]
     public void AddingAndRemovingDoesNotAllocateOnceWarmedUp()
     {
         var world = new World();
@@ -137,6 +121,4 @@ public class WorldArchetypeTests
             for (var i = 0; i < chunk.Length; i++) order.Add(chunk.Entities[i]);
         return order;
     }
-
-    internal record struct Named(string Name) : IComponentData;
 }

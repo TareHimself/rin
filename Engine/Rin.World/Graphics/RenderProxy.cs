@@ -5,7 +5,8 @@ namespace Rin.World.Graphics;
 ///     Added and removed by <see cref="RenderFeature" /> alongside a mesh or light component, and rebuilt by it after a
 ///     snapshot restore.
 /// </summary>
-public struct RenderProxy : IDerivedComponentData
+[EcsNotSaved]
+public struct RenderProxy : IComponentData
 {
     public RenderProxyHandle Handle { get; internal set; }
 

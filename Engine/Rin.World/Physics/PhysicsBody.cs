@@ -5,7 +5,8 @@ namespace Rin.World.Physics;
 ///     Added and removed by <see cref="PhysicsFeature" /> alongside a <see cref="RigidBody" />, and rebuilt by it after a
 ///     snapshot restore.
 /// </summary>
-public struct PhysicsBody : IDerivedComponentData
+[EcsNotSaved]
+public struct PhysicsBody : IComponentData
 {
     public PhysicsBodyHandle Handle { get; internal set; }
 

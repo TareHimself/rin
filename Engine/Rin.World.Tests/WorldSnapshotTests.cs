@@ -179,15 +179,6 @@ public class WorldSnapshotTests
     }
 
     [Test]
-    public void SavingAComponentWithManagedReferencesThrows()
-    {
-        var world = new World();
-        world.Add(world.Spawn(), new Named { Name = "managed" });
-
-        Assert.Throws<InvalidOperationException>(() => world.SaveSnapshot(new WorldSnapshot()));
-    }
-
-    [Test]
     public void RestoringAnEmptySnapshotThrows()
     {
         Assert.Throws<ArgumentException>(() => new World().RestoreSnapshot(new WorldSnapshot()));
@@ -244,11 +235,6 @@ public class WorldSnapshotTests
         var children = new List<Entity>();
         foreach (var child in world.GetChildren(parent)) children.Add(child);
         return children;
-    }
-
-    internal struct Named : IComponentData
-    {
-        public string Name;
     }
 
     private sealed class LoggingListener(string name, List<string> log, World world) : IWorldRestoreListener

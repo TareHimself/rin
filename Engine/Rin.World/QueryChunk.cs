@@ -1,7 +1,7 @@
 namespace Rin.World;
 
 public readonly ref struct QueryChunk<T1>(Span<T1> components1, ChunkEntities entities)
-    where T1 : struct, IComponentData
+    where T1 : unmanaged, IComponentData
 {
     public Span<T1> Components1 { get; } = components1;
 
@@ -17,8 +17,8 @@ public readonly ref struct QueryChunk<T1>(Span<T1> components1, ChunkEntities en
 }
 
 public readonly ref struct QueryChunk<T1, T2>(Span<T1> components1, Span<T2> components2, ChunkEntities entities)
-    where T1 : struct, IComponentData
-    where T2 : struct, IComponentData
+    where T1 : unmanaged, IComponentData
+    where T2 : unmanaged, IComponentData
 {
     public Span<T1> Components1 { get; } = components1;
 
@@ -43,9 +43,9 @@ public readonly ref struct QueryChunk<T1, T2>(Span<T1> components1, Span<T2> com
 }
 
 public readonly ref struct QueryChunk<T1, T2, T3>(Span<T1> components1, Span<T2> components2, Span<T3> components3, ChunkEntities entities)
-    where T1 : struct, IComponentData
-    where T2 : struct, IComponentData
-    where T3 : struct, IComponentData
+    where T1 : unmanaged, IComponentData
+    where T2 : unmanaged, IComponentData
+    where T3 : unmanaged, IComponentData
 {
     public Span<T1> Components1 { get; } = components1;
 
@@ -74,10 +74,10 @@ public readonly ref struct QueryChunk<T1, T2, T3>(Span<T1> components1, Span<T2>
 }
 
 public readonly ref struct QueryChunk<T1, T2, T3, T4>(Span<T1> components1, Span<T2> components2, Span<T3> components3, Span<T4> components4, ChunkEntities entities)
-    where T1 : struct, IComponentData
-    where T2 : struct, IComponentData
-    where T3 : struct, IComponentData
-    where T4 : struct, IComponentData
+    where T1 : unmanaged, IComponentData
+    where T2 : unmanaged, IComponentData
+    where T3 : unmanaged, IComponentData
+    where T4 : unmanaged, IComponentData
 {
     public Span<T1> Components1 { get; } = components1;
 

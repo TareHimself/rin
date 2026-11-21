@@ -11,7 +11,7 @@ internal static class TypeIndex
     public static int Next() => Interlocked.Increment(ref _count) - 1;
 }
 
-internal static class TypeIndex<T> where T : struct
+internal static class TypeIndex<T> where T : unmanaged
 {
     public static readonly int Value = TypeIndex.Next();
 }

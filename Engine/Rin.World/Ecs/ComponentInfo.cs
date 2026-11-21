@@ -10,8 +10,8 @@ namespace Rin.World;
 /// <param name="Type">
 ///     The C# struct, or null for a component defined only at run time.
 /// </param>
-/// <param name="IsDerived">
-///     Its bytes are left out of snapshots, as for <see cref="IDerivedComponentData" />.
+/// <param name="IsSaved">
+///     False for <see cref="EcsNotSavedAttribute" /> components, whose values are left out of every save.
 /// </param>
 /// <param name="Fields">
 ///     Filled for run-time components. Empty for C# structs for now.
@@ -21,42 +21,28 @@ public sealed record ComponentInfo(
     Type? Type,
     int Size,
     int Alignment,
-    bool IsDerived,
-    bool IsEditorOnly,
+    bool IsSaved,
     ComponentField[] Fields)
 {
     public bool IsTag => Size == 0;
 
     /// <summary>
-    ///     Such a component lives in a typed column instead of raw bytes and cannot be saved in a snapshot.
-    /// </summary>
-    public bool ContainsReferences { get; private init; }
-
-    internal Func<Column>? CreateManagedColumn { get; private init; }
-
-    /// <summary>
     ///     A tag for an <see cref="ITagData" />, otherwise a component of the struct's size.
     /// </summary>
-    public static ComponentInfo Of<T>() where T : struct
+    public static ComponentInfo Of<T>() where T : unmanaged
     {
         var isTag = typeof(ITagData).IsAssignableFrom(typeof(T));
-        var containsReferences = !isTag && RuntimeHelpers.IsReferenceOrContainsReferences<T>();
         return new ComponentInfo(
             typeof(T).Name,
             typeof(T),
             isTag ? 0 : Unsafe.SizeOf<T>(),
             isTag ? 1 : Unsafe.SizeOf<AlignmentProbe<T>>() - Unsafe.SizeOf<T>(),
-            typeof(IDerivedComponentData).IsAssignableFrom(typeof(T)),
-            false,
-            [])
-        {
-            ContainsReferences = containsReferences,
-            CreateManagedColumn = containsReferences ? static () => new ManagedColumn<T>() : null
-        };
+            !typeof(T).IsDefined(typeof(EcsNotSavedAttribute), false),
+            []);
     }
 
     // Its size is the struct's size plus the padding a byte in front of it needs, which is its alignment.
-    private struct AlignmentProbe<T> where T : struct
+    private struct AlignmentProbe<T> where T : unmanaged
     {
 #pragma warning disable CS0169
         private byte _pad;

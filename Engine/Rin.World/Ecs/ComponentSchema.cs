@@ -64,8 +64,6 @@ public sealed partial class ComponentSchema
     public ComponentId Add(ComponentInfo info)
     {
         ArgumentNullException.ThrowIfNull(info);
-        if (info.ContainsReferences && info.CreateManagedColumn is null)
-            throw new ArgumentException($"{info.Name} holds managed references, which only C# structs may.", nameof(info));
 
         lock (_gate)
         {
@@ -79,10 +77,10 @@ public sealed partial class ComponentSchema
     /// <summary>
     ///     The id of <typeparamref name="T" />, added on first use unless the schema is frozen.
     /// </summary>
-    public ComponentId IdOf<T>() where T : struct =>
+    public ComponentId IdOf<T>() where T : unmanaged =>
         TryGetId<T>(out var id) ? id : AddLazily<T>();
 
-    public bool TryGetId<T>(out ComponentId id) where T : struct
+    public bool TryGetId<T>(out ComponentId id) where T : unmanaged
     {
         var index = TypeIndex<T>.Value;
         var localIds = Volatile.Read(ref _localIds);
@@ -91,7 +89,7 @@ public sealed partial class ComponentSchema
         return value != Absent;
     }
 
-    private ComponentId AddLazily<T>() where T : struct
+    private ComponentId AddLazily<T>() where T : unmanaged
     {
         lock (_gate)
         {

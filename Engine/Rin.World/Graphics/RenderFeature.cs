@@ -211,7 +211,7 @@ public sealed class RenderFeature : IWorldRestoreListener
         return RenderSystem.CreateEnvironmentProxy(volume);
     }
 
-    private void DestroyProxy<T>(Entity entity, ref T component) where T : struct, IComponentData
+    private void DestroyProxy<T>(Entity entity, ref T component) where T : unmanaged, IComponentData
     {
         if (!World.Has<RenderProxy>(entity)) return;
         RenderSystem.DestroyProxy(World.Get<RenderProxy>(entity).Handle);

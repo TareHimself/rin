@@ -33,18 +33,18 @@ public abstract class Script
 
     protected T? GetScript<T>(Entity entity) where T : Script => Feature.GetScript<T>(entity);
 
-    protected ref T GetComponent<T>() where T : struct, IComponentData => ref World.Get<T>(Entity);
+    protected ref T GetComponent<T>() where T : unmanaged, IComponentData => ref World.Get<T>(Entity);
 
-    protected ref T GetComponent<T>(Entity entity) where T : struct, IComponentData => ref World.Get<T>(entity);
+    protected ref T GetComponent<T>(Entity entity) where T : unmanaged, IComponentData => ref World.Get<T>(entity);
 
-    protected bool HasComponent<T>() where T : struct, IComponentData => World.Has<T>(Entity);
+    protected bool HasComponent<T>() where T : unmanaged, IComponentData => World.Has<T>(Entity);
 
-    protected bool HasComponent<T>(Entity entity) where T : struct, IComponentData => World.Has<T>(entity);
+    protected bool HasComponent<T>(Entity entity) where T : unmanaged, IComponentData => World.Has<T>(entity);
 
-    protected bool TryGetComponent<T>(out T component) where T : struct, IComponentData =>
+    protected bool TryGetComponent<T>(out T component) where T : unmanaged, IComponentData =>
         TryGetComponent(Entity, out component);
 
-    protected bool TryGetComponent<T>(Entity entity, out T component) where T : struct, IComponentData
+    protected bool TryGetComponent<T>(Entity entity, out T component) where T : unmanaged, IComponentData
     {
         var found = World.Has<T>(entity);
         component = found ? World.Get<T>(entity) : default;

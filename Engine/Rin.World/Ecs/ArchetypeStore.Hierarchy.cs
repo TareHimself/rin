@@ -38,9 +38,9 @@ internal sealed partial class ArchetypeStore
         _despawning.RemoveRange(start, end - start);
     }
 
-    public void OnAdd<T>(ComponentHook<T> handler) where T : struct, IComponentData => GetOrCreateHooks<T>().OnAdd(handler);
+    public void OnAdd<T>(ComponentHook<T> handler) where T : unmanaged, IComponentData => GetOrCreateHooks<T>().OnAdd(handler);
 
-    public void OnRemove<T>(ComponentHook<T> handler) where T : struct, IComponentData => GetOrCreateHooks<T>().OnRemove(handler);
+    public void OnRemove<T>(ComponentHook<T> handler) where T : unmanaged, IComponentData => GetOrCreateHooks<T>().OnRemove(handler);
 
     /// <summary>
     ///     Appends <paramref name="child" /> to the children of <paramref name="parent" />, moving it from its old parent.
@@ -80,7 +80,7 @@ internal sealed partial class ArchetypeStore
 
     private ComponentHooks? HooksOf(ComponentId id) => id.Value < _hooks.Length ? _hooks[id.Value] : null;
 
-    private ComponentHooks<T> GetOrCreateHooks<T>() where T : struct, IComponentData
+    private ComponentHooks<T> GetOrCreateHooks<T>() where T : unmanaged, IComponentData
     {
         var id = Schema.IdOf<T>();
         if (id.Value >= _hooks.Length) Array.Resize(ref _hooks, int.Max(id.Value + 1, _hooks.Length * 2));

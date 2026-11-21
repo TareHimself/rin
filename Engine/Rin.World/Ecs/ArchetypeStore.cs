@@ -51,13 +51,13 @@ internal sealed partial class ArchetypeStore
 
     public bool IsAlive(Entity entity) => _ids.IsAlive(entity);
 
-    public bool Has<T>(Entity entity) where T : struct
+    public bool Has<T>(Entity entity) where T : unmanaged
     {
         var location = Resolve(entity);
         return Schema.TryGetId<T>(out var id) && location.Archetype.Has(id);
     }
 
-    public ref T Get<T>(Entity entity) where T : struct
+    public ref T Get<T>(Entity entity) where T : unmanaged
     {
         var location = Resolve(entity);
         var column = Schema.TryGetId<T>(out var id) ? location.Archetype.ColumnOf(id) : -1;
@@ -68,7 +68,7 @@ internal sealed partial class ArchetypeStore
     /// <summary>
     ///     Adds the component, or overwrites it when present. Returns whether it was new.
     /// </summary>
-    public bool Add<T>(Entity entity, in T component) where T : struct
+    public bool Add<T>(Entity entity, in T component) where T : unmanaged
     {
         var id = Schema.IdOf<T>();
         var location = Resolve(entity);
@@ -84,9 +84,9 @@ internal sealed partial class ArchetypeStore
         return isNew;
     }
 
-    public void Set<T>(Entity entity, in T component) where T : struct => Get<T>(entity) = component;
+    public void Set<T>(Entity entity, in T component) where T : unmanaged => Get<T>(entity) = component;
 
-    public bool Remove<T>(Entity entity) where T : struct
+    public bool Remove<T>(Entity entity) where T : unmanaged
     {
         var location = Resolve(entity);
         if (!Schema.TryGetId<T>(out var id) || !location.Archetype.Has(id)) return false;
@@ -100,16 +100,16 @@ internal sealed partial class ArchetypeStore
         return true;
     }
 
-    public bool HasTag<T>(Entity entity) where T : struct => Has<T>(entity);
+    public bool HasTag<T>(Entity entity) where T : unmanaged => Has<T>(entity);
 
-    public void AddTag<T>(Entity entity) where T : struct
+    public void AddTag<T>(Entity entity) where T : unmanaged
     {
         var id = Schema.IdOf<T>();
         var location = Resolve(entity);
         if (!location.Archetype.Has(id)) Move(entity.Id, WithComponent(location.Archetype, id));
     }
 
-    public void RemoveTag<T>(Entity entity) where T : struct => Remove<T>(entity);
+    public void RemoveTag<T>(Entity entity) where T : unmanaged => Remove<T>(entity);
 
     public Archetype GetOrCreateArchetype(ReadOnlySpan<ComponentId> key)
     {

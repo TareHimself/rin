@@ -53,7 +53,7 @@ internal sealed class RenderExtract : FrameSystem
     }
 
     private void PushMeshTransforms<TMesh>(Query<TMesh, WorldTransform, RenderProxy> meshes)
-        where TMesh : struct, IComponentData
+        where TMesh : unmanaged, IComponentData
     {
         foreach (var (_, transforms, proxies) in meshes)
             for (var i = 0; i < transforms.Length; i++)

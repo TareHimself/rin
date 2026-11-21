@@ -99,21 +99,21 @@ public class ComponentSchemaTests
         var schema = new ComponentSchema();
         schema.IdOf<Health>();
 
-        var id = schema.Add(new ComponentInfo("Door", null, 8, 4, false, false, [new ComponentField("Open", typeof(int), 0)]));
+        var id = schema.Add(new ComponentInfo("Door", null, 8, 4, true, [new ComponentField("Open", typeof(int), 0)]));
 
         Assert.That(id.Value, Is.EqualTo(1));
         Assert.That(schema[id].Name, Is.EqualTo("Door"));
     }
 
     [Test]
-    public void TagsAreZeroSizeAndDerivedComponentsAreMarked()
+    public void TagsAreZeroSizeAndNotSavedComponentsAreMarked()
     {
         var schema = ComponentSchema.Engine.Clone();
 
         Assert.That(schema[schema.IdOf<Stunned>()].IsTag, Is.True);
         Assert.That(schema[schema.IdOf<Health>()].Size, Is.EqualTo(sizeof(int)));
-        Assert.That(schema[schema.IdOf<RenderProxy>()].IsDerived, Is.True);
-        Assert.That(schema[schema.IdOf<LocalTransform>()].IsDerived, Is.False);
+        Assert.That(schema[schema.IdOf<RenderProxy>()].IsSaved, Is.False);
+        Assert.That(schema[schema.IdOf<LocalTransform>()].IsSaved, Is.True);
     }
 
     [Test]

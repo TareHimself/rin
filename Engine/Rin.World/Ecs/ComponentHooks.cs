@@ -7,7 +7,7 @@ internal abstract class ComponentHooks
     public abstract void FireRemoved(ArchetypeStore store, Entity entity);
 }
 
-internal sealed class ComponentHooks<T> : ComponentHooks where T : struct, IComponentData
+internal sealed class ComponentHooks<T> : ComponentHooks where T : unmanaged, IComponentData
 {
     private readonly List<ComponentHook<T>> _added = [];
     private readonly List<ComponentHook<T>> _removed = [];

@@ -8,7 +8,7 @@ namespace Rin.World;
 ///     and keep it.
 /// </summary>
 public readonly struct Query<T1>
-    where T1 : struct, IComponentData
+    where T1 : unmanaged, IComponentData
 {
     private readonly QueryState _state;
 
@@ -19,18 +19,18 @@ public readonly struct Query<T1>
     /// <summary>
     ///     A new query that also requires the component or tag <typeparamref name="T" />.
     /// </summary>
-    public Query<T1> With<T>() where T : struct => new(_state.With(_state.Store.Schema.IdOf<T>()));
+    public Query<T1> With<T>() where T : unmanaged => new(_state.With(_state.Store.Schema.IdOf<T>()));
 
     /// <summary>
     ///     A new query that skips entities with the component or tag <typeparamref name="T" />.
     /// </summary>
-    public Query<T1> Without<T>() where T : struct => new(_state.Without(_state.Store.Schema.IdOf<T>()));
+    public Query<T1> Without<T>() where T : unmanaged => new(_state.Without(_state.Store.Schema.IdOf<T>()));
 
     public QueryEnumerator<T1> GetEnumerator() => new(_state);
 }
 
 public struct QueryEnumerator<T1> : IDisposable
-    where T1 : struct, IComponentData
+    where T1 : unmanaged, IComponentData
 {
     private ChunkCursor _cursor;
     private readonly ComponentId _id1;
@@ -56,8 +56,8 @@ public struct QueryEnumerator<T1> : IDisposable
 }
 
 public readonly struct Query<T1, T2>
-    where T1 : struct, IComponentData
-    where T2 : struct, IComponentData
+    where T1 : unmanaged, IComponentData
+    where T2 : unmanaged, IComponentData
 {
     private readonly QueryState _state;
 
@@ -65,16 +65,16 @@ public readonly struct Query<T1, T2>
 
     public int EntityCount => _state.EntityCount;
 
-    public Query<T1, T2> With<T>() where T : struct => new(_state.With(_state.Store.Schema.IdOf<T>()));
+    public Query<T1, T2> With<T>() where T : unmanaged => new(_state.With(_state.Store.Schema.IdOf<T>()));
 
-    public Query<T1, T2> Without<T>() where T : struct => new(_state.Without(_state.Store.Schema.IdOf<T>()));
+    public Query<T1, T2> Without<T>() where T : unmanaged => new(_state.Without(_state.Store.Schema.IdOf<T>()));
 
     public QueryEnumerator<T1, T2> GetEnumerator() => new(_state);
 }
 
 public struct QueryEnumerator<T1, T2> : IDisposable
-    where T1 : struct, IComponentData
-    where T2 : struct, IComponentData
+    where T1 : unmanaged, IComponentData
+    where T2 : unmanaged, IComponentData
 {
     private ChunkCursor _cursor;
     private readonly ComponentId _id1;
@@ -102,9 +102,9 @@ public struct QueryEnumerator<T1, T2> : IDisposable
 }
 
 public readonly struct Query<T1, T2, T3>
-    where T1 : struct, IComponentData
-    where T2 : struct, IComponentData
-    where T3 : struct, IComponentData
+    where T1 : unmanaged, IComponentData
+    where T2 : unmanaged, IComponentData
+    where T3 : unmanaged, IComponentData
 {
     private readonly QueryState _state;
 
@@ -112,17 +112,17 @@ public readonly struct Query<T1, T2, T3>
 
     public int EntityCount => _state.EntityCount;
 
-    public Query<T1, T2, T3> With<T>() where T : struct => new(_state.With(_state.Store.Schema.IdOf<T>()));
+    public Query<T1, T2, T3> With<T>() where T : unmanaged => new(_state.With(_state.Store.Schema.IdOf<T>()));
 
-    public Query<T1, T2, T3> Without<T>() where T : struct => new(_state.Without(_state.Store.Schema.IdOf<T>()));
+    public Query<T1, T2, T3> Without<T>() where T : unmanaged => new(_state.Without(_state.Store.Schema.IdOf<T>()));
 
     public QueryEnumerator<T1, T2, T3> GetEnumerator() => new(_state);
 }
 
 public struct QueryEnumerator<T1, T2, T3> : IDisposable
-    where T1 : struct, IComponentData
-    where T2 : struct, IComponentData
-    where T3 : struct, IComponentData
+    where T1 : unmanaged, IComponentData
+    where T2 : unmanaged, IComponentData
+    where T3 : unmanaged, IComponentData
 {
     private ChunkCursor _cursor;
     private readonly ComponentId _id1;
@@ -152,10 +152,10 @@ public struct QueryEnumerator<T1, T2, T3> : IDisposable
 }
 
 public readonly struct Query<T1, T2, T3, T4>
-    where T1 : struct, IComponentData
-    where T2 : struct, IComponentData
-    where T3 : struct, IComponentData
-    where T4 : struct, IComponentData
+    where T1 : unmanaged, IComponentData
+    where T2 : unmanaged, IComponentData
+    where T3 : unmanaged, IComponentData
+    where T4 : unmanaged, IComponentData
 {
     private readonly QueryState _state;
 
@@ -163,18 +163,18 @@ public readonly struct Query<T1, T2, T3, T4>
 
     public int EntityCount => _state.EntityCount;
 
-    public Query<T1, T2, T3, T4> With<T>() where T : struct => new(_state.With(_state.Store.Schema.IdOf<T>()));
+    public Query<T1, T2, T3, T4> With<T>() where T : unmanaged => new(_state.With(_state.Store.Schema.IdOf<T>()));
 
-    public Query<T1, T2, T3, T4> Without<T>() where T : struct => new(_state.Without(_state.Store.Schema.IdOf<T>()));
+    public Query<T1, T2, T3, T4> Without<T>() where T : unmanaged => new(_state.Without(_state.Store.Schema.IdOf<T>()));
 
     public QueryEnumerator<T1, T2, T3, T4> GetEnumerator() => new(_state);
 }
 
 public struct QueryEnumerator<T1, T2, T3, T4> : IDisposable
-    where T1 : struct, IComponentData
-    where T2 : struct, IComponentData
-    where T3 : struct, IComponentData
-    where T4 : struct, IComponentData
+    where T1 : unmanaged, IComponentData
+    where T2 : unmanaged, IComponentData
+    where T3 : unmanaged, IComponentData
+    where T4 : unmanaged, IComponentData
 {
     private ChunkCursor _cursor;
     private readonly ComponentId _id1;

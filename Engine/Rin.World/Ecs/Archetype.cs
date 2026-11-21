@@ -36,7 +36,7 @@ internal sealed class Archetype
             }
 
             _slots[id.Value] = columns.Count;
-            columns.Add(info.CreateManagedColumn?.Invoke() ?? new ByteColumn(info.Size));
+            columns.Add(new Column(info.Size));
             columnIds.Add(id);
         }
 
@@ -67,7 +67,7 @@ internal sealed class Archetype
     public int ColumnOf(ComponentId id) =>
         (uint)id.Value < (uint)_slots.Length && _slots[id.Value] >= 0 ? _slots[id.Value] : -1;
 
-    public Span<T> Span<T>(ComponentId id) where T : struct => _columns[ColumnOf(id)].Span<T>(Count);
+    public Span<T> Span<T>(ComponentId id) where T : unmanaged => _columns[ColumnOf(id)].Span<T>(Count);
 
     public bool HasAll(ReadOnlySpan<ComponentId> ids)
     {
@@ -124,23 +124,11 @@ internal sealed class Archetype
             foreach (var column in _columns) column.MoveRow(last, row);
         }
 
-        ReleaseReferences(last, 1);
         Count = last;
         return moved;
     }
 
-    public void Clear()
-    {
-        ReleaseReferences(0, Count);
-        Count = 0;
-    }
-
-    // Byte columns keep stale bytes past Count, but managed ones must drop their references for the GC.
-    private void ReleaseReferences(int start, int count)
-    {
-        foreach (var column in _columns)
-            if (column is not ByteColumn) column.ClearRows(start, count);
-    }
+    public void Clear() => Count = 0;
 
     private void EnsureCapacity(int capacity)
     {

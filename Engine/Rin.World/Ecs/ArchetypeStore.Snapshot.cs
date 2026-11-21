@@ -63,11 +63,7 @@ internal sealed partial class ArchetypeStore
         for (var i = 0; i < columns.Length; i++)
         {
             var info = Schema[archetype.ColumnIds[i]];
-            if (info.IsDerived) continue;
-            if (info.ContainsReferences)
-                throw new InvalidOperationException(
-                    $"{info.Name} holds managed references and cannot be saved in a snapshot. Keep managed data in a registry and store its id.");
-            snapshot.WriteBytes(((ByteColumn)columns[i]).Bytes(0, archetype.Count));
+            if (info.IsSaved) snapshot.WriteBytes(columns[i].Bytes(0, archetype.Count));
         }
     }
 
@@ -102,14 +98,9 @@ internal sealed partial class ArchetypeStore
         var columns = archetype.Columns;
         for (var i = 0; i < columns.Length; i++)
         {
-            if (Schema[archetype.ColumnIds[i]].IsDerived)
-            {
-                columns[i].ClearRows(start, count);
-                continue;
-            }
-
-            var column = (ByteColumn)columns[i];
-            reader.ReadBytes(count * column.Stride).CopyTo(column.Bytes(start, count));
+            var column = columns[i];
+            if (Schema[archetype.ColumnIds[i]].IsSaved) reader.ReadBytes(count * column.Stride).CopyTo(column.Bytes(start, count));
+            else column.ClearRows(start, count);
         }
     }
 

@@ -6,27 +6,27 @@ internal sealed partial class ArchetypeStore
     private int _iterationDepth;
 
     public QueryState Query<T1>()
-        where T1 : struct =>
+        where T1 : unmanaged =>
         CachedQuery(QuerySlot<T1>.Value) ?? Cache(QuerySlot<T1>.Value, [Schema.IdOf<T1>()]);
 
     public QueryState Query<T1, T2>()
-        where T1 : struct
-        where T2 : struct =>
+        where T1 : unmanaged
+        where T2 : unmanaged =>
         CachedQuery(QuerySlot<T1, T2>.Value) ??
         Cache(QuerySlot<T1, T2>.Value, [Schema.IdOf<T1>(), Schema.IdOf<T2>()]);
 
     public QueryState Query<T1, T2, T3>()
-        where T1 : struct
-        where T2 : struct
-        where T3 : struct =>
+        where T1 : unmanaged
+        where T2 : unmanaged
+        where T3 : unmanaged =>
         CachedQuery(QuerySlot<T1, T2, T3>.Value) ??
         Cache(QuerySlot<T1, T2, T3>.Value, [Schema.IdOf<T1>(), Schema.IdOf<T2>(), Schema.IdOf<T3>()]);
 
     public QueryState Query<T1, T2, T3, T4>()
-        where T1 : struct
-        where T2 : struct
-        where T3 : struct
-        where T4 : struct =>
+        where T1 : unmanaged
+        where T2 : unmanaged
+        where T3 : unmanaged
+        where T4 : unmanaged =>
         CachedQuery(QuerySlot<T1, T2, T3, T4>.Value) ??
         Cache(QuerySlot<T1, T2, T3, T4>.Value, [Schema.IdOf<T1>(), Schema.IdOf<T2>(), Schema.IdOf<T3>(), Schema.IdOf<T4>()]);
 

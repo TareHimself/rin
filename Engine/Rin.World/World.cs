@@ -105,7 +105,7 @@ public sealed class World
     /// <summary>
     ///     Overwrites <paramref name="snapshot" /> with the simulation state: every entity with its components, tags and
     ///     parent, the entity id allocator, <see cref="TickIndex" />, the tick accumulator and <see cref="Random" />.
-    ///     <see cref="IDerivedComponentData" /> bytes are left out.
+    ///     <see cref="EcsNotSavedAttribute" /> components are left out.
     /// </summary>
     public void SaveSnapshot(WorldSnapshot snapshot)
     {
@@ -188,14 +188,14 @@ public sealed class World
 
     public bool IsAlive(Entity entity) => _store.IsAlive(entity);
 
-    public bool Has<T>(Entity entity) where T : struct, IComponentData => _store.Has<T>(entity);
+    public bool Has<T>(Entity entity) where T : unmanaged, IComponentData => _store.Has<T>(entity);
 
-    public ref T Get<T>(Entity entity) where T : struct, IComponentData => ref _store.Get<T>(entity);
+    public ref T Get<T>(Entity entity) where T : unmanaged, IComponentData => ref _store.Get<T>(entity);
 
     /// <summary>
     ///     Adds the component, or overwrites it when present. <see cref="OnAdd{T}" /> hooks fire only for a new component.
     /// </summary>
-    public void Add<T>(Entity entity, in T component) where T : struct, IComponentData
+    public void Add<T>(Entity entity, in T component) where T : unmanaged, IComponentData
     {
         EnsureNotRestoring();
         _store.Add(entity, component);
@@ -204,23 +204,23 @@ public sealed class World
     /// <summary>
     ///     Overwrites a component the entity already has.
     /// </summary>
-    public void Set<T>(Entity entity, in T component) where T : struct, IComponentData => _store.Set(entity, component);
+    public void Set<T>(Entity entity, in T component) where T : unmanaged, IComponentData => _store.Set(entity, component);
 
-    public bool Remove<T>(Entity entity) where T : struct, IComponentData
+    public bool Remove<T>(Entity entity) where T : unmanaged, IComponentData
     {
         EnsureNotRestoring();
         return _store.Remove<T>(entity);
     }
 
-    public bool HasTag<T>(Entity entity) where T : struct, ITagData => _store.HasTag<T>(entity);
+    public bool HasTag<T>(Entity entity) where T : unmanaged, ITagData => _store.HasTag<T>(entity);
 
-    public void AddTag<T>(Entity entity) where T : struct, ITagData
+    public void AddTag<T>(Entity entity) where T : unmanaged, ITagData
     {
         EnsureNotRestoring();
         _store.AddTag<T>(entity);
     }
 
-    public void RemoveTag<T>(Entity entity) where T : struct, ITagData
+    public void RemoveTag<T>(Entity entity) where T : unmanaged, ITagData
     {
         EnsureNotRestoring();
         _store.RemoveTag<T>(entity);
@@ -247,33 +247,33 @@ public sealed class World
 
     public EntityChildren GetChildren(Entity parent) => _store.GetChildren(parent);
 
-    public void OnAdd<T>(ComponentHook<T> handler) where T : struct, IComponentData => _store.OnAdd(handler);
+    public void OnAdd<T>(ComponentHook<T> handler) where T : unmanaged, IComponentData => _store.OnAdd(handler);
 
     /// <summary>
     ///     Fires before the component is removed, including when its entity is despawned.
     /// </summary>
-    public void OnRemove<T>(ComponentHook<T> handler) where T : struct, IComponentData => _store.OnRemove(handler);
+    public void OnRemove<T>(ComponentHook<T> handler) where T : unmanaged, IComponentData => _store.OnRemove(handler);
 
     public Query<T1> Query<T1>()
-        where T1 : struct, IComponentData
+        where T1 : unmanaged, IComponentData
         => new(_store.Query<T1>());
 
     public Query<T1, T2> Query<T1, T2>()
-        where T1 : struct, IComponentData
-        where T2 : struct, IComponentData
+        where T1 : unmanaged, IComponentData
+        where T2 : unmanaged, IComponentData
         => new(_store.Query<T1, T2>());
 
     public Query<T1, T2, T3> Query<T1, T2, T3>()
-        where T1 : struct, IComponentData
-        where T2 : struct, IComponentData
-        where T3 : struct, IComponentData
+        where T1 : unmanaged, IComponentData
+        where T2 : unmanaged, IComponentData
+        where T3 : unmanaged, IComponentData
         => new(_store.Query<T1, T2, T3>());
 
     public Query<T1, T2, T3, T4> Query<T1, T2, T3, T4>()
-        where T1 : struct, IComponentData
-        where T2 : struct, IComponentData
-        where T3 : struct, IComponentData
-        where T4 : struct, IComponentData
+        where T1 : unmanaged, IComponentData
+        where T2 : unmanaged, IComponentData
+        where T3 : unmanaged, IComponentData
+        where T4 : unmanaged, IComponentData
         => new(_store.Query<T1, T2, T3, T4>());
 
     private void RunTick()
