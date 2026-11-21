@@ -63,16 +63,17 @@ internal sealed class QueryState
 
     public bool TracksChanges => _changed.Length > 0;
 
-    public QueryState With(ComponentId id) => new(Store, [.. _required, id], _excluded, _changed);
+    public QueryState With<T>() where T : unmanaged => new(Store, [.. _required, Store.Schema.IdOf<T>()], _excluded, _changed);
 
-    public QueryState Without(ComponentId id) => new(Store, _required, [.. _excluded, id], _changed);
+    public QueryState Without<T>() where T : unmanaged => new(Store, _required, [.. _excluded, Store.Schema.IdOf<T>()], _changed);
 
     /// <summary>
-    ///     A new query that also requires <paramref name="id" /> and visits only archetypes where one of its changed
+    ///     A new query that also requires <typeparamref name="T" /> and visits only archetypes where one of its changed
     ///     components was written since its last run.
     /// </summary>
-    public QueryState Changed(ComponentId id)
+    public QueryState Changed<T>() where T : unmanaged
     {
+        var id = Store.Schema.IdOf<T>();
         if (Store.Schema[id].IsTag)
             throw new ArgumentException($"{Store.Schema[id].Name} is a tag, so it has no change ticks.", nameof(id));
         ComponentId[] required = _required.AsSpan().Contains(id) ? _required : [.. _required, id];
