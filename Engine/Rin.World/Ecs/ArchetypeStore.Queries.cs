@@ -1,11 +1,9 @@
 namespace Rin.World.Ecs;
 
-public sealed partial class ArchetypeStore
+internal sealed partial class ArchetypeStore
 {
     private QueryState?[] _cachedQueries = [];
     private int _iterationDepth;
-
-    public bool IsIterating => _iterationDepth > 0;
 
     public QueryState Query<T1>()
         where T1 : struct =>

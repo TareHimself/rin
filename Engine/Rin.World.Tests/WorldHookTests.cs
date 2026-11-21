@@ -85,6 +85,27 @@ public class WorldHookTests
     }
 
     [Test]
+    public void ARemoveHookMayDespawnAnotherEntity()
+    {
+        var world = new World();
+        var removed = new List<Entity>();
+        var other = world.Spawn();
+        var first = world.Spawn();
+        world.Add(other, new Health(1));
+        world.Add(first, new Health(2));
+        world.OnRemove((Entity entity, ref Health _) =>
+        {
+            removed.Add(entity);
+            if (entity == first) world.Despawn(other);
+        });
+
+        world.Despawn(first);
+
+        Assert.That(removed, Is.EqualTo(new[] { first, other }));
+        Assert.That(world.EntityCount, Is.Zero);
+    }
+
+    [Test]
     public void FiringHooksDoesNotAllocate()
     {
         var world = new World();

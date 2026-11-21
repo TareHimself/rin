@@ -4,15 +4,13 @@ namespace Rin.World.Ecs;
 ///     Hooks, the hierarchy and despawn. A despawn fires the remove hooks of every component of the entity and its
 ///     descendants, depth first with parents before children, and a hook may despawn more entities.
 /// </summary>
-public sealed partial class ArchetypeStore
+internal sealed partial class ArchetypeStore
 {
     private readonly ChildStore _hierarchy = new();
     private readonly List<Entity> _despawning = [];
     private readonly List<int> _walk = [];
     private ComponentHooks?[] _hooks = [];
     private Entity _firingDespawnHooks;
-
-    internal ChildStore Hierarchy => _hierarchy;
 
     public bool IsDespawning(Entity entity) => entity.IsValid && entity == _firingDespawnHooks;
 
@@ -74,16 +72,10 @@ public sealed partial class ArchetypeStore
         return parent == 0 ? default : _ids.HandleOf(parent);
     }
 
-    public int ChildCount(Entity parent)
+    public EntityChildren GetChildren(Entity parent)
     {
         Resolve(parent);
-        return _hierarchy.ChildrenOf(parent.Id).Length;
-    }
-
-    public Entity ChildAt(Entity parent, int index)
-    {
-        Resolve(parent);
-        return _ids.HandleOf(_hierarchy.ChildrenOf(parent.Id)[index]);
+        return new EntityChildren(_hierarchy, parent.Id, _ids);
     }
 
     private ComponentHooks? HooksOf(ComponentId id) => id.Value < _hooks.Length ? _hooks[id.Value] : null;

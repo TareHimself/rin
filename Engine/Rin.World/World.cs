@@ -13,7 +13,7 @@ public sealed class World
     private const float MaxFrameDeltaSeconds = 0.25f;
     private const int SnapshotFormat = 0x52534E31;
 
-    private readonly EcsStore _store = new();
+    private readonly ArchetypeStore _store;
     private readonly SystemSchedule _schedule = new();
     private readonly List<IWorldRestoreListener> _restoreListeners = [];
     private float _accumulator;
@@ -21,7 +21,16 @@ public sealed class World
     private bool _restoring;
 
     public World()
+        : this(ComponentSchema.Engine.Clone())
     {
+    }
+
+    /// <summary>
+    ///     Worlds that share a schema share component ids. Types it lacks are added on first use unless it is frozen.
+    /// </summary>
+    public World(ComponentSchema schema)
+    {
+        _store = new ArchetypeStore(schema);
         Commands = new CommandBuffer(this);
         _schedule.Add(FramePhase.Extract, new TransformPropagation(this));
     }
@@ -54,6 +63,8 @@ public sealed class World
     ///     How far the current frame is between the last tick and the next, from 0 to 1.
     /// </summary>
     public float InterpolationAlpha { get; private set; }
+
+    public ComponentSchema Schema => _store.Schema;
 
     public int EntityCount => _store.EntityCount;
 
@@ -245,25 +256,25 @@ public sealed class World
 
     public Query<T1> Query<T1>()
         where T1 : struct, IComponentData
-        => _store.Query<T1>();
+        => new(_store.Query<T1>());
 
     public Query<T1, T2> Query<T1, T2>()
         where T1 : struct, IComponentData
         where T2 : struct, IComponentData
-        => _store.Query<T1, T2>();
+        => new(_store.Query<T1, T2>());
 
     public Query<T1, T2, T3> Query<T1, T2, T3>()
         where T1 : struct, IComponentData
         where T2 : struct, IComponentData
         where T3 : struct, IComponentData
-        => _store.Query<T1, T2, T3>();
+        => new(_store.Query<T1, T2, T3>());
 
     public Query<T1, T2, T3, T4> Query<T1, T2, T3, T4>()
         where T1 : struct, IComponentData
         where T2 : struct, IComponentData
         where T3 : struct, IComponentData
         where T4 : struct, IComponentData
-        => _store.Query<T1, T2, T3, T4>();
+        => new(_store.Query<T1, T2, T3, T4>());
 
     private void RunTick()
     {

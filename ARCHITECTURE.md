@@ -92,7 +92,7 @@ A **pass** declares the images and buffers it reads and writes in `Configure`, a
 
 ## Worlds on a surface
 
-`Rin.World` models a world as an ECS: a `World` of entities with struct components, and ordered systems that run on a fixed tick and then per frame. The world does not draw or simulate by itself. Features connect it to the backends through component hooks and systems:
+`Rin.World` models a world as an ECS: a `World` of entities with struct components, stored in Rin's own archetype tables, and ordered systems that run on a fixed tick and then per frame. The world does not draw or simulate by itself. Features connect it to the backends through component hooks and systems:
 
 ```mermaid
 flowchart LR

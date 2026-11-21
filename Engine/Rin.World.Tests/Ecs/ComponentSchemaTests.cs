@@ -115,4 +115,35 @@ public class ComponentSchemaTests
         Assert.That(schema[schema.IdOf<RenderProxy>()].IsDerived, Is.True);
         Assert.That(schema[schema.IdOf<LocalTransform>()].IsDerived, Is.False);
     }
+
+    [Test]
+    public void TwoWorldsSharingASchemaGiveANewTypeOneId()
+    {
+        var schema = ComponentSchema.Engine.Clone();
+        var first = new World(schema);
+        var second = new World(schema);
+
+        first.Add(first.Spawn(), new Health(1));
+        second.Add(second.Spawn(), new Speed(1f));
+        second.Add(second.Spawn(), new Health(2));
+
+        Assert.That(first.Schema, Is.SameAs(second.Schema));
+        Assert.That(schema.Count, Is.EqualTo(ComponentSchema.Engine.Count + 2));
+        Assert.That(first.Query<Health>().EntityCount, Is.EqualTo(1), "worlds share ids, not entities");
+    }
+
+    [Test]
+    public void AWorldOnAFrozenSchemaRejectsTypesTheSchemaLacks()
+    {
+        var schema = ComponentSchema.Engine.Clone();
+        schema.IdOf<Health>();
+        schema.Freeze();
+        var world = new World(schema);
+        var entity = world.Spawn();
+
+        world.Add(entity, new Health(1));
+
+        Assert.Throws<InvalidOperationException>(() => world.Add(entity, new Speed(1f)));
+        Assert.That(world.Has<Speed>(entity), Is.False);
+    }
 }

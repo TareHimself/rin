@@ -75,6 +75,49 @@ public class WorldSnapshotTests
     }
 
     [Test]
+    public void RestoreKeepsTheSavedQueryOrder()
+    {
+        var world = new World();
+        var entities = new List<Entity>();
+        for (var i = 0; i < 6; i++)
+        {
+            var entity = world.Spawn();
+            world.Add(entity, new Health(i));
+            entities.Add(entity);
+        }
+
+        world.Remove<Health>(entities[1]);
+        var saved = HealthOrder(world);
+        var snapshot = new WorldSnapshot();
+        world.SaveSnapshot(snapshot);
+        world.Remove<Health>(entities[0]);
+        world.Add(entities[1], new Health(9));
+
+        world.RestoreSnapshot(snapshot);
+
+        Assert.That(HealthOrder(world), Is.EqualTo(saved));
+    }
+
+    [Test]
+    public void ASnapshotRestoresIntoAnotherWorldWithTheSameSchema()
+    {
+        var schema = ComponentSchema.Engine.Clone();
+        var source = new World(schema);
+        var entity = source.Spawn();
+        source.Add(entity, new Health(4));
+        source.AddTag<Stunned>(entity);
+        var snapshot = new WorldSnapshot();
+        source.SaveSnapshot(snapshot);
+
+        var target = new World(schema);
+        target.RestoreSnapshot(snapshot);
+
+        Assert.That(target.Get<Health>(entity).Value, Is.EqualTo(4));
+        Assert.That(target.HasTag<Stunned>(entity), Is.True);
+        Assert.That(target.Query<Health>().EntityCount, Is.EqualTo(1));
+    }
+
+    [Test]
     public void RestoreDropsPendingCommands()
     {
         var world = new World();
@@ -173,6 +216,14 @@ public class WorldSnapshotTests
 
         TestContext.Out.WriteLine($"{snapshot.Length} bytes per snapshot, {allocated} bytes allocated in 20 save and restore pairs");
         Assert.That(allocated, Is.Zero);
+    }
+
+    private static List<Entity> HealthOrder(World world)
+    {
+        var order = new List<Entity>();
+        foreach (var chunk in world.Query<Health>())
+            for (var i = 0; i < chunk.Length; i++) order.Add(chunk.Entities[i]);
+        return order;
     }
 
     private static void SaveAndRestore(World world, WorldSnapshot snapshot)

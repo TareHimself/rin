@@ -6,22 +6,18 @@ namespace Rin.World.Ecs;
 /// <summary>
 ///     One component's values in an <see cref="Archetype" />, one row per entity.
 /// </summary>
-public abstract class Column
+internal abstract class Column
 {
-    private protected Column()
-    {
-    }
-
-    internal abstract void Resize(int capacity);
+    public abstract void Resize(int capacity);
 
     /// <summary>
     ///     Copies a row into the same component's column of another archetype.
     /// </summary>
-    internal abstract void CopyRowTo(int row, Column target, int targetRow);
+    public abstract void CopyRowTo(int row, Column target, int targetRow);
 
-    internal abstract void MoveRow(int from, int to);
+    public abstract void MoveRow(int from, int to);
 
-    internal abstract void ClearRows(int start, int count);
+    public abstract void ClearRows(int start, int count);
 
     public Span<T> Span<T>(int count) where T : struct =>
         RuntimeHelpers.IsReferenceOrContainsReferences<T>()
@@ -47,19 +43,19 @@ internal sealed class ByteColumn(int stride) : Column
 
     public Span<byte> Bytes(int start, int count) => Data.AsSpan(start * Stride, count * Stride);
 
-    internal override void Resize(int capacity)
+    public override void Resize(int capacity)
     {
         var data = Data;
         Array.Resize(ref data, capacity * Stride);
         Data = data;
     }
 
-    internal override void CopyRowTo(int row, Column target, int targetRow) =>
+    public override void CopyRowTo(int row, Column target, int targetRow) =>
         Bytes(row, 1).CopyTo(((ByteColumn)target).Bytes(targetRow, 1));
 
-    internal override void MoveRow(int from, int to) => Bytes(from, 1).CopyTo(Bytes(to, 1));
+    public override void MoveRow(int from, int to) => Bytes(from, 1).CopyTo(Bytes(to, 1));
 
-    internal override void ClearRows(int start, int count) => Bytes(start, count).Clear();
+    public override void ClearRows(int start, int count) => Bytes(start, count).Clear();
 }
 
 /// <summary>
@@ -69,17 +65,17 @@ internal sealed class ManagedColumn<T> : Column where T : struct
 {
     public T[] Items { get; private set; } = [];
 
-    internal override void Resize(int capacity)
+    public override void Resize(int capacity)
     {
         var items = Items;
         Array.Resize(ref items, capacity);
         Items = items;
     }
 
-    internal override void CopyRowTo(int row, Column target, int targetRow) =>
+    public override void CopyRowTo(int row, Column target, int targetRow) =>
         ((ManagedColumn<T>)target).Items[targetRow] = Items[row];
 
-    internal override void MoveRow(int from, int to) => Items[to] = Items[from];
+    public override void MoveRow(int from, int to) => Items[to] = Items[from];
 
-    internal override void ClearRows(int start, int count) => Items.AsSpan(start, count).Clear();
+    public override void ClearRows(int start, int count) => Items.AsSpan(start, count).Clear();
 }

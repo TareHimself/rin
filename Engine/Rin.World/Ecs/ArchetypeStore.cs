@@ -9,7 +9,7 @@ namespace Rin.World.Ecs;
 ///     and fills the gap with the source's last row. Every step depends only on the order of operations, so the same
 ///     operations give the same rows.
 /// </remarks>
-public sealed partial class ArchetypeStore
+internal sealed partial class ArchetypeStore
 {
     private readonly EntityIdAllocator _ids = new();
     private readonly List<Archetype> _archetypes = [];
@@ -38,7 +38,7 @@ public sealed partial class ArchetypeStore
 
     public int EntityCount { get; private set; }
 
-    internal EntityIdAllocator Ids => _ids;
+    public EntityIdAllocator Ids => _ids;
 
     public Entity Spawn()
     {
@@ -51,8 +51,6 @@ public sealed partial class ArchetypeStore
 
     public bool IsAlive(Entity entity) => _ids.IsAlive(entity);
 
-    public EntityLocation LocationOf(Entity entity) => Resolve(entity);
-
     public bool Has<T>(Entity entity) where T : struct
     {
         var location = Resolve(entity);
@@ -62,7 +60,7 @@ public sealed partial class ArchetypeStore
     public ref T Get<T>(Entity entity) where T : struct
     {
         var location = Resolve(entity);
-        var column = location.Archetype.ColumnOf(Schema.IdOf<T>());
+        var column = Schema.TryGetId<T>(out var id) ? location.Archetype.ColumnOf(id) : -1;
         if (column < 0) throw MissingComponent<T>(entity);
         return ref location.Archetype.Columns[column].Get<T>(location.Row);
     }
@@ -116,7 +114,7 @@ public sealed partial class ArchetypeStore
     public Archetype GetOrCreateArchetype(ReadOnlySpan<ComponentId> key)
     {
         if (_byKeySpan.TryGetValue(key, out var existing)) return existing;
-        var archetype = new Archetype(_archetypes.Count, key.ToArray(), Schema);
+        var archetype = new Archetype(key.ToArray(), Schema);
         _archetypes.Add(archetype);
         _byKey.Add(archetype.Key, archetype);
         return archetype;
@@ -198,4 +196,4 @@ public sealed partial class ArchetypeStore
 /// <summary>
 ///     Where an entity's components are.
 /// </summary>
-public readonly record struct EntityLocation(Archetype Archetype, int Row);
+internal readonly record struct EntityLocation(Archetype Archetype, int Row);

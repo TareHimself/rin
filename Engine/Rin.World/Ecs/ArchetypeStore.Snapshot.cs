@@ -11,7 +11,7 @@ namespace Rin.World.Ecs;
 ///     Entities go straight back into their archetype in the saved order, so query order after a restore matches the
 ///     order at save time. Derived columns are cleared rather than copied.
 /// </remarks>
-public sealed partial class ArchetypeStore
+internal sealed partial class ArchetypeStore
 {
     private const int EndOfHierarchy = 0;
 
@@ -38,13 +38,7 @@ public sealed partial class ArchetypeStore
     /// <summary>
     ///     Replaces every entity with the snapshot's, without firing hooks.
     /// </summary>
-    public void Restore(WorldSnapshot snapshot)
-    {
-        var reader = snapshot.CreateReader();
-        Restore(ref reader);
-    }
-
-    internal void Restore(ref SnapshotReader reader)
+    public void Restore(ref SnapshotReader reader)
     {
         EnsureNotIterating();
         foreach (var archetype in _archetypes) archetype.Clear();

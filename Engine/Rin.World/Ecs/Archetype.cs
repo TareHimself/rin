@@ -4,7 +4,7 @@ namespace Rin.World.Ecs;
 ///     The table of every entity with exactly the components in <see cref="Key" />: their ids plus one column per
 ///     component with a size. Rows are removed by moving the last row into the gap.
 /// </summary>
-public sealed class Archetype
+internal sealed class Archetype
 {
     private const int Absent = -1;
     private const int NoColumn = -2;
@@ -18,9 +18,8 @@ public sealed class Archetype
     private Archetype?[] _removeEdges = [];
     private int[] _entityIds = [];
 
-    internal Archetype(int index, ComponentId[] key, ComponentSchema schema)
+    public Archetype(ComponentId[] key, ComponentSchema schema)
     {
-        Index = index;
         Key = key;
         _slots = new int[key.Length == 0 ? 0 : key[^1].Value + 1];
         _slots.AsSpan().Fill(Absent);
@@ -46,11 +45,6 @@ public sealed class Archetype
     }
 
     /// <summary>
-    ///     Its position in the store's archetype list, which is creation order.
-    /// </summary>
-    public int Index { get; }
-
-    /// <summary>
     ///     Sorted ascending.
     /// </summary>
     public ComponentId[] Key { get; }
@@ -59,7 +53,7 @@ public sealed class Archetype
 
     public ReadOnlySpan<int> EntityIds => _entityIds.AsSpan(0, Count);
 
-    internal int[] EntityIdArray => _entityIds;
+    public int[] EntityIdArray => _entityIds;
 
     public ReadOnlySpan<Column> Columns => _columns;
 
@@ -72,6 +66,8 @@ public sealed class Archetype
     /// </summary>
     public int ColumnOf(ComponentId id) =>
         (uint)id.Value < (uint)_slots.Length && _slots[id.Value] >= 0 ? _slots[id.Value] : -1;
+
+    public Span<T> Span<T>(ComponentId id) where T : struct => _columns[ColumnOf(id)].Span<T>(Count);
 
     public bool HasAll(ReadOnlySpan<ComponentId> ids)
     {
@@ -91,11 +87,11 @@ public sealed class Archetype
 
     public Archetype? RemoveEdge(ComponentId id) => id.Value < _removeEdges.Length ? _removeEdges[id.Value] : null;
 
-    internal void SetAddEdge(ComponentId id, Archetype target) => SetEdge(ref _addEdges, id, target);
+    public void SetAddEdge(ComponentId id, Archetype target) => SetEdge(ref _addEdges, id, target);
 
-    internal void SetRemoveEdge(ComponentId id, Archetype target) => SetEdge(ref _removeEdges, id, target);
+    public void SetRemoveEdge(ComponentId id, Archetype target) => SetEdge(ref _removeEdges, id, target);
 
-    internal int AddRow(int entityId)
+    public int AddRow(int entityId)
     {
         EnsureCapacity(Count + 1);
         _entityIds[Count] = entityId;
@@ -105,7 +101,7 @@ public sealed class Archetype
     /// <summary>
     ///     Appends a row per id, with stale component bytes, and returns the first row.
     /// </summary>
-    internal int AddRows(ReadOnlySpan<int> entityIds)
+    public int AddRows(ReadOnlySpan<int> entityIds)
     {
         var start = Count;
         EnsureCapacity(start + entityIds.Length);
@@ -117,7 +113,7 @@ public sealed class Archetype
     /// <summary>
     ///     Removes the row by moving the last row into it, and returns the id of the entity that moved, or 0 if none did.
     /// </summary>
-    internal int RemoveRow(int row)
+    public int RemoveRow(int row)
     {
         var last = Count - 1;
         var moved = 0;
@@ -133,7 +129,7 @@ public sealed class Archetype
         return moved;
     }
 
-    internal void Clear()
+    public void Clear()
     {
         ReleaseReferences(0, Count);
         Count = 0;

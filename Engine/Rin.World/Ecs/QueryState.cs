@@ -4,14 +4,14 @@ namespace Rin.World.Ecs;
 ///     The archetypes that have every required and no excluded component. Archetypes are only ever appended, so each
 ///     update checks only the ones created since the last.
 /// </summary>
-public sealed class QueryState
+internal sealed class QueryState
 {
     private readonly ComponentId[] _required;
     private readonly ComponentId[] _excluded;
     private readonly List<Archetype> _matched = [];
     private int _archetypesSeen;
 
-    internal QueryState(ArchetypeStore store, ComponentId[] required, ComponentId[] excluded)
+    public QueryState(ArchetypeStore store, ComponentId[] required, ComponentId[] excluded)
     {
         Store = store;
         _required = required;
