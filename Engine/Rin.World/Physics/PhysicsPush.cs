@@ -5,8 +5,8 @@ using Rin.World.Transforms;
 namespace Rin.World.Physics;
 
 /// <summary>
-///     Moves <see cref="PhysicsState.Controlled" /> bodies to their entity's world pose and pushes dirty
-///     <see cref="Velocity" /> components, before the step.
+///     Moves <see cref="PhysicsState.Controlled" /> bodies to their entity's world pose and pushes
+///     <see cref="Velocity" /> components that changed since the body last saw them, before the step.
 /// </summary>
 /// <remarks>
 ///     <see cref="WorldTransform" /> is only propagated per frame, so a child's pose is computed from the
@@ -30,7 +30,7 @@ internal sealed class PhysicsPush : TickSystem
     public override void Tick(in TickContext context)
     {
         PushControlledPoses();
-        PushDirtyVelocities();
+        PushChangedVelocities();
     }
 
     private void PushControlledPoses()
@@ -59,17 +59,18 @@ internal sealed class PhysicsPush : TickSystem
             }
     }
 
-    private void PushDirtyVelocities()
+    private void PushChangedVelocities()
     {
         foreach (var chunk in _velocities)
             for (var i = 0; i < chunk.Length; i++)
             {
-                if (!chunk.Components2[i].IsDirty) continue;
+                ref readonly var velocity = ref chunk.Components2[i];
+                if (velocity.Matches(chunk.Components1[i].SyncedVelocity)) continue;
 
-                ref var velocity = ref chunk.Write<Velocity>(i);
-                _physics.SetLinearVelocity(chunk.Components1[i].Handle, velocity.Linear);
-                _physics.SetAngularVelocity(chunk.Components1[i].Handle, velocity.Angular);
-                velocity.IsDirty = false;
+                ref var body = ref chunk.Write<PhysicsBody>(i);
+                _physics.SetLinearVelocity(body.Handle, velocity.Linear);
+                _physics.SetAngularVelocity(body.Handle, velocity.Angular);
+                body.SyncedVelocity = velocity;
             }
     }
 }

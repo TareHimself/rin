@@ -80,7 +80,6 @@ public class PhysicsFeatureTests : PhysicsFeatureFixture
         var handle = _world.Get<PhysicsBody>(entity).Handle;
         Assert.That(_physics.GetLinearVelocity(handle), Is.EqualTo(new Vector3(1, 2, 3)));
         Assert.That(_physics.GetAngularVelocity(handle), Is.EqualTo(new Vector3(0, 1, 0)));
-        Assert.That(_world.Get<Velocity>(entity).IsDirty, Is.False);
     }
 
     [Test]

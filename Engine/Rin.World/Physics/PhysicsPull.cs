@@ -74,9 +74,11 @@ internal sealed class PhysicsPull : TickSystem
         foreach (var chunk in _velocities)
             for (var i = 0; i < chunk.Length; i++)
             {
-                ref readonly var body = ref chunk.Components1[i];
+                ref var body = ref chunk.Write<PhysicsBody>(i);
                 if (body.State != PhysicsState.Simulated) continue;
-                chunk.Write<Velocity>(i).PullFromBody(_physics.GetLinearVelocity(body.Handle), _physics.GetAngularVelocity(body.Handle));
+                var stepped = new Velocity { Linear = _physics.GetLinearVelocity(body.Handle), Angular = _physics.GetAngularVelocity(body.Handle) };
+                chunk.Write<Velocity>(i) = stepped;
+                body.SyncedVelocity = stepped;
             }
     }
 }
