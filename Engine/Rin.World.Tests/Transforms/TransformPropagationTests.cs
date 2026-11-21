@@ -19,7 +19,6 @@ public class TransformPropagationTests
         world.Update(0f);
 
         Assert.That(world.Get<WorldTransform>(root).Matrix.Translation, Is.EqualTo(new Vector3(1, 2, 3)));
-        Assert.That(world.Get<LocalTransform>(root).IsDirty, Is.False);
     }
 
     [Test]
@@ -58,24 +57,42 @@ public class TransformPropagationTests
     }
 
     [Test]
-    public void VersionChangesOnlyWhenTheMatrixChanges()
+    public void TheWorldTransformIsWrittenOnlyWhenTheMatrixChanges()
     {
         var world = new World();
         var entity = world.Spawn();
         world.SetPosition(entity, new Vector3(1, 0, 0));
+        var before = world.ChangeTick;
         world.Update(0f);
-        Assert.That(world.Get<WorldTransform>(entity).Version, Is.EqualTo(1));
+        Assert.That(world.HasChangedSince<WorldTransform>(entity, before), Is.True);
 
+        before = world.ChangeTick;
         world.Update(0f);
-        Assert.That(world.Get<WorldTransform>(entity).Version, Is.EqualTo(1), "nothing was dirty");
+        Assert.That(world.HasChangedSince<WorldTransform>(entity, before), Is.False, "nothing changed");
 
         world.SetPosition(entity, new Vector3(1, 0, 0));
+        before = world.ChangeTick;
         world.Update(0f);
-        Assert.That(world.Get<WorldTransform>(entity).Version, Is.EqualTo(1), "dirty but the matrix is the same");
+        Assert.That(world.HasChangedSince<WorldTransform>(entity, before), Is.False, "written but the matrix is the same");
 
         world.SetPosition(entity, new Vector3(2, 0, 0));
+        before = world.ChangeTick;
         world.Update(0f);
-        Assert.That(world.Get<WorldTransform>(entity).Version, Is.EqualTo(2));
+        Assert.That(world.HasChangedSince<WorldTransform>(entity, before), Is.True);
+    }
+
+    [Test]
+    public void AWorldTransformAddedAfterTheLocalOneIsStillComputed()
+    {
+        var world = new World();
+        var entity = world.Spawn();
+        world.Add(entity, new LocalTransform { Position = new Vector3(3, 0, 0) });
+        world.Update(0f);
+
+        world.Add(entity, new WorldTransform());
+        world.Update(0f);
+
+        Assert.That(world.Get<WorldTransform>(entity).Matrix.Translation, Is.EqualTo(new Vector3(3, 0, 0)));
     }
 
     [Test]
@@ -93,11 +110,12 @@ public class TransformPropagationTests
         world.Update(0f);
 
         world.SetPosition(moved, Vector3.UnitY * 2);
+        var before = world.ChangeTick;
         world.Update(0f);
 
-        Assert.That(world.Get<WorldTransform>(moved).Version, Is.EqualTo(2));
-        Assert.That(world.Get<WorldTransform>(parent).Version, Is.EqualTo(1));
-        Assert.That(world.Get<WorldTransform>(sibling).Version, Is.EqualTo(1));
+        Assert.That(world.HasChangedSince<WorldTransform>(moved, before), Is.True);
+        Assert.That(world.HasChangedSince<WorldTransform>(parent, before), Is.False);
+        Assert.That(world.HasChangedSince<WorldTransform>(sibling, before), Is.False);
     }
 
     [Test]
@@ -124,7 +142,7 @@ public class TransformPropagationTests
     }
 
     [Test]
-    public void WritesThroughAQuerySpanArePropagated()
+    public void WritesThroughAQueryChunkArePropagated()
     {
         var world = new World { TickInterval = 0.125f };
         var (root, child, _) = Chain(world);
@@ -138,7 +156,7 @@ public class TransformPropagationTests
     }
 
     [Test]
-    public void SetParentMarksTheChildDirty()
+    public void SetParentStampsTheChildsLocalTransform()
     {
         var world = new World();
         var parent = world.Spawn();
@@ -146,10 +164,13 @@ public class TransformPropagationTests
         world.SetPosition(parent, Vector3.UnitX);
         world.SetPosition(child, Vector3.UnitX);
         world.Update(0f);
+        var settled = world.ChangeTick;
+        world.Update(0f);
+        Assert.That(world.HasChangedSince<LocalTransform>(child, settled), Is.False);
 
         world.SetParent(child, parent);
 
-        Assert.That(world.Get<LocalTransform>(child).IsDirty, Is.True);
+        Assert.That(world.HasChangedSince<LocalTransform>(child, settled), Is.True);
     }
 
     [Test]

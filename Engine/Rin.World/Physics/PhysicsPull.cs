@@ -49,7 +49,7 @@ internal sealed class PhysicsPull : TickSystem
                 var rotation = _physics.GetOrientation(body.Handle);
                 if (parent.IsValid) ToParentSpace(parent, ref position, ref rotation);
 
-                // Writing only real changes keeps resting bodies from dirtying propagation every tick.
+                // Writing only real changes keeps resting bodies from stamping a change for propagation every tick.
                 ref readonly var local = ref chunk.Components2[i];
                 if (local.Position == position && local.Rotation == rotation) continue;
 

@@ -130,18 +130,18 @@ public class PhysicsSyncTests : PhysicsFeatureFixture
     }
 
     [Test]
-    public void AnUnchangedSimulatedPoseDoesNotDirtyTheTransform()
+    public void AnUnchangedSimulatedPoseDoesNotStampTheTransform()
     {
         var entity = _world.Spawn();
         _world.SetPosition(entity, new Vector3(1, 2, 3));
         _world.Add(entity, Box(PhysicsState.Simulated));
         Tick();
-        var version = _world.Get<WorldTransform>(entity).Version;
+        var settled = _world.ChangeTick;
 
         Tick();
 
-        Assert.That(_world.Get<WorldTransform>(entity).Version, Is.EqualTo(version));
-        Assert.That(_world.Get<LocalTransform>(entity).IsDirty, Is.False);
+        Assert.That(_world.HasChangedSince<LocalTransform>(entity, settled), Is.False);
+        Assert.That(_world.HasChangedSince<WorldTransform>(entity, settled), Is.False);
     }
 
     [Test]

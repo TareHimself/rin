@@ -95,8 +95,8 @@ public sealed class RenderFeature : IWorldRestoreListener
             for (var i = 0; i < chunk.Length; i++)
             {
                 var entity = chunk.Entities[i];
-                if (TryRecreateProxy(entity, out var handle, out var version))
-                    chunk.Write<RenderProxy>(i) = new RenderProxy { Handle = handle, LastPushedVersion = version };
+                if (TryRecreateProxy(entity, out var handle))
+                    chunk.Write<RenderProxy>(i) = new RenderProxy { Handle = handle };
                 else
                     _lostProxies.Add(entity);
             }
@@ -105,15 +105,14 @@ public sealed class RenderFeature : IWorldRestoreListener
         _lostProxies.Clear();
     }
 
-    private bool TryRecreateProxy(Entity entity, out RenderProxyHandle handle, out uint version)
+    private bool TryRecreateProxy(Entity entity, out RenderProxyHandle handle)
     {
-        var transform = CurrentWorldTransform(entity);
-        version = transform.Version;
-        if (World.Has<StaticMesh>(entity)) handle = CreateStaticMeshHandle(World.Get<StaticMesh>(entity), transform.Matrix);
-        else if (World.Has<SkinnedMesh>(entity)) handle = CreateSkinnedMeshHandle(World.Get<SkinnedMesh>(entity), transform.Matrix);
-        else if (World.Has<PointLight>(entity)) handle = CreateLightHandle(ref World.Write<PointLight>(entity), transform.Matrix);
-        else if (World.Has<DirectionalLight>(entity)) handle = CreateLightHandle(ref World.Write<DirectionalLight>(entity), transform.Matrix);
-        else if (World.Has<EnvironmentLight>(entity)) handle = CreateEnvironmentHandle(ref World.Write<EnvironmentLight>(entity), transform.Matrix);
+        var matrix = CurrentWorldMatrix(entity);
+        if (World.Has<StaticMesh>(entity)) handle = CreateStaticMeshHandle(World.Get<StaticMesh>(entity), matrix);
+        else if (World.Has<SkinnedMesh>(entity)) handle = CreateSkinnedMeshHandle(World.Get<SkinnedMesh>(entity), matrix);
+        else if (World.Has<PointLight>(entity)) handle = CreateLightHandle(World.Get<PointLight>(entity), matrix);
+        else if (World.Has<DirectionalLight>(entity)) handle = CreateLightHandle(World.Get<DirectionalLight>(entity), matrix);
+        else if (World.Has<EnvironmentLight>(entity)) handle = CreateEnvironmentHandle(World.Get<EnvironmentLight>(entity), matrix);
         else handle = default;
         return handle.IsValid;
     }
@@ -121,8 +120,7 @@ public sealed class RenderFeature : IWorldRestoreListener
     private void CreateStaticMeshProxy(Entity entity, in StaticMesh staticMesh)
     {
         EnsureNoProxy(entity);
-        var transform = CurrentWorldTransform(entity);
-        AddMeshProxy(entity, CreateStaticMeshHandle(staticMesh, transform.Matrix), transform.Version);
+        AddMeshProxy(entity, CreateStaticMeshHandle(staticMesh, CurrentWorldMatrix(entity)));
     }
 
     private void CreateSkinnedMeshProxy(Entity entity, in SkinnedMesh skinnedMesh)
@@ -131,33 +129,29 @@ public sealed class RenderFeature : IWorldRestoreListener
         if (!skinnedMesh.PoseSource.IsValid)
             throw new InvalidOperationException($"The {nameof(SkinnedMesh)} of {entity} needs a pose source.");
 
-        var transform = CurrentWorldTransform(entity);
-        AddMeshProxy(entity, CreateSkinnedMeshHandle(skinnedMesh, transform.Matrix), transform.Version);
+        AddMeshProxy(entity, CreateSkinnedMeshHandle(skinnedMesh, CurrentWorldMatrix(entity)));
     }
 
     private void CreatePointLightProxy(Entity entity, in PointLight _)
     {
         EnsureNoProxy(entity);
-        var transform = CurrentWorldTransform(entity);
-        AddProxy(entity, CreateLightHandle(ref World.Write<PointLight>(entity), transform.Matrix), transform.Version);
+        AddProxy(entity, CreateLightHandle(World.Get<PointLight>(entity), CurrentWorldMatrix(entity)));
     }
 
     private void CreateDirectionalLightProxy(Entity entity, in DirectionalLight _)
     {
         EnsureNoProxy(entity);
-        var transform = CurrentWorldTransform(entity);
-        AddProxy(entity, CreateLightHandle(ref World.Write<DirectionalLight>(entity), transform.Matrix), transform.Version);
+        AddProxy(entity, CreateLightHandle(World.Get<DirectionalLight>(entity), CurrentWorldMatrix(entity)));
     }
 
     private void CreateEnvironmentLightProxy(Entity entity, in EnvironmentLight _)
     {
         EnsureNoProxy(entity);
-        var transform = CurrentWorldTransform(entity);
-        var handle = CreateEnvironmentHandle(ref World.Write<EnvironmentLight>(entity), transform.Matrix);
+        var handle = CreateEnvironmentHandle(World.Get<EnvironmentLight>(entity), CurrentWorldMatrix(entity));
         if (!handle.IsValid)
             throw new InvalidOperationException($"The map of {entity} is not a live map of {nameof(Environments)}.");
 
-        AddProxy(entity, handle, transform.Version);
+        AddProxy(entity, handle);
     }
 
     private RenderProxyHandle CreateStaticMeshHandle(in StaticMesh staticMesh, in Matrix4x4 transform)
@@ -191,25 +185,14 @@ public sealed class RenderFeature : IWorldRestoreListener
         });
     }
 
-    private RenderProxyHandle CreateLightHandle(ref PointLight light, in Matrix4x4 transform)
-    {
-        light.IsDirty = false;
-        return RenderSystem.CreateLightProxy(light.ToLightInfo(transform));
-    }
+    private RenderProxyHandle CreateLightHandle(in PointLight light, in Matrix4x4 transform) =>
+        RenderSystem.CreateLightProxy(light.ToLightInfo(transform));
 
-    private RenderProxyHandle CreateLightHandle(ref DirectionalLight light, in Matrix4x4 transform)
-    {
-        light.IsDirty = false;
-        return RenderSystem.CreateLightProxy(light.ToLightInfo(transform));
-    }
+    private RenderProxyHandle CreateLightHandle(in DirectionalLight light, in Matrix4x4 transform) =>
+        RenderSystem.CreateLightProxy(light.ToLightInfo(transform));
 
-    private RenderProxyHandle CreateEnvironmentHandle(ref EnvironmentLight light, in Matrix4x4 transform)
-    {
-        if (!Environments.TryDescribe(light, transform, out var volume)) return default;
-
-        light.IsDirty = false;
-        return RenderSystem.CreateEnvironmentProxy(volume);
-    }
+    private RenderProxyHandle CreateEnvironmentHandle(in EnvironmentLight light, in Matrix4x4 transform) =>
+        Environments.TryDescribe(light, transform, out var volume) ? RenderSystem.CreateEnvironmentProxy(volume) : default;
 
     private void DestroyProxy<T>(Entity entity, in T component) where T : unmanaged, IComponentData
     {
@@ -224,23 +207,21 @@ public sealed class RenderFeature : IWorldRestoreListener
             throw new InvalidOperationException($"{entity} already has a render proxy. Put each mesh or light on its own entity.");
     }
 
-    private void AddMeshProxy(Entity entity, RenderProxyHandle handle, uint transformVersion)
+    private void AddMeshProxy(Entity entity, RenderProxyHandle handle)
     {
         if (!handle.IsValid)
             throw new InvalidOperationException($"The mesh of {entity} is not a live mesh of the mesh factory.");
 
-        AddProxy(entity, handle, transformVersion);
+        AddProxy(entity, handle);
     }
 
-    private void AddProxy(Entity entity, RenderProxyHandle handle, uint transformVersion) =>
-        World.Add(entity, new RenderProxy { Handle = handle, LastPushedVersion = transformVersion });
+    private void AddProxy(Entity entity, RenderProxyHandle handle) => World.Add(entity, new RenderProxy { Handle = handle });
 
     // The stored matrix is stale until propagation runs, and a proxy created from it would interpolate from that pose.
-    private WorldTransform CurrentWorldTransform(Entity entity)
+    private Matrix4x4 CurrentWorldMatrix(Entity entity)
     {
-        var transform = World.Has<WorldTransform>(entity) ? World.Get<WorldTransform>(entity) : new WorldTransform();
-        if (World.Has<LocalTransform>(entity)) transform.Matrix = World.ComputeWorldMatrix(entity);
-        return transform;
+        if (World.Has<LocalTransform>(entity)) return World.ComputeWorldMatrix(entity);
+        return World.Has<WorldTransform>(entity) ? World.Get<WorldTransform>(entity).Matrix : Matrix4x4.Identity;
     }
 
     private static (int[] SurfaceIndices, IMeshMaterial[] Materials) ResolveSurfaceMaterials(IMesh mesh,

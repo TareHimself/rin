@@ -8,41 +8,16 @@ namespace Rin.World.Graphics;
 ///     A light shining along the entity's world forward axis.
 /// </summary>
 /// <remarks>
-///     Every setter marks the light dirty, so <see cref="RenderFeature" /> pushes a change written through a query chunk.
+///     <see cref="RenderFeature" /> pushes the light when its change tick or its <see cref="Transforms.WorldTransform" />
+///     tick is newer than the last extract.
 /// </remarks>
 public struct DirectionalLight() : IComponentData
 {
-    public Color Color
-    {
-        get;
-        set
-        {
-            field = value;
-            IsDirty = true;
-        }
-    } = Color.White;
+    public Color Color = Color.White;
 
-    public float Lux
-    {
-        get;
-        set
-        {
-            field = value;
-            IsDirty = true;
-        }
-    } = 100000.0f;
+    public float Lux = 100000.0f;
 
-    public float Radius
-    {
-        get;
-        set
-        {
-            field = value;
-            IsDirty = true;
-        }
-    } = 10000.0f;
-
-    public bool IsDirty { get; internal set; } = true;
+    public float Radius = 10000.0f;
 
     internal readonly LightInfo ToLightInfo(in Matrix4x4 world) => new()
     {

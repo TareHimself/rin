@@ -11,7 +11,7 @@ namespace Rin.World.Tests.Graphics;
 public class RenderExtractTests : RenderFeatureFixture
 {
     [Test]
-    public void AMeshTransformIsPushedOnlyWhenItsVersionChanges()
+    public void AMeshTransformIsPushedOnlyWhenItsWorldTransformChanges()
     {
         var entity = SpawnMesh(new Vector3(1, 0, 0));
         _world.Update(0f);
@@ -25,7 +25,6 @@ public class RenderExtractTests : RenderFeatureFixture
 
         Assert.That(_render.PushedTransforms, Has.Count.EqualTo(1));
         Assert.That(_render.PushedTransforms[0].Transform.Translation, Is.EqualTo(new Vector3(5, 0, 0)));
-        Assert.That(_world.Get<RenderProxy>(entity).LastPushedVersion, Is.EqualTo(_world.Get<WorldTransform>(entity).Version));
     }
 
     [Test]
@@ -80,7 +79,6 @@ public class RenderExtractTests : RenderFeatureFixture
 
         Assert.That(_render.PushedLights, Has.Count.EqualTo(1));
         Assert.That(_render.PushedLights[0].Light.Intensity, Is.EqualTo(99f / (4f * MathF.PI)));
-        Assert.That(_world.Get<PointLight>(entity).IsDirty, Is.False);
     }
 
     [Test]
@@ -99,7 +97,7 @@ public class RenderExtractTests : RenderFeatureFixture
     }
 
     [Test]
-    public void ALightPropertyWrittenThroughAQuerySpanIsPushed()
+    public void ALightPropertyWrittenThroughAQueryChunkIsPushed()
     {
         var entity = _world.Spawn();
         _world.Add(entity, new DirectionalLight());
@@ -127,6 +125,24 @@ public class RenderExtractTests : RenderFeatureFixture
         _world.Update(0f);
 
         Assert.That(_render.PushedLights.Single().Light.Location, Is.EqualTo(new Vector3(0, 4, 0)));
+    }
+
+    [Test]
+    public void OnlyTheLightThatMovedIsPushed()
+    {
+        var still = _world.Spawn();
+        _world.SetPosition(still, Vector3.Zero);
+        _world.Add(still, new PointLight());
+        var moving = _world.Spawn();
+        _world.SetPosition(moving, Vector3.Zero);
+        _world.Add(moving, new PointLight());
+        _world.Update(0f);
+        _render.PushedLights.Clear();
+
+        _world.SetPosition(moving, new Vector3(2, 0, 0));
+        _world.Update(0f);
+
+        Assert.That(_render.PushedLights.Single().Light.Location, Is.EqualTo(new Vector3(2, 0, 0)));
     }
 
     [Test]
@@ -199,7 +215,7 @@ public class RenderExtractTests : RenderFeatureFixture
     }
 
     [Test]
-    public void ASkinnedMeshTransformIsPushedOnlyWhenItsVersionChanges()
+    public void ASkinnedMeshTransformIsPushedOnlyWhenItsWorldTransformChanges()
     {
         var entity = SpawnSkinnedMesh(new FakePoseSource { Skeleton = TestSkeletons.WithSocket(Vector3.UnitX) }, Vector3.Zero);
         _world.Update(0f);

@@ -42,7 +42,7 @@ flowchart LR
 | Writes and change ticks | `world.Get<T>` and the chunk spans are read-only. `world.Write<T>`, `chunk.Write<T>(i)`, `Add`, `Set` and command playback stamp the row with `world.ChangeTick`, which goes up before and after every system run, so a system never sees its own writes as changed. `query.Changed<T>()` makes a query with its own last run that skips archetypes where `T` was not written since, and `chunk.HasChanged<T>(i)` checks a row. Change queries are for frame systems and throw during the tick, because ticks are not saved: a restore stamps every row with a fresh one |
 | Hierarchy | `SetParent` and friends. Despawn removes descendants too |
 | Hooks | `OnAdd<T>`, `OnRemove<T>`. Features create and destroy proxies and bodies from them. The component comes as `in T`, stale after a structural change in the handler, so `world.Get<T>` it again to read or `world.Write<T>` to write |
-| Transforms | `LocalTransform` (setters mark it dirty) and `WorldTransform`, propagated once per frame |
+| Transforms | `LocalTransform` and `WorldTransform`. Once per frame, propagation recomputes the world matrix of every entity whose transform, socket or parent changed since its last run, and writes it only when it differs |
 
 `World.Update(dt)` runs fixed ticks (1/60 s by default), then the frame phases:
 

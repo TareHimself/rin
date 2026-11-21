@@ -220,13 +220,13 @@ public sealed class World
     public void SetParent(Entity child, Entity parent)
     {
         _store.SetParent(child, parent);
-        MarkTransformDirty(child);
+        MarkTransformChanged(child);
     }
 
     public void ClearParent(Entity child)
     {
         _store.ClearParent(child);
-        MarkTransformDirty(child);
+        MarkTransformChanged(child);
     }
 
     /// <summary>
@@ -281,8 +281,9 @@ public sealed class World
     /// </summary>
     internal bool IsDespawning(Entity entity) => _store.IsDespawning(entity);
 
-    private void MarkTransformDirty(Entity entity)
+    // A new parent changes the world matrix but no transform row, so stamp one for propagation to see.
+    private void MarkTransformChanged(Entity entity)
     {
-        if (_store.Has<LocalTransform>(entity)) _store.Write<LocalTransform>(entity).IsDirty = true;
+        if (_store.Has<LocalTransform>(entity)) _store.Write<LocalTransform>(entity);
     }
 }

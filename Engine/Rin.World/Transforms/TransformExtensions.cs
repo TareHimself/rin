@@ -11,12 +11,8 @@ namespace Rin.World.Transforms;
 /// </remarks>
 public static class TransformExtensions
 {
-    public static void SetLocalTransform(this World world, Entity entity, in LocalTransform transform)
-    {
-        ref var local = ref world.GetOrAddTransform(entity);
-        local = transform;
-        local.IsDirty = true;
-    }
+    public static void SetLocalTransform(this World world, Entity entity, in LocalTransform transform) =>
+        world.GetOrAddTransform(entity) = transform;
 
     public static void SetPosition(this World world, Entity entity, in Vector3 position) =>
         world.GetOrAddTransform(entity).Position = position;

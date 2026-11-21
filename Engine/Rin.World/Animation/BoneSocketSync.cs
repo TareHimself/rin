@@ -7,19 +7,19 @@ namespace Rin.World.Animation;
 
 /// <summary>
 ///     Runs after <see cref="AnimationSystem" />. Copies each socketed child's bone matrix from its parent's pose into
-///     <see cref="AttachSocket.SocketMatrix" /> and marks the child dirty when it changed, so propagation picks it up.
+///     <see cref="AttachSocket.SocketMatrix" /> only when it changed, so propagation picks up the socket's change tick.
 /// </summary>
 internal sealed class BoneSocketSync : FrameSystem
 {
     private readonly World _world;
     private readonly PoseSources _poseSources;
-    private readonly Query<AttachSocket, LocalTransform> _sockets;
+    private readonly Query<AttachSocket> _sockets;
 
     public BoneSocketSync(World world, PoseSources poseSources)
     {
         _world = world;
         _poseSources = poseSources;
-        _sockets = world.Query<AttachSocket, LocalTransform>();
+        _sockets = world.Query<AttachSocket>();
     }
 
     public override void Update(in FrameContext context)
@@ -34,7 +34,6 @@ internal sealed class BoneSocketSync : FrameSystem
                 if (bone == socket.SocketMatrix) continue;
 
                 chunk.Write<AttachSocket>(i).SocketMatrix = bone;
-                chunk.Write<LocalTransform>(i).IsDirty = true;
             }
     }
 

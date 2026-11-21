@@ -1,20 +1,24 @@
 using System.Numerics;
+using Rin.World.Ecs;
 using Rin.World.Scheduling;
 
 namespace Rin.World.Transforms;
 
 /// <summary>
 ///     Built-in first <see cref="FramePhase.Extract" /> system. Walks every hierarchy depth first from its roots and
-///     recomputes <see cref="WorldTransform" /> for dirty entities and for children whose parent matrix changed.
+///     recomputes <see cref="WorldTransform" /> for changed entities and for children whose parent matrix changed.
 /// </summary>
 /// <remarks>
-///     A subtree is reached only through parents that have both transform components. A child with
-///     <see cref="AttachSocket" /> is placed relative to its socket instead of its parent's origin.
+///     An entity is changed when its <see cref="LocalTransform" />, <see cref="AttachSocket" /> or
+///     <see cref="WorldTransform" /> was written since the last run. A subtree is reached only through parents that have
+///     both transform components. A child with <see cref="AttachSocket" /> is placed relative to its socket instead of
+///     its parent's origin.
 /// </remarks>
 internal sealed class TransformPropagation : FrameSystem
 {
     private readonly World _world;
     private readonly Query<LocalTransform, WorldTransform> _transforms;
+    private ChangeWindow _window;
     private PendingNode[] _pending = new PendingNode[64];
     private int _pendingCount;
 
@@ -22,12 +26,12 @@ internal sealed class TransformPropagation : FrameSystem
     {
         _world = world;
         _transforms = world.Query<LocalTransform, WorldTransform>();
-        world.OnAdd<AttachSocket>(MarkDirty);
-        world.OnRemove<AttachSocket>(MarkDirty);
+        world.OnRemove<AttachSocket>(MarkLocalChanged);
     }
 
     public override void Update(in FrameContext context)
     {
+        _window.BeginRun(_world.ChangeTick);
         foreach (var chunk in _transforms)
             for (var i = 0; i < chunk.Length; i++)
             {
@@ -43,19 +47,14 @@ internal sealed class TransformPropagation : FrameSystem
         var entity = node.Entity;
         if (!_world.Has<LocalTransform>(entity) || !_world.Has<WorldTransform>(entity)) return;
 
-        var dirty = _world.Get<LocalTransform>(entity).IsDirty;
-        if (dirty) _world.Write<LocalTransform>(entity).IsDirty = false;
-
         var worldMatrix = _world.Get<WorldTransform>(entity).Matrix;
         var changed = false;
-        if (dirty || node.ParentChanged)
+        if (node.ParentChanged || HasChanged(entity))
         {
             var matrix = _world.ComputeLocalMatrix(entity, _world.Get<LocalTransform>(entity)) * node.ParentWorld;
             if (matrix != worldMatrix)
             {
-                ref var worldTransform = ref _world.Write<WorldTransform>(entity);
-                worldTransform.Matrix = matrix;
-                worldTransform.Version++;
+                _world.Write<WorldTransform>(entity).Matrix = matrix;
                 worldMatrix = matrix;
                 changed = true;
             }
@@ -65,9 +64,18 @@ internal sealed class TransformPropagation : FrameSystem
         for (var i = children.Count - 1; i >= 0; i--) Push(new PendingNode(children[i], worldMatrix, changed));
     }
 
-    private void MarkDirty(Entity entity, in AttachSocket socket)
+    private bool HasChanged(Entity entity)
     {
-        if (_world.Has<LocalTransform>(entity)) _world.Write<LocalTransform>(entity).IsDirty = true;
+        var since = _window.Since;
+        return _world.HasChangedSince<LocalTransform>(entity, since) ||
+               _world.HasChangedSince<WorldTransform>(entity, since) ||
+               (_world.Has<AttachSocket>(entity) && _world.HasChangedSince<AttachSocket>(entity, since));
+    }
+
+    // Removing the socket changes no transform row, so stamp one to have the entity placed relative to its parent again.
+    private void MarkLocalChanged(Entity entity, in AttachSocket socket)
+    {
+        if (_world.Has<LocalTransform>(entity)) _world.Write<LocalTransform>(entity);
     }
 
     private void Push(in PendingNode node)
