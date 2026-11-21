@@ -15,6 +15,7 @@
     </ItemGroup>
 
     <ItemGroup Label="Third-party">
+        <PackageVersion Include="BenchmarkDotNet" Version="0.15.8" />
         <PackageVersion Include="JetBrains.Annotations" Version="2026.2.0" />
         <PackageVersion Include="NetVips" Version="3.2.0" />
         <PackageVersion Include="NetVips.Native" Version="8.18.3" />
