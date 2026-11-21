@@ -1,20 +1,27 @@
 using Rin.World.Ecs;
-using FrifloChunkEntities = Friflo.Engine.ECS.ChunkEntities;
 
 namespace Rin.World;
 
 public readonly struct ChunkEntities
 {
-    private readonly FrifloChunkEntities _entities;
-    private readonly EntityIdAllocator _ids;
+    private readonly int[] _ids;
+    private readonly EntityIdAllocator _allocator;
 
-    internal ChunkEntities(FrifloChunkEntities entities, EntityIdAllocator ids)
+    internal ChunkEntities(int[] ids, int length, EntityIdAllocator allocator)
     {
-        _entities = entities;
         _ids = ids;
+        Length = length;
+        _allocator = allocator;
     }
 
-    public int Length => _entities.Length;
+    public int Length { get; }
 
-    public Entity this[int index] => _ids.HandleOf(_entities.Ids[index]);
+    public Entity this[int index]
+    {
+        get
+        {
+            ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual((uint)index, (uint)Length, nameof(index));
+            return _allocator.HandleOf(_ids[index]);
+        }
+    }
 }

@@ -20,18 +20,26 @@ flowchart LR
     V["Viewport"] --> RF
 ```
 
-The ECS runs on Friflo.Engine.ECS, but only `Ecs/` may reference it (a banned-API build error elsewhere), so gameplay code sees only Rin types.
+The ECS in `Ecs/` is Rin's own: one table per archetype (component set) with a byte column per component, and queries that cache the archetypes they match.
 
-**NativeAOT:** a project that declares components references [Rin.SourceGenerators](../Rin.SourceGenerators/ReadMe.md) as an analyzer, which registers them at startup. Generic or private components get warning `RIN00024` and need `ComponentRegistry.RegisterComponent<T>()` by hand.
+```mermaid
+flowchart LR
+    S["ComponentSchema<br/>type -> ComponentId"] --> W1["World"]
+    S --> W2["World"]
+    W1 --> A["archetype tables<br/>entity ids + one column per component"]
+    Q["cached query<br/>matched archetypes"] --> A
+```
+
+**Component ids** come from a `ComponentSchema`. `new World()` uses a clone of `ComponentSchema.Engine` (every Rin.World component, frozen), and a game type gets the next id the first time it is used, so nothing has to be registered, under NativeAOT either. Worlds built with `new World(schema)` on one schema share its ids. A schema only ever appends, so ids never move while a world uses it.
 
 ## Entities and the update step
 
 | Piece | What it is |
 | --- | --- |
 | `Entity` | Id plus generation, stale after despawn |
-| `Query<T1..T4>` | `foreach` gives one `Span<T>` per component. Structural changes inside the loop throw, so use `world.Commands` |
+| `Query<T1..T4>` | `foreach` gives one `Span<T>` per component. Structural changes inside the loop throw, so use `world.Commands`. `world.Query<A, B>()` is cached and free to call every frame. `.With<T>()` and `.Without<T>()` filter by a component or tag and make a new query, so build it once in the system's constructor |
 | Hierarchy | `SetParent` and friends. Despawn removes descendants too |
-| Hooks | `OnAdd<T>`, `OnRemove<T>`. Features create and destroy proxies and bodies from them |
+| Hooks | `OnAdd<T>`, `OnRemove<T>`. Features create and destroy proxies and bodies from them. The component comes as `in T`, stale after a structural change in the handler, so `world.Get<T>` it again to read or write |
 | Transforms | `LocalTransform` (setters mark it dirty) and `WorldTransform`, propagated once per frame |
 
 `World.Update(dt)` runs fixed ticks (1/60 s by default), then the frame phases:
@@ -139,9 +147,8 @@ The tick is deterministic on the same build and CPU family. Tick code must:
 - never iterate a `Dictionary` or `HashSet`
 - spawn and despawn through `Commands`
 - draw random numbers from `world.Random`
-- keep components unmanaged (managed data goes in a registry, and the component holds an id)
 
-`world.SaveSnapshot(snapshot)` and `RestoreSnapshot(snapshot)` rewind the world, and `snapshot.ComputeHash()` compares worlds. Render proxies, physics bodies and scripts are rebuilt after a restore. Running tasks and pending commands are dropped. Bepu's internal state is not restored, so a restored physics run only matches another run that restored at the same ticks.
+`world.SaveSnapshot(snapshot)` and `RestoreSnapshot(snapshot)` rewind the world, and `snapshot.ComputeHash()` compares worlds. A snapshot restores into any world whose schema has the same components at the ids it uses, and throws before changing anything otherwise. Components are `unmanaged` (the compiler rejects managed fields, so keep managed data in a registry and store its id), and `[EcsNotSaved]` ones are zeroed on restore. Render proxies, physics bodies and scripts are rebuilt after a restore. Running tasks and pending commands are dropped. Bepu's internal state is not restored, so a restored physics run only matches another run that restored at the same ticks.
 
 ## The render pipeline
 
@@ -158,4 +165,4 @@ Draws are batched by index buffer plus material pass, and materials that don't m
 
 `Viewport` shows a world in a Rin.Core surface. A click cycles its `RenderChannel`: the lit scene, the surface's color, location, normal, roughness/metallic/specular and emissive, the incoming radiance, and a heatmap of how many lights each pixel loops. The channel travels in the `CameraView`, and the surface shader picks it at the end of its fragment.
 
-References: Rin.Core, Rin.Shade, Rin.SourceGenerators. Packages: BepuPhysics, Friflo.Engine.ECS.
+References: Rin.Core, Rin.Shade, Rin.SourceGenerators. Packages: BepuPhysics.

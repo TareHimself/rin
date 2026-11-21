@@ -11,17 +11,25 @@ namespace Rin.World;
 public sealed class World
 {
     private const float MaxFrameDeltaSeconds = 0.25f;
-    private const int SnapshotFormat = 0x52534E31;
+    private const int SnapshotFormat = 0x52534E32;
 
-    private readonly EcsStore _store = new();
+    private readonly ArchetypeStore _store;
     private readonly SystemSchedule _schedule = new();
     private readonly List<IWorldRestoreListener> _restoreListeners = [];
     private float _accumulator;
     private bool _updating;
-    private bool _restoring;
 
     public World()
+        : this(ComponentSchema.Engine.Clone())
     {
+    }
+
+    /// <summary>
+    ///     Worlds that share a schema share component ids. Types it lacks are added on first use unless it is frozen.
+    /// </summary>
+    public World(ComponentSchema schema)
+    {
+        _store = new ArchetypeStore(schema);
         Commands = new CommandBuffer(this);
         _schedule.Add(FramePhase.Extract, new TransformPropagation(this));
     }
@@ -55,13 +63,15 @@ public sealed class World
     /// </summary>
     public float InterpolationAlpha { get; private set; }
 
+    public ComponentSchema Schema => _store.Schema;
+
     public int EntityCount => _store.EntityCount;
 
     /// <summary>
     ///     True while the <see cref="IWorldRestoreListener.BeforeRestore" /> listeners run, when structural changes throw
     ///     because the restore is about to replace every entity.
     /// </summary>
-    internal bool IsRestoring => _restoring;
+    internal bool IsRestoring => _store.Phase.IsRestoring;
 
     /// <summary>
     ///     The simulation's random numbers, saved in every snapshot. Seed it before the first tick, and draw from it only
@@ -94,10 +104,11 @@ public sealed class World
     /// <summary>
     ///     Overwrites <paramref name="snapshot" /> with the simulation state: every entity with its components, tags and
     ///     parent, the entity id allocator, <see cref="TickIndex" />, the tick accumulator and <see cref="Random" />.
-    ///     <see cref="IDerivedComponentData" /> bytes are left out.
+    ///     <see cref="EcsNotSavedAttribute" /> components are left out.
     /// </summary>
     public void SaveSnapshot(WorldSnapshot snapshot)
     {
+        _store.Phase.EnsureCanSave();
         snapshot.Clear();
         snapshot.Write(SnapshotFormat);
         snapshot.Write(TickIndex);
@@ -108,10 +119,11 @@ public sealed class World
     }
 
     /// <summary>
-    ///     Replaces the simulation state with <paramref name="snapshot" />, between updates. Pending
-    ///     <see cref="Commands" /> are dropped, no hooks fire, and every <see cref="IWorldRestoreListener" /> rebuilds what
-    ///     lives outside the store. Structural changes made from <see cref="IWorldRestoreListener.BeforeRestore" />, for
-    ///     one by the <c>finally</c> block of a cancelled task, throw.
+    ///     Replaces the simulation state with <paramref name="snapshot" />, between updates and outside hooks and query
+    ///     loops. Pending <see cref="Commands" /> are dropped, no hooks fire, and every <see cref="IWorldRestoreListener" />
+    ///     rebuilds what lives outside the store. Structural changes made from
+    ///     <see cref="IWorldRestoreListener.BeforeRestore" />, for one by the <c>finally</c> block of a cancelled task, throw.
+    ///     A snapshot saved with a schema that differs in any component it uses throws before anything changes.
     /// </summary>
     public void RestoreSnapshot(WorldSnapshot snapshot)
     {
@@ -120,21 +132,19 @@ public sealed class World
         if (snapshot.IsEmpty || reader.Read<int>() != SnapshotFormat)
             throw new ArgumentException("The snapshot is empty or was not saved by a World.", nameof(snapshot));
 
-        _restoring = true;
-        try
-        {
+        var tickIndex = reader.Read<long>();
+        var accumulator = reader.Read<float>();
+        var random = reader.Read<DeterministicRandom.State>();
+        _store.Validate(reader);
+
+        using (_store.Phase.EnterRestore())
             for (var i = 0; i < _restoreListeners.Count; i++) _restoreListeners[i].BeforeRestore();
-        }
-        finally
-        {
-            _restoring = false;
-        }
 
         Commands.Clear();
-        TickIndex = reader.Read<long>();
-        _accumulator = reader.Read<float>();
+        TickIndex = tickIndex;
+        _accumulator = accumulator;
         InterpolationAlpha = _accumulator / TickInterval;
-        Random.Current = reader.Read<DeterministicRandom.State>();
+        Random.Current = random;
         _store.Restore(ref reader);
 
         for (var i = 0; i < _restoreListeners.Count; i++) _restoreListeners[i].AfterRestore();
@@ -160,71 +170,46 @@ public sealed class World
         Commands.Playback();
     }
 
-    public Entity Spawn()
-    {
-        EnsureNotRestoring();
-        return _store.Spawn();
-    }
+    public Entity Spawn() => _store.Spawn();
 
     /// <summary>
-    ///     Despawns the entity and all of its descendants. Does nothing for an entity that is not alive.
+    ///     Despawns the entity and all of its descendants. Does nothing for an entity that is not alive or already
+    ///     despawning.
     /// </summary>
-    public void Despawn(Entity entity)
-    {
-        EnsureNotRestoring();
-        _store.Despawn(entity);
-    }
+    public void Despawn(Entity entity) => _store.Despawn(entity);
 
     public bool IsAlive(Entity entity) => _store.IsAlive(entity);
 
-    public bool Has<T>(Entity entity) where T : struct, IComponentData => _store.Has<T>(entity);
+    public bool Has<T>(Entity entity) where T : unmanaged, IComponentData => _store.Has<T>(entity);
 
-    public ref T Get<T>(Entity entity) where T : struct, IComponentData => ref _store.Get<T>(entity);
+    public ref T Get<T>(Entity entity) where T : unmanaged, IComponentData => ref _store.Get<T>(entity);
 
     /// <summary>
     ///     Adds the component, or overwrites it when present. <see cref="OnAdd{T}" /> hooks fire only for a new component.
     /// </summary>
-    public void Add<T>(Entity entity, in T component) where T : struct, IComponentData
-    {
-        EnsureNotRestoring();
-        _store.Add(entity, component);
-    }
+    public void Add<T>(Entity entity, in T component) where T : unmanaged, IComponentData => _store.Add(entity, component);
 
     /// <summary>
     ///     Overwrites a component the entity already has.
     /// </summary>
-    public void Set<T>(Entity entity, in T component) where T : struct, IComponentData => _store.Set(entity, component);
+    public void Set<T>(Entity entity, in T component) where T : unmanaged, IComponentData => _store.Set(entity, component);
 
-    public bool Remove<T>(Entity entity) where T : struct, IComponentData
-    {
-        EnsureNotRestoring();
-        return _store.Remove<T>(entity);
-    }
+    public bool Remove<T>(Entity entity) where T : unmanaged, IComponentData => _store.Remove<T>(entity);
 
-    public bool HasTag<T>(Entity entity) where T : struct, ITagData => _store.HasTag<T>(entity);
+    public bool HasTag<T>(Entity entity) where T : unmanaged, ITagData => _store.HasTag<T>(entity);
 
-    public void AddTag<T>(Entity entity) where T : struct, ITagData
-    {
-        EnsureNotRestoring();
-        _store.AddTag<T>(entity);
-    }
+    public void AddTag<T>(Entity entity) where T : unmanaged, ITagData => _store.AddTag<T>(entity);
 
-    public void RemoveTag<T>(Entity entity) where T : struct, ITagData
-    {
-        EnsureNotRestoring();
-        _store.RemoveTag<T>(entity);
-    }
+    public void RemoveTag<T>(Entity entity) where T : unmanaged, ITagData => _store.RemoveTag<T>(entity);
 
     public void SetParent(Entity child, Entity parent)
     {
-        EnsureNotRestoring();
         _store.SetParent(child, parent);
         MarkTransformDirty(child);
     }
 
     public void ClearParent(Entity child)
     {
-        EnsureNotRestoring();
         _store.ClearParent(child);
         MarkTransformDirty(child);
     }
@@ -236,34 +221,34 @@ public sealed class World
 
     public EntityChildren GetChildren(Entity parent) => _store.GetChildren(parent);
 
-    public void OnAdd<T>(ComponentHook<T> handler) where T : struct, IComponentData => _store.OnAdd(handler);
+    public void OnAdd<T>(ComponentHook<T> handler) where T : unmanaged, IComponentData => _store.OnAdd(handler);
 
     /// <summary>
     ///     Fires before the component is removed, including when its entity is despawned.
     /// </summary>
-    public void OnRemove<T>(ComponentHook<T> handler) where T : struct, IComponentData => _store.OnRemove(handler);
+    public void OnRemove<T>(ComponentHook<T> handler) where T : unmanaged, IComponentData => _store.OnRemove(handler);
 
     public Query<T1> Query<T1>()
-        where T1 : struct, IComponentData
-        => _store.Query<T1>();
+        where T1 : unmanaged, IComponentData
+        => new(_store.Query<T1>());
 
     public Query<T1, T2> Query<T1, T2>()
-        where T1 : struct, IComponentData
-        where T2 : struct, IComponentData
-        => _store.Query<T1, T2>();
+        where T1 : unmanaged, IComponentData
+        where T2 : unmanaged, IComponentData
+        => new(_store.Query<T1, T2>());
 
     public Query<T1, T2, T3> Query<T1, T2, T3>()
-        where T1 : struct, IComponentData
-        where T2 : struct, IComponentData
-        where T3 : struct, IComponentData
-        => _store.Query<T1, T2, T3>();
+        where T1 : unmanaged, IComponentData
+        where T2 : unmanaged, IComponentData
+        where T3 : unmanaged, IComponentData
+        => new(_store.Query<T1, T2, T3>());
 
     public Query<T1, T2, T3, T4> Query<T1, T2, T3, T4>()
-        where T1 : struct, IComponentData
-        where T2 : struct, IComponentData
-        where T3 : struct, IComponentData
-        where T4 : struct, IComponentData
-        => _store.Query<T1, T2, T3, T4>();
+        where T1 : unmanaged, IComponentData
+        where T2 : unmanaged, IComponentData
+        where T3 : unmanaged, IComponentData
+        where T4 : unmanaged, IComponentData
+        => new(_store.Query<T1, T2, T3, T4>());
 
     private void RunTick()
     {
@@ -273,15 +258,9 @@ public sealed class World
     }
 
     /// <summary>
-    ///     Whether <paramref name="entity" /> is the one whose remove hooks are firing because it is being despawned.
+    ///     Whether <paramref name="entity" /> is collected by a despawn whose remove hooks have not finished.
     /// </summary>
     internal bool IsDespawning(Entity entity) => _store.IsDespawning(entity);
-
-    // Hooks of such a change would create subsystem handles for entities the restore then deletes.
-    private void EnsureNotRestoring()
-    {
-        if (_restoring) throw new InvalidOperationException("Entities cannot change structurally before a snapshot restore.");
-    }
 
     private void MarkTransformDirty(Entity entity)
     {

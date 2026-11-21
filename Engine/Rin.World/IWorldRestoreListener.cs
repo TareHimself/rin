@@ -14,7 +14,7 @@ public interface IWorldRestoreListener
 
     /// <summary>
     ///     Called once the restored entities exist, in registration order, to rebuild every
-    ///     <see cref="IDerivedComponentData" /> component.
+    ///     <see cref="EcsNotSavedAttribute" /> component.
     /// </summary>
     void AfterRestore();
 }

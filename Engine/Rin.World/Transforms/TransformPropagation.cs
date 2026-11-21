@@ -64,7 +64,7 @@ internal sealed class TransformPropagation : FrameSystem
         for (var i = children.Count - 1; i >= 0; i--) Push(new PendingNode(children[i], worldTransform.Matrix, changed));
     }
 
-    private void MarkDirty(Entity entity, ref AttachSocket socket)
+    private void MarkDirty(Entity entity, in AttachSocket socket)
     {
         if (_world.Has<LocalTransform>(entity)) _world.Get<LocalTransform>(entity).IsDirty = true;
     }

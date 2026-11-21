@@ -1,14 +1,11 @@
-using Friflo.Engine.ECS;
-
 namespace Rin.World;
 
 /// <summary>
-///     Marks a struct as ECS component data. It inherits the backend's marker so component authors never reference the
-///     backend.
+///     Marks a struct as ECS component data.
 /// </summary>
-public interface IComponentData : IComponent;
+public interface IComponentData;
 
 /// <summary>
-///     Marks an empty struct as an ECS tag.
+///     Marks an empty struct as an ECS tag, a component without data.
 /// </summary>
-public interface ITagData : ITag;
+public interface ITagData;

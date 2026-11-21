@@ -25,10 +25,10 @@ public class CommandBufferTests
     {
         var world = new World();
         var log = new List<string>();
-        world.OnAdd<Health>((_, ref _) => log.Add("add Health"));
-        world.OnRemove<Health>((_, ref _) => log.Add("remove Health"));
-        world.OnAdd<Speed>((_, ref _) => log.Add("add Speed"));
-        world.OnRemove<Speed>((_, ref _) => log.Add("remove Speed"));
+        world.OnAdd<Health>((_, in _) => log.Add("add Health"));
+        world.OnRemove<Health>((_, in _) => log.Add("remove Health"));
+        world.OnAdd<Speed>((_, in _) => log.Add("add Speed"));
+        world.OnRemove<Speed>((_, in _) => log.Add("remove Speed"));
 
         var buffer = new CommandBuffer(world);
         var entity = buffer.Spawn();
@@ -68,8 +68,8 @@ public class CommandBufferTests
     {
         var world = new World();
         var log = new List<string>();
-        world.OnAdd((Entity _, ref Health _) => log.Add("add"));
-        world.OnRemove((Entity _, ref Health _) => log.Add("remove"));
+        world.OnAdd((Entity _, in Health _) => log.Add("add"));
+        world.OnRemove((Entity _, in Health _) => log.Add("remove"));
 
         var buffer = new CommandBuffer(world);
         var entity = buffer.Spawn();
@@ -114,6 +114,32 @@ public class CommandBufferTests
 
         Assert.DoesNotThrow(buffer.Playback);
         Assert.That(world.IsAlive(entity), Is.False);
+    }
+
+    [Test]
+    public void APlaybackThatThrowsKeepsTheCommandsAfterTheFailingOne()
+    {
+        var world = new World();
+        var entity = world.Spawn();
+        var failSpeed = true;
+        world.OnAdd((Entity _, in Speed _) =>
+        {
+            if (failSpeed) throw new InvalidOperationException("hook failed");
+        });
+        world.Commands.Add(entity, new Health(1));
+        world.Commands.Add(entity, new Speed(2f));
+        world.Commands.Add(entity, new Armor(3));
+
+        Assert.Throws<InvalidOperationException>(() => world.Commands.Playback());
+        Assert.That(world.Has<Health>(entity), Is.True);
+        Assert.That(world.Has<Armor>(entity), Is.False);
+        Assert.That(world.Commands.Count, Is.EqualTo(1));
+
+        failSpeed = false;
+        world.Commands.Playback();
+
+        Assert.That(world.Get<Armor>(entity).Value, Is.EqualTo(3));
+        Assert.That(world.Commands.Count, Is.Zero);
     }
 
     [Test]

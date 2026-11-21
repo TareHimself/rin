@@ -80,7 +80,7 @@ public sealed class PhysicsFeature : IWorldRestoreListener
             }
     }
 
-    private void CreateBody(Entity entity, ref RigidBody rigidBody)
+    private void CreateBody(Entity entity, in RigidBody rigidBody)
     {
         var handle = CreateBodyHandle(entity, rigidBody);
         Bodies.Add(handle, entity);
@@ -112,7 +112,7 @@ public sealed class PhysicsFeature : IWorldRestoreListener
         return handle;
     }
 
-    private void DestroyBody(Entity entity, ref RigidBody rigidBody)
+    private void DestroyBody(Entity entity, in RigidBody rigidBody)
     {
         if (!World.Has<PhysicsBody>(entity)) return;
         var handle = World.Get<PhysicsBody>(entity).Handle;

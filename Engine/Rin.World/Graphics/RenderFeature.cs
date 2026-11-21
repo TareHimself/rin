@@ -118,14 +118,14 @@ public sealed class RenderFeature : IWorldRestoreListener
         return handle.IsValid;
     }
 
-    private void CreateStaticMeshProxy(Entity entity, ref StaticMesh staticMesh)
+    private void CreateStaticMeshProxy(Entity entity, in StaticMesh staticMesh)
     {
         EnsureNoProxy(entity);
         var transform = CurrentWorldTransform(entity);
         AddMeshProxy(entity, CreateStaticMeshHandle(staticMesh, transform.Matrix), transform.Version);
     }
 
-    private void CreateSkinnedMeshProxy(Entity entity, ref SkinnedMesh skinnedMesh)
+    private void CreateSkinnedMeshProxy(Entity entity, in SkinnedMesh skinnedMesh)
     {
         EnsureNoProxy(entity);
         if (!skinnedMesh.PoseSource.IsValid)
@@ -135,25 +135,25 @@ public sealed class RenderFeature : IWorldRestoreListener
         AddMeshProxy(entity, CreateSkinnedMeshHandle(skinnedMesh, transform.Matrix), transform.Version);
     }
 
-    private void CreatePointLightProxy(Entity entity, ref PointLight light)
+    private void CreatePointLightProxy(Entity entity, in PointLight _)
     {
         EnsureNoProxy(entity);
         var transform = CurrentWorldTransform(entity);
-        AddProxy(entity, CreateLightHandle(ref light, transform.Matrix), transform.Version);
+        AddProxy(entity, CreateLightHandle(ref World.Get<PointLight>(entity), transform.Matrix), transform.Version);
     }
 
-    private void CreateDirectionalLightProxy(Entity entity, ref DirectionalLight light)
+    private void CreateDirectionalLightProxy(Entity entity, in DirectionalLight _)
     {
         EnsureNoProxy(entity);
         var transform = CurrentWorldTransform(entity);
-        AddProxy(entity, CreateLightHandle(ref light, transform.Matrix), transform.Version);
+        AddProxy(entity, CreateLightHandle(ref World.Get<DirectionalLight>(entity), transform.Matrix), transform.Version);
     }
 
-    private void CreateEnvironmentLightProxy(Entity entity, ref EnvironmentLight light)
+    private void CreateEnvironmentLightProxy(Entity entity, in EnvironmentLight _)
     {
         EnsureNoProxy(entity);
         var transform = CurrentWorldTransform(entity);
-        var handle = CreateEnvironmentHandle(ref light, transform.Matrix);
+        var handle = CreateEnvironmentHandle(ref World.Get<EnvironmentLight>(entity), transform.Matrix);
         if (!handle.IsValid)
             throw new InvalidOperationException($"The map of {entity} is not a live map of {nameof(Environments)}.");
 
@@ -211,7 +211,7 @@ public sealed class RenderFeature : IWorldRestoreListener
         return RenderSystem.CreateEnvironmentProxy(volume);
     }
 
-    private void DestroyProxy<T>(Entity entity, ref T component) where T : struct, IComponentData
+    private void DestroyProxy<T>(Entity entity, in T component) where T : unmanaged, IComponentData
     {
         if (!World.Has<RenderProxy>(entity)) return;
         RenderSystem.DestroyProxy(World.Get<RenderProxy>(entity).Handle);

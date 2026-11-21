@@ -35,6 +35,7 @@ Run the examples project without a name for a launcher. `-p:RinShadeSkipCompile=
 | Folder | What's in it |
 | --- | --- |
 | `Engine/` | Rin.Core, Rin.World, graphics and audio backends, glTF, source generators |
+| [`Engine/Rin.World.Benchmarks/`](Engine/Rin.World.Benchmarks/ReadMe.md) | BenchmarkDotNet suite for the ECS |
 | [`Shade/`](Shade/ReadMe.md) | The C# to Slang shader transpiler |
 | `Slang/` | Managed Slang compiler wrapper and CLI |
 | [`native/`](native/ReadMe.md) | C++ modules, their packaging, and test fakes |
