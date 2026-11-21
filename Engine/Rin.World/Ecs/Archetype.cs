@@ -14,8 +14,8 @@ internal sealed class Archetype
     private readonly int[] _slots;
     private readonly Column[] _columns;
     private readonly ComponentId[] _columnIds;
-    private Archetype?[] _addEdges = [];
-    private Archetype?[] _removeEdges = [];
+    private ArchetypeEdge?[] _addEdges = [];
+    private ArchetypeEdge?[] _removeEdges = [];
     private int[] _entityIds = [];
 
     public Archetype(ComponentId[] key, ComponentSchema schema)
@@ -83,19 +83,23 @@ internal sealed class Archetype
         return false;
     }
 
-    public Archetype? AddEdge(ComponentId id) => id.Value < _addEdges.Length ? _addEdges[id.Value] : null;
+    public ArchetypeEdge? AddEdge(ComponentId id) => id.Value < _addEdges.Length ? _addEdges[id.Value] : null;
 
-    public Archetype? RemoveEdge(ComponentId id) => id.Value < _removeEdges.Length ? _removeEdges[id.Value] : null;
+    public ArchetypeEdge? RemoveEdge(ComponentId id) => id.Value < _removeEdges.Length ? _removeEdges[id.Value] : null;
 
-    public void SetAddEdge(ComponentId id, Archetype target) => SetEdge(ref _addEdges, id, target);
+    public ArchetypeEdge SetAddEdge(ComponentId id, Archetype target) =>
+        SetEdge(ref _addEdges, id, new ArchetypeEdge(this, target));
 
-    public void SetRemoveEdge(ComponentId id, Archetype target) => SetEdge(ref _removeEdges, id, target);
+    public ArchetypeEdge SetRemoveEdge(ComponentId id, Archetype target) =>
+        SetEdge(ref _removeEdges, id, new ArchetypeEdge(this, target));
 
     public int AddRow(int entityId)
     {
-        EnsureCapacity(Count + 1);
-        _entityIds[Count] = entityId;
-        return Count++;
+        var row = Count;
+        if (row == _entityIds.Length) EnsureCapacity(row + 1);
+        _entityIds[row] = entityId;
+        Count = row + 1;
+        return row;
     }
 
     /// <summary>
@@ -139,9 +143,9 @@ internal sealed class Archetype
         foreach (var column in _columns) column.Resize(grown);
     }
 
-    private static void SetEdge(ref Archetype?[] edges, ComponentId id, Archetype target)
+    private static ArchetypeEdge SetEdge(ref ArchetypeEdge?[] edges, ComponentId id, ArchetypeEdge edge)
     {
         if (id.Value >= edges.Length) Array.Resize(ref edges, int.Max(id.Value + 1, edges.Length * 2));
-        edges[id.Value] = target;
+        return edges[id.Value] = edge;
     }
 }

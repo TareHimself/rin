@@ -28,9 +28,10 @@ internal sealed class Column(int stride)
     /// <summary>
     ///     Copies a row into the same component's column of another archetype.
     /// </summary>
-    public void CopyRowTo(int row, Column target, int targetRow) => Bytes(row, 1).CopyTo(target.Bytes(targetRow, 1));
+    public void CopyRowTo(int row, Column target, int targetRow) =>
+        Unsafe.CopyBlockUnaligned(ref target.Data[targetRow * Stride], ref Data[row * Stride], (uint)Stride);
 
-    public void MoveRow(int from, int to) => Bytes(from, 1).CopyTo(Bytes(to, 1));
+    public void MoveRow(int from, int to) => Unsafe.CopyBlockUnaligned(ref Data[to * Stride], ref Data[from * Stride], (uint)Stride);
 
     public void ClearRows(int start, int count) => Bytes(start, count).Clear();
 }

@@ -7,9 +7,9 @@ namespace Rin.World.Ecs;
 ///     order, and the <see cref="EntityTable" /> that says where each entity is.
 /// </summary>
 /// <remarks>
-///     Adding or removing a component follows an edge to the next archetype, built on first use, copies the row there
-///     and fills the gap with the source's last row. Every step depends only on the order of operations, so the same
-///     operations give the same rows.
+///     Adding or removing a component follows an <see cref="ArchetypeEdge" /> to the next archetype, built on first use,
+///     copies the row there with the edge's column pairs and fills the gap with the source's last row. Every step depends
+///     only on the order of operations, so the same operations give the same rows.
 /// </remarks>
 internal sealed partial class ArchetypeStore
 {
@@ -82,7 +82,8 @@ internal sealed partial class ArchetypeStore
     public bool Add<T>(Entity entity, in T component) where T : unmanaged
     {
         var location = Resolve(entity);
-        if (Schema.TryGetId<T>(out var existing) && location.Archetype.Has(existing))
+        var hasId = Schema.TryGetId<T>(out var existing);
+        if (hasId && location.Archetype.Has(existing))
         {
             RefAt<T>(location, existing) = component;
             return false;
@@ -90,9 +91,9 @@ internal sealed partial class ArchetypeStore
 
         Phase.EnsureCanMoveRows();
         EnsureCanGainComponents(entity);
-        var id = Schema.IdOf<T>();
-        Move(entity.Id, WithComponent(location.Archetype, id));
-        RefAt<T>(_entities.LocationOf(entity.Id), id) = component;
+        var id = hasId ? existing : Schema.IdOf<T>();
+        var moved = Move(entity.Id, location.Row, WithComponent(location.Archetype, id));
+        RefAt<T>(moved, id) = component;
         FireAddHooks(entity, id);
         return true;
     }
@@ -104,12 +105,14 @@ internal sealed partial class ArchetypeStore
         var location = Resolve(entity);
         if (!Schema.TryGetId<T>(out var id) || !location.Archetype.Has(id) || IsBeingRemoved(entity, id)) return false;
         Phase.EnsureCanMoveRows();
-        FireRemoveHooks(entity, id);
+        if (HooksOf(id) is not null)
+        {
+            FireRemoveHooks(entity, id);
+            // A hook may have moved the entity, removed the component or despawned it.
+            if (!_entities.TryLocate(entity, out location) || !location.Archetype.Has(id)) return false;
+        }
 
-        if (!IsAlive(entity)) return false;
-        location = _entities.LocationOf(entity.Id);
-        if (!location.Archetype.Has(id)) return false;
-        Move(entity.Id, WithoutComponent(location.Archetype, id));
+        Move(entity.Id, location.Row, WithoutComponent(location.Archetype, id));
         return true;
     }
 
@@ -131,20 +134,13 @@ internal sealed partial class ArchetypeStore
         EntityCount--;
     }
 
-    private void Move(int entityId, Archetype target)
+    private EntityLocation Move(int entityId, int sourceRow, ArchetypeEdge edge)
     {
-        var source = _entities.LocationOf(entityId);
-        var targetRow = target.AddRow(entityId);
-        var columns = source.Archetype.Columns;
-        var columnIds = source.Archetype.ColumnIds;
-        for (var i = 0; i < columns.Length; i++)
-        {
-            var targetColumn = target.ColumnOf(columnIds[i]);
-            if (targetColumn >= 0) columns[i].CopyRowTo(source.Row, target.Columns[targetColumn], targetRow);
-        }
-
-        RemoveRow(source.Archetype, source.Row);
-        _entities.SetLocation(entityId, new EntityLocation(target, targetRow));
+        var target = new EntityLocation(edge.Target, edge.Target.AddRow(entityId));
+        edge.CopyRow(sourceRow, target.Row);
+        RemoveRow(edge.Source, sourceRow);
+        _entities.SetLocation(entityId, target);
+        return target;
     }
 
     private void RemoveRow(Archetype archetype, int row)
@@ -153,7 +149,7 @@ internal sealed partial class ArchetypeStore
         if (moved != EntityTable.NoId) _entities.SetLocation(moved, new EntityLocation(archetype, row));
     }
 
-    private Archetype WithComponent(Archetype source, ComponentId id)
+    private ArchetypeEdge WithComponent(Archetype source, ComponentId id)
     {
         if (source.AddEdge(id) is { } cached) return cached;
 
@@ -161,12 +157,11 @@ internal sealed partial class ArchetypeStore
         var insertAt = ~Array.BinarySearch(key, id);
         ComponentId[] targetKey = [.. key.AsSpan(0, insertAt), id, .. key.AsSpan(insertAt)];
         var target = GetOrCreateArchetype(targetKey);
-        source.SetAddEdge(id, target);
         target.SetRemoveEdge(id, source);
-        return target;
+        return source.SetAddEdge(id, target);
     }
 
-    private Archetype WithoutComponent(Archetype source, ComponentId id)
+    private ArchetypeEdge WithoutComponent(Archetype source, ComponentId id)
     {
         if (source.RemoveEdge(id) is { } cached) return cached;
 
@@ -174,9 +169,8 @@ internal sealed partial class ArchetypeStore
         var removeAt = Array.BinarySearch(key, id);
         ComponentId[] targetKey = [.. key.AsSpan(0, removeAt), .. key.AsSpan(removeAt + 1)];
         var target = GetOrCreateArchetype(targetKey);
-        source.SetRemoveEdge(id, target);
         target.SetAddEdge(id, source);
-        return target;
+        return source.SetRemoveEdge(id, target);
     }
 
     /// <summary>
