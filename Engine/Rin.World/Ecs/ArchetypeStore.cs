@@ -43,7 +43,7 @@ public sealed partial class ArchetypeStore
     public Entity Spawn()
     {
         var entity = _ids.Allocate();
-        if (entity.Id >= _locations.Length) Array.Resize(ref _locations, int.Max(entity.Id + 1, _locations.Length * 2));
+        EnsureLocation(entity.Id);
         _locations[entity.Id] = new EntityLocation(Root, Root.AddRow(entity.Id));
         EntityCount++;
         return entity;
@@ -120,6 +120,11 @@ public sealed partial class ArchetypeStore
         _archetypes.Add(archetype);
         _byKey.Add(archetype.Key, archetype);
         return archetype;
+    }
+
+    private void EnsureLocation(int entityId)
+    {
+        if (entityId >= _locations.Length) Array.Resize(ref _locations, int.Max(entityId + 1, _locations.Length * 2));
     }
 
     private void Delete(int entityId)

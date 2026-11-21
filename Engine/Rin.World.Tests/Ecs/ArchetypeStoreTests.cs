@@ -320,6 +320,108 @@ public class ArchetypeStoreTests
         Assert.That(store.LocationOf(child), Is.EqualTo(before));
     }
 
+    [Test]
+    public void ARestoreBringsBackComponentsTagsAndChildrenInTheSavedRowOrder()
+    {
+        var store = new ArchetypeStore(new ComponentSchema());
+        var parent = SpawnWithHealth(store);
+        var first = SpawnWithHealth(store);
+        var second = SpawnWithHealth(store);
+        store.Add(first, new Speed(2f));
+        store.AddTag<Stunned>(second);
+        store.SetParent(second, parent);
+        store.SetParent(first, parent);
+        store.Remove<Health>(parent);
+        var rows = new[] { store.LocationOf(parent), store.LocationOf(first), store.LocationOf(second) };
+        var snapshot = new WorldSnapshot();
+        store.Save(snapshot);
+
+        store.Despawn(parent);
+        store.Add(store.Spawn(), new Armor(1));
+        store.Restore(snapshot);
+
+        Assert.That(new[] { store.LocationOf(parent), store.LocationOf(first), store.LocationOf(second) }, Is.EqualTo(rows));
+        Assert.That(store.EntityCount, Is.EqualTo(3));
+        Assert.That(store.Get<Speed>(first).Value, Is.EqualTo(2f));
+        Assert.That(store.HasTag<Stunned>(second), Is.True);
+        Assert.That(Children(store, parent), Is.EqualTo(new[] { second, first }));
+    }
+
+    [Test]
+    public void ARestoreClearsDerivedComponentsAndFiresNoHooks()
+    {
+        var store = new ArchetypeStore(new ComponentSchema());
+        var fired = 0;
+        store.OnAdd((Entity _, ref Cached _) => fired++);
+        store.OnRemove((Entity _, ref Cached _) => fired++);
+        var entity = store.Spawn();
+        store.Add(entity, new Cached(5));
+        var snapshot = new WorldSnapshot();
+        store.Save(snapshot);
+        fired = 0;
+
+        store.Restore(snapshot);
+
+        Assert.That(store.Get<Cached>(entity).Value, Is.Zero);
+        Assert.That(fired, Is.Zero);
+    }
+
+    [Test]
+    public void ASnapshotRestoresIntoAnotherStoreWithTheSameSchema()
+    {
+        var schema = new ComponentSchema();
+        var source = new ArchetypeStore(schema);
+        var entity = SpawnWithHealth(source);
+        source.AddTag<Stunned>(entity);
+        var snapshot = new WorldSnapshot();
+        source.Save(snapshot);
+
+        var target = new ArchetypeStore(schema);
+        target.Restore(snapshot);
+
+        Assert.That(target.Get<Health>(entity).Value, Is.EqualTo(1));
+        Assert.That(target.HasTag<Stunned>(entity), Is.True);
+        Assert.That(target.Query<Health>().EntityCount, Is.EqualTo(1));
+    }
+
+    [Test]
+    public void SavingAComponentWithManagedReferencesThrows()
+    {
+        var store = new ArchetypeStore(new ComponentSchema());
+        store.Add(store.Spawn(), new Named("managed"));
+
+        Assert.Throws<InvalidOperationException>(() => store.Save(new WorldSnapshot()));
+    }
+
+    [Test]
+    public void SaveAndRestoreDoNotAllocateOnceWarmedUp()
+    {
+        var store = new ArchetypeStore(new ComponentSchema());
+        for (var i = 0; i < 200; i++)
+        {
+            var entity = SpawnWithHealth(store);
+            if (i % 2 == 0) store.Add(entity, new Speed(i));
+            if (i % 10 != 0) store.SetParent(entity, new Entity(i / 10 * 10 + 1, 0));
+        }
+
+        var snapshot = new WorldSnapshot();
+        SaveAndRestore(store, snapshot);
+
+        var before = GC.GetAllocatedBytesForCurrentThread();
+        for (var i = 0; i < 10; i++) SaveAndRestore(store, snapshot);
+
+        var allocated = GC.GetAllocatedBytesForCurrentThread() - before;
+
+        Assert.That(allocated, Is.Zero);
+    }
+
+    private static void SaveAndRestore(ArchetypeStore store, WorldSnapshot snapshot)
+    {
+        snapshot.Clear();
+        store.Save(snapshot);
+        store.Restore(snapshot);
+    }
+
     private static void Churn(ArchetypeStore store, Entity[] entities)
     {
         foreach (var entity in entities)
@@ -374,4 +476,6 @@ public class ArchetypeStoreTests
     }
 
     internal record struct Named(string Name) : IComponentData;
+
+    internal record struct Cached(int Value) : IDerivedComponentData;
 }
