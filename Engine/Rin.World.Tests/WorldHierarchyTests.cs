@@ -117,6 +117,43 @@ public class WorldHierarchyTests
     }
 
     [Test]
+    public void ParentingUnderAnEntityBeingDespawnedThrows()
+    {
+        var world = new World();
+        var doomed = world.Spawn();
+        var outsider = world.Spawn();
+        world.Add(doomed, new Health(1));
+        world.OnRemove((Entity entity, ref Health _) => world.SetParent(outsider, entity));
+
+        Assert.Throws<InvalidOperationException>(() => world.Despawn(doomed));
+        Assert.That(world.GetParent(outsider).IsValid, Is.False);
+    }
+
+    [Test]
+    public void MovingADescendantOfAnEntityBeingDespawnedThrows()
+    {
+        var world = new World();
+        var doomed = world.Spawn();
+        var child = world.Spawn();
+        var refuge = world.Spawn();
+        world.Add(doomed, new Health(1));
+        world.SetParent(child, doomed);
+        var moveFailed = false;
+        var clearFailed = false;
+        world.OnRemove((Entity _, ref Health _) =>
+        {
+            moveFailed = Throws(() => world.SetParent(child, refuge));
+            clearFailed = Throws(() => world.ClearParent(child));
+        });
+
+        world.Despawn(doomed);
+
+        Assert.That(moveFailed && clearFailed, Is.True);
+        Assert.That(world.IsAlive(child), Is.False);
+        Assert.That(world.GetChildren(refuge).Count, Is.Zero);
+    }
+
+    [Test]
     public void DespawningAChildLeavesTheParent()
     {
         var world = new World();
@@ -158,5 +195,18 @@ public class WorldHierarchyTests
         var children = new List<Entity>();
         foreach (var child in world.GetChildren(parent)) children.Add(child);
         return children;
+    }
+
+    private static bool Throws(Action action)
+    {
+        try
+        {
+            action();
+            return false;
+        }
+        catch (InvalidOperationException)
+        {
+            return true;
+        }
     }
 }

@@ -40,8 +40,11 @@ internal sealed partial class ArchetypeStore
 
     public EntityIdAllocator Ids => _ids;
 
+    public StructuralPhase Phase { get; } = new();
+
     public Entity Spawn()
     {
+        Phase.EnsureCanSpawn();
         var entity = _ids.Allocate();
         EnsureLocation(entity.Id);
         _locations[entity.Id] = new EntityLocation(Root, Root.AddRow(entity.Id));
@@ -70,18 +73,20 @@ internal sealed partial class ArchetypeStore
     /// </summary>
     public bool Add<T>(Entity entity, in T component) where T : unmanaged
     {
-        var id = Schema.IdOf<T>();
         var location = Resolve(entity);
-        var isNew = !location.Archetype.Has(id);
-        if (isNew)
+        if (Schema.TryGetId<T>(out var existing) && location.Archetype.Has(existing))
         {
-            Move(entity.Id, WithComponent(location.Archetype, id));
-            location = _locations[entity.Id];
+            location.Archetype.Columns[location.Archetype.ColumnOf(existing)].Get<T>(location.Row) = component;
+            return false;
         }
 
+        Phase.EnsureCanMoveRows();
+        var id = Schema.IdOf<T>();
+        Move(entity.Id, WithComponent(location.Archetype, id));
+        location = _locations[entity.Id];
         location.Archetype.Columns[location.Archetype.ColumnOf(id)].Get<T>(location.Row) = component;
-        if (isNew) HooksOf(id)?.FireAdded(this, entity);
-        return isNew;
+        FireAddHooks(entity, id);
+        return true;
     }
 
     public void Set<T>(Entity entity, in T component) where T : unmanaged => Get<T>(entity) = component;
@@ -89,9 +94,9 @@ internal sealed partial class ArchetypeStore
     public bool Remove<T>(Entity entity) where T : unmanaged
     {
         var location = Resolve(entity);
-        if (!Schema.TryGetId<T>(out var id) || !location.Archetype.Has(id)) return false;
-        EnsureNotIterating();
-        HooksOf(id)?.FireRemoved(this, entity);
+        if (!Schema.TryGetId<T>(out var id) || !location.Archetype.Has(id) || IsBeingRemoved(entity, id)) return false;
+        Phase.EnsureCanMoveRows();
+        FireRemoveHooks(entity, id);
 
         if (!IsAlive(entity)) return false;
         location = _locations[entity.Id];
@@ -104,9 +109,11 @@ internal sealed partial class ArchetypeStore
 
     public void AddTag<T>(Entity entity) where T : unmanaged
     {
-        var id = Schema.IdOf<T>();
         var location = Resolve(entity);
-        if (!location.Archetype.Has(id)) Move(entity.Id, WithComponent(location.Archetype, id));
+        if (Schema.TryGetId<T>(out var existing) && location.Archetype.Has(existing)) return;
+
+        Phase.EnsureCanMoveRows();
+        Move(entity.Id, WithComponent(location.Archetype, Schema.IdOf<T>()));
     }
 
     public void RemoveTag<T>(Entity entity) where T : unmanaged => Remove<T>(entity);
@@ -136,7 +143,6 @@ internal sealed partial class ArchetypeStore
 
     private void Move(int entityId, Archetype target)
     {
-        EnsureNotIterating();
         var source = _locations[entityId];
         var targetRow = target.AddRow(entityId);
         var columns = source.Archetype.Columns;

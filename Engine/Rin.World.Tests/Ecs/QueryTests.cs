@@ -163,6 +163,40 @@ public class QueryTests
     }
 
     [Test]
+    public void ARejectedAddInsideAQueryLoopLeavesTheSchemaUnchanged()
+    {
+        var world = new World();
+        var entity = Spawn(world, 1);
+        var count = world.Schema.Count;
+
+        Assert.Throws<InvalidOperationException>(() =>
+        {
+            foreach (var _ in world.Query<Health>()) world.Add(entity, new Ammo(1));
+        });
+        Assert.Throws<InvalidOperationException>(() =>
+        {
+            foreach (var _ in world.Query<Health>()) world.AddTag<Stunned>(entity);
+        });
+
+        Assert.That(world.Schema.Count, Is.EqualTo(count));
+    }
+
+    [Test]
+    public void RestoringASnapshotInsideAQueryLoopThrows()
+    {
+        var world = new World();
+        Spawn(world, 1);
+        var snapshot = new WorldSnapshot();
+        world.SaveSnapshot(snapshot);
+
+        Assert.Throws<InvalidOperationException>(() =>
+        {
+            foreach (var _ in world.Query<Health>()) world.RestoreSnapshot(snapshot);
+        });
+        Assert.That(world.EntityCount, Is.EqualTo(1));
+    }
+
+    [Test]
     public void QueryingInlineAndThroughAFilterDoesNotAllocateOnceWarmedUp()
     {
         var world = new World();

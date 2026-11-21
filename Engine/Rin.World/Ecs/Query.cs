@@ -219,7 +219,7 @@ internal struct ChunkCursor
         _store = state.Store;
         _archetypes = state.Matched;
         _index = -1;
-        _store.BeginIteration();
+        _store.Phase.BeginIteration();
     }
 
     public Archetype Current => _archetypes[_index];
@@ -233,5 +233,5 @@ internal struct ChunkCursor
         return false;
     }
 
-    public void Dispose() => _store.EndIteration();
+    public void Dispose() => _store.Phase.EndIteration();
 }

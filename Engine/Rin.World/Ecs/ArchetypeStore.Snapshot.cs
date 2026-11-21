@@ -40,7 +40,7 @@ internal sealed partial class ArchetypeStore
     /// </summary>
     public void Restore(ref SnapshotReader reader)
     {
-        EnsureNotIterating();
+        Phase.EnsureCanRestore();
         foreach (var archetype in _archetypes) archetype.Clear();
         _hierarchy.Clear();
         EntityCount = 0;

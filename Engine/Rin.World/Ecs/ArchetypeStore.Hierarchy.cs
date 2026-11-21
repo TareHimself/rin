@@ -1,41 +1,43 @@
 namespace Rin.World.Ecs;
 
 /// <summary>
-///     Hooks, the hierarchy and despawn. A despawn fires the remove hooks of every component of the entity and its
-///     descendants, depth first with parents before children, and a hook may despawn more entities.
+///     Hooks, the hierarchy and despawn. A despawn first marks the entity and its descendants
+///     <see cref="EntityState.Despawning" />, then fires the remove hooks of each one's components, depth first with
+///     parents before children, and deletes it. A hook may despawn more entities.
 /// </summary>
 internal sealed partial class ArchetypeStore
 {
     private readonly ChildStore _hierarchy = new();
     private readonly List<Entity> _despawning = [];
     private readonly List<int> _walk = [];
+    private readonly List<PendingRemoval> _removing = [];
     private ComponentHooks?[] _hooks = [];
-    private Entity _firingDespawnHooks;
 
-    public bool IsDespawning(Entity entity) => entity.IsValid && entity == _firingDespawnHooks;
+    public bool IsDespawning(Entity entity) => _ids.StateOf(entity) == EntityState.Despawning;
 
     /// <summary>
-    ///     Despawns the entity and all of its descendants. Does nothing for an entity that is not alive.
+    ///     Despawns the entity and all of its descendants. Does nothing for an entity that is not alive or already
+    ///     despawning.
     /// </summary>
     public void Despawn(Entity entity)
     {
-        if (!IsAlive(entity)) return;
-        EnsureNotIterating();
+        if (_ids.StateOf(entity) != EntityState.Alive) return;
+        Phase.EnsureCanMoveRows();
 
+        using var hooks = Phase.EnterHooks();
         // Hooks may despawn more entities, so each call owns the range it appended.
         var start = _despawning.Count;
-        CollectDepthFirst(entity.Id);
-
-        var end = _despawning.Count;
-        for (var i = start; i < end; i++)
+        try
         {
-            var doomed = _despawning[i];
-            if (!IsAlive(doomed)) continue;
-            FireDespawnHooks(doomed);
-            if (IsAlive(doomed)) Delete(doomed.Id);
+            CollectDepthFirst(entity.Id);
+            DeleteCollected(start, _despawning.Count);
         }
-
-        _despawning.RemoveRange(start, end - start);
+        finally
+        {
+            // After a hook threw, the entities not yet deleted stay alive.
+            for (var i = start; i < _despawning.Count; i++) _ids.CancelDespawning(_despawning[i]);
+            _despawning.RemoveRange(start, _despawning.Count - start);
+        }
     }
 
     public void OnAdd<T>(ComponentHook<T> handler) where T : unmanaged, IComponentData => GetOrCreateHooks<T>().OnAdd(handler);
@@ -47,8 +49,9 @@ internal sealed partial class ArchetypeStore
     /// </summary>
     public void SetParent(Entity child, Entity parent)
     {
-        Resolve(child);
-        Resolve(parent);
+        Phase.EnsureCanReparent();
+        EnsureHierarchyCanChange(child);
+        EnsureHierarchyCanChange(parent);
         for (var ancestor = parent.Id; ancestor != 0; ancestor = _hierarchy.ParentOf(ancestor))
             if (ancestor == child.Id)
                 throw new InvalidOperationException($"{child} cannot be parented under itself or its descendant {parent}.");
@@ -58,7 +61,8 @@ internal sealed partial class ArchetypeStore
 
     public void ClearParent(Entity child)
     {
-        Resolve(child);
+        Phase.EnsureCanReparent();
+        EnsureHierarchyCanChange(child);
         _hierarchy.ClearParent(child.Id);
     }
 
@@ -87,6 +91,41 @@ internal sealed partial class ArchetypeStore
         return (ComponentHooks<T>)(_hooks[id.Value] ??= new ComponentHooks<T>());
     }
 
+    private void FireAddHooks(Entity entity, ComponentId id)
+    {
+        if (HooksOf(id) is not { } hooks) return;
+        using var scope = Phase.EnterHooks();
+        hooks.FireAdded(this, entity);
+    }
+
+    /// <summary>
+    ///     Does nothing while the remove hooks of the same component of the same entity already run, so a hook that
+    ///     removes its own component or despawns its own entity does not fire itself again.
+    /// </summary>
+    private void FireRemoveHooks(Entity entity, ComponentId id)
+    {
+        if (HooksOf(id) is not { } hooks || IsBeingRemoved(entity, id)) return;
+        using var scope = Phase.EnterHooks();
+        _removing.Add(new PendingRemoval(entity, id));
+        try
+        {
+            hooks.FireRemoved(this, entity);
+        }
+        finally
+        {
+            _removing.RemoveAt(_removing.Count - 1);
+        }
+    }
+
+    private bool IsBeingRemoved(Entity entity, ComponentId id) => _removing.Contains(new PendingRemoval(entity, id));
+
+    private void EnsureHierarchyCanChange(Entity entity)
+    {
+        Resolve(entity);
+        if (IsDespawning(entity))
+            throw new InvalidOperationException($"{entity} is being despawned, so it cannot gain, lose or change a parent or child.");
+    }
+
     private void CollectDepthFirst(int root)
     {
         _walk.Add(root);
@@ -94,6 +133,7 @@ internal sealed partial class ArchetypeStore
         {
             var id = _walk[^1];
             _walk.RemoveAt(_walk.Count - 1);
+            _ids.MarkDespawning(id);
             _despawning.Add(_ids.HandleOf(id));
 
             var children = _hierarchy.ChildrenOf(id);
@@ -101,18 +141,19 @@ internal sealed partial class ArchetypeStore
         }
     }
 
-    private void FireDespawnHooks(Entity doomed)
+    private void DeleteCollected(int start, int end)
     {
-        var outer = _firingDespawnHooks;
-        _firingDespawnHooks = doomed;
-        try
+        for (var i = start; i < end; i++)
         {
+            var doomed = _despawning[i];
             // The key is read once: hooks may move the entity, and each hook checks the component is still there.
-            foreach (var id in _locations[doomed.Id].Archetype.Key) HooksOf(id)?.FireRemoved(this, doomed);
-        }
-        finally
-        {
-            _firingDespawnHooks = outer;
+            foreach (var id in _locations[doomed.Id].Archetype.Key) FireRemoveHooks(doomed, id);
+            Delete(doomed.Id);
         }
     }
+
+    /// <summary>
+    ///     A component whose remove hooks are running.
+    /// </summary>
+    private readonly record struct PendingRemoval(Entity Entity, ComponentId Id);
 }

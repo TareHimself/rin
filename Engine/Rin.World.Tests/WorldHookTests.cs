@@ -129,6 +129,137 @@ public class WorldHookTests
         Assert.That(counter.Value, Is.EqualTo(202));
     }
 
+    [Test]
+    public void ARemoveHookThatRemovesItsOwnComponentDoesNotFireItselfAgain()
+    {
+        var world = new World();
+        var nested = new List<bool>();
+        world.OnRemove((Entity entity, ref Health _) => nested.Add(world.Remove<Health>(entity)));
+        var target = world.Spawn();
+        world.Add(target, new Health(1));
+
+        var removed = world.Remove<Health>(target);
+
+        Assert.That(removed, Is.True);
+        Assert.That(nested, Is.EqualTo(new[] { false }));
+        Assert.That(world.Has<Health>(target), Is.False);
+    }
+
+    [Test]
+    public void ARemoveHookThatDespawnsItsOwnEntityDoesNotFireItselfAgain()
+    {
+        var world = new World();
+        var fired = 0;
+        world.OnRemove((Entity entity, ref Health _) =>
+        {
+            fired++;
+            world.Despawn(entity);
+        });
+        var target = world.Spawn();
+        world.Add(target, new Health(1));
+
+        world.Remove<Health>(target);
+
+        Assert.That(fired, Is.EqualTo(1));
+        Assert.That(world.IsAlive(target), Is.False);
+        Assert.That(world.EntityCount, Is.Zero);
+    }
+
+    [Test]
+    public void ADespawnHookThatRemovesFromOrDespawnsItsOwnEntityDoesNotFireItselfAgain()
+    {
+        var world = new World();
+        var fired = 0;
+        world.OnRemove((Entity entity, ref Health _) =>
+        {
+            fired++;
+            world.Remove<Health>(entity);
+            world.Despawn(entity);
+        });
+        var parent = world.Spawn();
+        var child = world.Spawn();
+        world.Add(parent, new Health(1));
+        world.Add(child, new Health(2));
+        world.SetParent(child, parent);
+
+        world.Despawn(parent);
+
+        Assert.That(fired, Is.EqualTo(2));
+        Assert.That(world.EntityCount, Is.Zero);
+    }
+
+    [Test]
+    public void ADespawnWhoseHookThrowsLeavesTheEntitiesAliveAndDespawnableAgain()
+    {
+        var world = new World();
+        var shouldThrow = true;
+        world.OnRemove((Entity _, ref Health _) =>
+        {
+            if (shouldThrow) throw new InvalidOperationException("hook failed");
+        });
+        var parent = world.Spawn();
+        var child = world.Spawn();
+        world.Add(parent, new Health(1));
+        world.SetParent(child, parent);
+
+        Assert.Throws<InvalidOperationException>(() => world.Despawn(parent));
+        Assert.That(world.IsAlive(parent) && world.IsAlive(child), Is.True);
+
+        shouldThrow = false;
+        world.Despawn(parent);
+
+        Assert.That(world.EntityCount, Is.Zero);
+    }
+
+    [Test]
+    public void SavingOrRestoringASnapshotFromAHookThrowsAndLeavesTheWorldIntact()
+    {
+        var world = new World();
+        var snapshot = new WorldSnapshot();
+        var target = world.Spawn();
+        world.Add(target, new Health(1));
+        world.SaveSnapshot(snapshot);
+        var saveFailed = false;
+        world.OnRemove((Entity _, ref Health _) =>
+        {
+            saveFailed = Throws(() => world.SaveSnapshot(new WorldSnapshot()));
+            world.RestoreSnapshot(snapshot);
+        });
+
+        Assert.Throws<InvalidOperationException>(() => world.Despawn(target));
+        Assert.Throws<InvalidOperationException>(() => world.Remove<Health>(target));
+        Assert.That(saveFailed, Is.True);
+        Assert.That(world.IsAlive(target), Is.True);
+        Assert.That(world.Has<Health>(target), Is.True);
+        Assert.That(world.EntityCount, Is.EqualTo(1));
+    }
+
+    [Test]
+    public void RestoringASnapshotFromAnAddHookThrows()
+    {
+        var world = new World();
+        var snapshot = new WorldSnapshot();
+        world.SaveSnapshot(snapshot);
+        world.OnAdd((Entity _, ref Health _) => world.RestoreSnapshot(snapshot));
+        var target = world.Spawn();
+
+        Assert.Throws<InvalidOperationException>(() => world.Add(target, new Health(1)));
+        Assert.That(world.IsAlive(target), Is.True);
+    }
+
+    private static bool Throws(Action action)
+    {
+        try
+        {
+            action();
+            return false;
+        }
+        catch (InvalidOperationException)
+        {
+            return true;
+        }
+    }
+
     private sealed class Counter
     {
         public int Value;

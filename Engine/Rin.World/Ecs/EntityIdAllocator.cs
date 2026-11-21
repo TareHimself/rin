@@ -9,7 +9,7 @@ internal sealed class EntityIdAllocator
     private const int FirstId = 1;
 
     private short[] _generations = new short[64];
-    private bool[] _alive = new bool[64];
+    private EntityState[] _states = new EntityState[64];
     private int[] _free = new int[64];
     private int _freeCount;
     private int _nextId = FirstId;
@@ -18,20 +18,37 @@ internal sealed class EntityIdAllocator
     {
         var id = _freeCount > 0 ? _free[--_freeCount] : _nextId++;
         EnsureSlot(id);
-        _alive[id] = true;
+        _states[id] = EntityState.Alive;
         return new Entity(id, _generations[id]);
     }
 
     public void Free(int id)
     {
-        _alive[id] = false;
+        _states[id] = EntityState.Free;
         _generations[id] = unchecked((short)(_generations[id] + 1));
         if (_freeCount == _free.Length) Array.Resize(ref _free, _free.Length * 2);
         _free[_freeCount++] = id;
     }
 
-    public bool IsAlive(Entity entity) =>
-        entity.Id >= FirstId && entity.Id < _nextId && _alive[entity.Id] && _generations[entity.Id] == entity.Generation;
+    /// <summary>
+    ///     <see cref="EntityState.Free" /> for a stale handle.
+    /// </summary>
+    public EntityState StateOf(Entity entity) =>
+        entity.Id >= FirstId && entity.Id < _nextId && _generations[entity.Id] == entity.Generation
+            ? _states[entity.Id]
+            : EntityState.Free;
+
+    public bool IsAlive(Entity entity) => StateOf(entity) != EntityState.Free;
+
+    public void MarkDespawning(int id) => _states[id] = EntityState.Despawning;
+
+    /// <summary>
+    ///     Makes a <see cref="EntityState.Despawning" /> entity plain alive again, for a despawn that threw.
+    /// </summary>
+    public void CancelDespawning(Entity entity)
+    {
+        if (StateOf(entity) == EntityState.Despawning) _states[entity.Id] = EntityState.Alive;
+    }
 
     public Entity HandleOf(int id) => new(id, _generations[id]);
 
@@ -41,7 +58,7 @@ internal sealed class EntityIdAllocator
         snapshot.Write(_freeCount);
         snapshot.WriteSpan<int>(_free.AsSpan(0, _freeCount));
         snapshot.WriteSpan<short>(_generations.AsSpan(0, _nextId));
-        snapshot.WriteSpan<bool>(_alive.AsSpan(0, _nextId));
+        snapshot.WriteSpan<EntityState>(_states.AsSpan(0, _nextId));
     }
 
     public void Restore(ref SnapshotReader reader)
@@ -53,9 +70,9 @@ internal sealed class EntityIdAllocator
 
         reader.ReadSpan(_free.AsSpan(0, _freeCount));
         reader.ReadSpan(_generations.AsSpan(0, _nextId));
-        reader.ReadSpan(_alive.AsSpan(0, _nextId));
+        reader.ReadSpan(_states.AsSpan(0, _nextId));
         _generations.AsSpan(_nextId).Clear();
-        _alive.AsSpan(_nextId).Clear();
+        _states.AsSpan(_nextId).Clear();
     }
 
     private void EnsureSlot(int id)
@@ -63,6 +80,6 @@ internal sealed class EntityIdAllocator
         if (id < _generations.Length) return;
         var size = int.Max(id + 1, _generations.Length * 2);
         Array.Resize(ref _generations, size);
-        Array.Resize(ref _alive, size);
+        Array.Resize(ref _states, size);
     }
 }
