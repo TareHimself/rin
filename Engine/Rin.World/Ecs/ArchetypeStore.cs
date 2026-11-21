@@ -54,6 +54,7 @@ public sealed partial class ArchetypeStore
     public void Despawn(Entity entity)
     {
         if (!IsAlive(entity)) return;
+        EnsureNotIterating();
         Delete(entity.Id);
     }
 
@@ -131,6 +132,7 @@ public sealed partial class ArchetypeStore
 
     private void Move(int entityId, Archetype target)
     {
+        EnsureNotIterating();
         var source = _locations[entityId];
         var targetRow = target.AddRow(entityId);
         var columns = source.Archetype.Columns;
