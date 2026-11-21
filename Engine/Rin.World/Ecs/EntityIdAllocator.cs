@@ -61,6 +61,16 @@ internal sealed class EntityIdAllocator
         snapshot.WriteSpan<EntityState>(_states.AsSpan(0, _nextId));
     }
 
+    /// <summary>
+    ///     Reads past what <see cref="Save" /> wrote.
+    /// </summary>
+    public static void Skip(ref SnapshotReader reader)
+    {
+        var nextId = reader.Read<int>();
+        var freeCount = reader.Read<int>();
+        reader.ReadBytes(freeCount * sizeof(int) + nextId * (sizeof(short) + sizeof(EntityState)));
+    }
+
     public void Restore(ref SnapshotReader reader)
     {
         _nextId = reader.Read<int>();

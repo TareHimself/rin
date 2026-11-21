@@ -3,12 +3,13 @@ using System.Runtime.InteropServices;
 namespace Rin.World.Ecs;
 
 /// <summary>
-///     The entity part of a <see cref="WorldSnapshot" />: the id allocator, then every non-empty archetype with its key,
-///     entity ids and one raw byte block per saved column, then each parent's children.
+///     The entity part of a <see cref="WorldSnapshot" />: a layout hash per component id the snapshot uses, the id
+///     allocator, then every non-empty archetype with its key, entity ids and one raw byte block per saved column, then
+///     each parent's children.
 /// </summary>
 /// <remarks>
-///     Component ids are only valid within one schema, so a snapshot restores only into a store with the same schema.
-///     Entities go straight back into their archetype in the saved order, so query order after a restore matches the
+///     Component ids are only valid within one schema, so <see cref="Validate" /> checks that the store's schema
+///     describes every used id the same way before a restore changes anything. Entities go straight back into their archetype in the saved order, so query order after a restore matches the
 ///     order at save time. Derived columns are cleared rather than copied.
 /// </remarks>
 internal sealed partial class ArchetypeStore
@@ -19,6 +20,7 @@ internal sealed partial class ArchetypeStore
 
     public void Save(WorldSnapshot snapshot)
     {
+        SaveSchema(snapshot);
         _ids.Save(snapshot);
 
         var nonEmpty = 0;
@@ -41,6 +43,7 @@ internal sealed partial class ArchetypeStore
     public void Restore(ref SnapshotReader reader)
     {
         Phase.EnsureCanRestore();
+        SkipSchema(ref reader);
         foreach (var archetype in _archetypes) archetype.Clear();
         _hierarchy.Clear();
         EntityCount = 0;
@@ -50,6 +53,65 @@ internal sealed partial class ArchetypeStore
         for (var i = 0; i < archetypeCount; i++) RestoreArchetype(ref reader);
 
         RestoreChildren(ref reader);
+    }
+
+    /// <summary>
+    ///     Throws unless <see cref="Restore" /> can read the snapshot with this store's schema. Reads a copy of the
+    ///     reader, so nothing changes.
+    /// </summary>
+    public void Validate(SnapshotReader reader)
+    {
+        var usedCount = ValidateSchema(ref reader);
+        EntityIdAllocator.Skip(ref reader);
+        var archetypeCount = reader.Read<int>();
+        for (var i = 0; i < archetypeCount; i++) ValidateArchetype(ref reader, usedCount);
+    }
+
+    private void SaveSchema(WorldSnapshot snapshot)
+    {
+        var usedCount = 0;
+        foreach (var archetype in _archetypes)
+            if (archetype.Count > 0 && archetype.Key.Length > 0) usedCount = int.Max(usedCount, archetype.Key[^1].Value + 1);
+
+        snapshot.Write(usedCount);
+        for (var i = 0; i < usedCount; i++) snapshot.Write(Schema[new ComponentId(i)].LayoutHash());
+    }
+
+    private static void SkipSchema(ref SnapshotReader reader) => reader.ReadBytes(reader.Read<int>() * sizeof(ulong));
+
+    private int ValidateSchema(ref SnapshotReader reader)
+    {
+        var usedCount = reader.Read<int>();
+        if (usedCount > Schema.Count)
+            throw new ArgumentException($"The snapshot uses {usedCount} component ids but the schema has only {Schema.Count}.");
+
+        for (var i = 0; i < usedCount; i++)
+        {
+            var info = Schema[new ComponentId(i)];
+            if (reader.Read<ulong>() != info.LayoutHash())
+                throw new ArgumentException($"Component id {i} is {info.Name} in the schema but was saved as a different component.");
+        }
+
+        return usedCount;
+    }
+
+    private void ValidateArchetype(ref SnapshotReader reader, int usedCount)
+    {
+        var keyLength = reader.Read<int>();
+        var key = MemoryMarshal.Cast<byte, ComponentId>(reader.ReadBytes(keyLength * sizeof(int)));
+        for (var i = 0; i < key.Length; i++)
+        {
+            if ((uint)key[i].Value >= (uint)usedCount || (i > 0 && key[i].Value <= key[i - 1].Value))
+                throw new ArgumentException("The snapshot has an archetype key that is not sorted, unique and within its schema.");
+        }
+
+        var count = reader.Read<int>();
+        reader.ReadBytes(count * sizeof(int));
+        foreach (var id in key)
+        {
+            var info = Schema[id];
+            if (!info.IsTag && info.IsSaved) reader.ReadBytes(count * info.Size);
+        }
     }
 
     private void SaveArchetype(Archetype archetype, WorldSnapshot snapshot)

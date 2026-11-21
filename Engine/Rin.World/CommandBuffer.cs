@@ -6,6 +6,9 @@ namespace Rin.World;
 ///     Records structural changes and applies them in record order on <see cref="Playback" />. Commands for an entity that
 ///     is no longer alive at playback are skipped.
 /// </summary>
+/// <remarks>
+///     When a command throws, it and the commands before it are dropped and the rest stay for the next playback.
+/// </remarks>
 public sealed class CommandBuffer
 {
     private readonly World _world;
@@ -40,27 +43,33 @@ public sealed class CommandBuffer
 
     public void Playback()
     {
+        var index = 0;
         try
         {
             // Hooks may record more commands while this runs; they are applied in the same playback.
-            for (var i = 0; i < _commands.Count; i++)
-            {
-                var command = _commands[i];
-                if (!_world.IsAlive(command.Entity)) continue;
-                if (command.Kind == CommandKind.Despawn) _world.Despawn(command.Entity);
-                else _typed[command.Slot]!.Apply(_world, command);
-            }
+            for (; index < _commands.Count; index++) Apply(_commands[index]);
         }
-        finally
+        catch
         {
-            Clear();
+            // Stored values stay, because the remaining commands index into them.
+            _commands.RemoveRange(0, index + 1);
+            throw;
         }
+
+        Clear();
     }
 
     internal void Clear()
     {
         _commands.Clear();
         foreach (var typed in _typed) typed?.Clear();
+    }
+
+    private void Apply(in Command command)
+    {
+        if (!_world.IsAlive(command.Entity)) return;
+        if (command.Kind == CommandKind.Despawn) _world.Despawn(command.Entity);
+        else _typed[command.Slot]!.Apply(_world, command);
     }
 
     private void Record<T>(CommandKind kind, Entity entity, in T component) where T : unmanaged, IComponentData

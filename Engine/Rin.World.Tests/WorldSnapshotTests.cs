@@ -1,5 +1,7 @@
 using Rin.Core.Shared.Math;
 using System.Numerics;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using Rin.World.Scheduling;
 using Rin.World.Transforms;
 
@@ -118,6 +120,70 @@ public class WorldSnapshotTests
     }
 
     [Test]
+    public void ASnapshotRestoresIntoASchemaThatOnlyAppendsToTheSavedOne()
+    {
+        var schema = ComponentSchema.Engine.Clone();
+        var source = new World(schema);
+        var entity = source.Spawn();
+        source.Add(entity, new Health(4));
+        var snapshot = new WorldSnapshot();
+        source.SaveSnapshot(snapshot);
+        var extended = schema.Clone();
+        extended.IdOf<Speed>();
+
+        var target = new World(extended);
+        target.RestoreSnapshot(snapshot);
+
+        Assert.That(target.Get<Health>(entity).Value, Is.EqualTo(4));
+    }
+
+    [Test]
+    public void RestoringIntoAWorldWhoseSchemaDiffersThrowsBeforeAnythingChanges()
+    {
+        var sourceSchema = ComponentSchema.Engine.Clone();
+        sourceSchema.IdOf<Health>();
+        sourceSchema.IdOf<Speed>();
+        var source = new World(sourceSchema);
+        source.Add(source.Spawn(), new Speed(1f));
+        var snapshot = new WorldSnapshot();
+        source.SaveSnapshot(snapshot);
+
+        var reordered = ComponentSchema.Engine.Clone();
+        reordered.IdOf<Speed>();
+        reordered.IdOf<Health>();
+        var log = new List<string>();
+        var target = new World(reordered);
+        target.AddRestoreListener(new LoggingListener("a", log, target));
+        var kept = target.Spawn();
+        target.Add(kept, new Health(9));
+
+        Assert.Throws<ArgumentException>(() => target.RestoreSnapshot(snapshot));
+        Assert.Throws<ArgumentException>(() => new World().RestoreSnapshot(snapshot), "the schema lacks the saved ids");
+        Assert.That(log, Is.Empty);
+        Assert.That(target.Get<Health>(kept).Value, Is.EqualTo(9));
+        Assert.That(target.EntityCount, Is.EqualTo(1));
+    }
+
+    [Test]
+    public void RestoringASnapshotWithAnUnsortedArchetypeKeyThrowsBeforeAnythingChanges()
+    {
+        var world = new World();
+        var entity = world.Spawn();
+        world.Add(entity, new Health(1));
+        world.Add(entity, new Speed(1f));
+        var snapshot = new WorldSnapshot();
+        world.SaveSnapshot(snapshot);
+        var health = world.Schema.IdOf<Health>().Value;
+        var speed = world.Schema.IdOf<Speed>().Value;
+        SwapArchetypeKey(snapshot, [2, health, speed, 1], [2, speed, health, 1]);
+        world.Remove<Speed>(entity);
+
+        Assert.Throws<ArgumentException>(() => world.RestoreSnapshot(snapshot));
+        Assert.That(world.Has<Speed>(entity), Is.False);
+        Assert.That(world.Get<Health>(entity).Value, Is.EqualTo(1));
+    }
+
+    [Test]
     public void RestoreDropsPendingCommands()
     {
         var world = new World();
@@ -207,6 +273,15 @@ public class WorldSnapshotTests
 
         TestContext.Out.WriteLine($"{snapshot.Length} bytes per snapshot, {allocated} bytes allocated in 20 save and restore pairs");
         Assert.That(allocated, Is.Zero);
+    }
+
+    // Snapshots have no public writer, so this edits the saved bytes in place.
+    private static void SwapArchetypeKey(WorldSnapshot snapshot, int[] saved, int[] replacement)
+    {
+        var bytes = MemoryMarshal.CreateSpan(ref Unsafe.AsRef(in MemoryMarshal.GetReference(snapshot.Bytes)), snapshot.Length);
+        var at = bytes.IndexOf(MemoryMarshal.AsBytes(saved.AsSpan()));
+        Assert.That(at, Is.Not.Negative, "the saved key is in the snapshot");
+        MemoryMarshal.AsBytes(replacement.AsSpan()).CopyTo(bytes[at..]);
     }
 
     private static List<Entity> HealthOrder(World world)

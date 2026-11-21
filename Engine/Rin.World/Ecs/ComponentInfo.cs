@@ -32,6 +32,8 @@ public sealed record ComponentInfo(
     public static ComponentInfo Of<T>() where T : unmanaged
     {
         var isTag = typeof(ITagData).IsAssignableFrom(typeof(T));
+        if (isTag && typeof(IComponentData).IsAssignableFrom(typeof(T)))
+            throw new ArgumentException($"{typeof(T).Name} cannot be both an {nameof(IComponentData)} and an {nameof(ITagData)}.");
         return new ComponentInfo(
             typeof(T).Name,
             typeof(T),
@@ -42,6 +44,19 @@ public sealed record ComponentInfo(
     }
 
     // Its size is the struct's size plus the padding a byte in front of it needs, which is its alignment.
+    /// <summary>
+    ///     A hash of the name, size and <see cref="IsSaved" />, the same in every process, so a snapshot can check it
+    ///     restores into a schema that lays its components out the same way.
+    /// </summary>
+    internal ulong LayoutHash()
+    {
+        const ulong prime = 1099511628211;
+        var hash = 14695981039346656037;
+        foreach (var c in Name) hash = (hash ^ c) * prime;
+        hash = (hash ^ (uint)Size) * prime;
+        return (hash ^ (IsSaved ? 1u : 0u)) * prime;
+    }
+
     private struct AlignmentProbe<T> where T : unmanaged
     {
 #pragma warning disable CS0169

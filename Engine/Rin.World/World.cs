@@ -11,7 +11,7 @@ namespace Rin.World;
 public sealed class World
 {
     private const float MaxFrameDeltaSeconds = 0.25f;
-    private const int SnapshotFormat = 0x52534E31;
+    private const int SnapshotFormat = 0x52534E32;
 
     private readonly ArchetypeStore _store;
     private readonly SystemSchedule _schedule = new();
@@ -123,6 +123,7 @@ public sealed class World
     ///     loops. Pending <see cref="Commands" /> are dropped, no hooks fire, and every <see cref="IWorldRestoreListener" />
     ///     rebuilds what lives outside the store. Structural changes made from
     ///     <see cref="IWorldRestoreListener.BeforeRestore" />, for one by the <c>finally</c> block of a cancelled task, throw.
+    ///     A snapshot saved with a schema that differs in any component it uses throws before anything changes.
     /// </summary>
     public void RestoreSnapshot(WorldSnapshot snapshot)
     {
@@ -131,14 +132,19 @@ public sealed class World
         if (snapshot.IsEmpty || reader.Read<int>() != SnapshotFormat)
             throw new ArgumentException("The snapshot is empty or was not saved by a World.", nameof(snapshot));
 
+        var tickIndex = reader.Read<long>();
+        var accumulator = reader.Read<float>();
+        var random = reader.Read<DeterministicRandom.State>();
+        _store.Validate(reader);
+
         using (_store.Phase.EnterRestore())
             for (var i = 0; i < _restoreListeners.Count; i++) _restoreListeners[i].BeforeRestore();
 
         Commands.Clear();
-        TickIndex = reader.Read<long>();
-        _accumulator = reader.Read<float>();
+        TickIndex = tickIndex;
+        _accumulator = accumulator;
         InterpolationAlpha = _accumulator / TickInterval;
-        Random.Current = reader.Read<DeterministicRandom.State>();
+        Random.Current = random;
         _store.Restore(ref reader);
 
         for (var i = 0; i < _restoreListeners.Count; i++) _restoreListeners[i].AfterRestore();

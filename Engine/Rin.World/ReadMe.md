@@ -148,7 +148,7 @@ The tick is deterministic on the same build and CPU family. Tick code must:
 - spawn and despawn through `Commands`
 - draw random numbers from `world.Random`
 
-`world.SaveSnapshot(snapshot)` and `RestoreSnapshot(snapshot)` rewind the world, and `snapshot.ComputeHash()` compares worlds. Components are `unmanaged` (the compiler rejects managed fields, so keep managed data in a registry and store its id), and `[EcsNotSaved]` ones are zeroed on restore. Render proxies, physics bodies and scripts are rebuilt after a restore. Running tasks and pending commands are dropped. Bepu's internal state is not restored, so a restored physics run only matches another run that restored at the same ticks.
+`world.SaveSnapshot(snapshot)` and `RestoreSnapshot(snapshot)` rewind the world, and `snapshot.ComputeHash()` compares worlds. A snapshot restores into any world whose schema has the same components at the ids it uses, and throws before changing anything otherwise. Components are `unmanaged` (the compiler rejects managed fields, so keep managed data in a registry and store its id), and `[EcsNotSaved]` ones are zeroed on restore. Render proxies, physics bodies and scripts are rebuilt after a restore. Running tasks and pending commands are dropped. Bepu's internal state is not restored, so a restored physics run only matches another run that restored at the same ticks.
 
 ## The render pipeline
 

@@ -61,15 +61,19 @@ public sealed partial class ComponentSchema
         lock (_gate) IsFrozen = true;
     }
 
+    /// <summary>
+    ///     Adds a component defined only at run time. C# structs enter through <see cref="IdOf{T}" />, which takes their
+    ///     size from the type.
+    /// </summary>
     public ComponentId Add(ComponentInfo info)
     {
         ArgumentNullException.ThrowIfNull(info);
+        if (info.Type is not null)
+            throw new ArgumentException($"{info.Name} is a C# struct, so it is added by IdOf<{info.Name}>().", nameof(info));
 
         lock (_gate)
         {
             EnsureNotFrozen(info.Name);
-            if (info.Type is not null && _byType.ContainsKey(info.Type))
-                throw new ArgumentException($"{info.Name} is already in the schema.", nameof(info));
             return Append(info);
         }
     }

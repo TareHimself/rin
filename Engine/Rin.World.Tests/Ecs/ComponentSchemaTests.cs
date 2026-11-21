@@ -63,7 +63,7 @@ public class ComponentSchemaTests
 
         Assert.That(schema.IdOf<Health>().Value, Is.Zero);
         Assert.Throws<InvalidOperationException>(() => schema.IdOf<Speed>());
-        Assert.Throws<InvalidOperationException>(() => schema.Add(ComponentInfo.Of<Armor>()));
+        Assert.Throws<InvalidOperationException>(() => schema.Add(new ComponentInfo("Door", null, 4, 4, true, [])));
     }
 
     [Test]
@@ -83,14 +83,23 @@ public class ComponentSchemaTests
     }
 
     [Test]
-    public void AnAddedTypeIsFoundByIdOf()
+    public void AddRejectsACSharpStructWhateverItsSize()
     {
         var schema = new ComponentSchema();
 
-        var added = schema.Add(ComponentInfo.Of<Health>());
-
-        Assert.That(schema.IdOf<Health>(), Is.EqualTo(added));
         Assert.Throws<ArgumentException>(() => schema.Add(ComponentInfo.Of<Health>()));
+        Assert.Throws<ArgumentException>(() => schema.Add(new ComponentInfo(nameof(Health), typeof(Health), 1, 1, true, [])));
+        Assert.That(schema.Count, Is.Zero);
+    }
+
+    [Test]
+    public void AStructThatIsBothAComponentAndATagIsRejected()
+    {
+        var schema = new ComponentSchema();
+
+        Assert.Throws<ArgumentException>(() => ComponentInfo.Of<ComponentAndTag>());
+        Assert.Throws<ArgumentException>(() => schema.IdOf<ComponentAndTag>());
+        Assert.That(schema.Count, Is.Zero);
     }
 
     [Test]
@@ -146,4 +155,6 @@ public class ComponentSchemaTests
         Assert.Throws<InvalidOperationException>(() => world.Add(entity, new Speed(1f)));
         Assert.That(world.Has<Speed>(entity), Is.False);
     }
+
+    private struct ComponentAndTag : IComponentData, ITagData;
 }

@@ -117,6 +117,32 @@ public class CommandBufferTests
     }
 
     [Test]
+    public void APlaybackThatThrowsKeepsTheCommandsAfterTheFailingOne()
+    {
+        var world = new World();
+        var entity = world.Spawn();
+        var failSpeed = true;
+        world.OnAdd((Entity _, in Speed _) =>
+        {
+            if (failSpeed) throw new InvalidOperationException("hook failed");
+        });
+        world.Commands.Add(entity, new Health(1));
+        world.Commands.Add(entity, new Speed(2f));
+        world.Commands.Add(entity, new Armor(3));
+
+        Assert.Throws<InvalidOperationException>(() => world.Commands.Playback());
+        Assert.That(world.Has<Health>(entity), Is.True);
+        Assert.That(world.Has<Armor>(entity), Is.False);
+        Assert.That(world.Commands.Count, Is.EqualTo(1));
+
+        failSpeed = false;
+        world.Commands.Playback();
+
+        Assert.That(world.Get<Armor>(entity).Value, Is.EqualTo(3));
+        Assert.That(world.Commands.Count, Is.Zero);
+    }
+
+    [Test]
     public void SpawnedIdsFollowRecordOrder()
     {
         var world = new World();
