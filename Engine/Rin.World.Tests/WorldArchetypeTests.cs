@@ -11,7 +11,7 @@ public class WorldArchetypeTests
         world.Add(entity, new Speed(1.5f));
 
         world.Add(entity, new Armor(4));
-        world.AddTag<Stunned>(entity);
+        world.Add(entity, new Stunned());
         world.Remove<Speed>(entity);
 
         Assert.That(world.Get<Health>(entity).Value, Is.EqualTo(7));
@@ -85,13 +85,13 @@ public class WorldArchetypeTests
         {
             world.Add(entity, new Health(1));
             world.Add(entity, new Speed(1f));
-            world.AddTag<Stunned>(entity);
+            world.Add(entity, new Stunned());
         }
 
         foreach (var entity in entities)
         {
             world.Remove<Health>(entity);
-            world.RemoveTag<Stunned>(entity);
+            world.Remove<Stunned>(entity);
             world.Remove<Speed>(entity);
         }
     }
@@ -105,7 +105,7 @@ public class WorldArchetypeTests
             entities.Add(entity);
             world.Add(entity, new Health(i));
             if (i % 2 == 0) world.Add(entity, new Speed(i));
-            if (i % 3 == 0) world.AddTag<Stunned>(entity);
+            if (i % 3 == 0) world.Add(entity, new Stunned());
         }
 
         world.Remove<Health>(entities[4]);

@@ -1,3 +1,4 @@
+using System.Runtime.CompilerServices;
 using Rin.World.Graphics;
 using Rin.World.Transforms;
 
@@ -73,7 +74,7 @@ public class ComponentSchemaTests
         var missing = new List<string>();
         foreach (var type in typeof(World).Assembly.GetTypes())
         {
-            if (!type.IsValueType || !(typeof(IComponentData).IsAssignableFrom(type) || typeof(ITagData).IsAssignableFrom(type))) continue;
+            if (!type.IsValueType || !typeof(IComponentData).IsAssignableFrom(type)) continue;
             object?[] arguments = [null];
             if (!(bool)tryGetId.MakeGenericMethod(type).Invoke(ComponentSchema.Engine, arguments)!) missing.Add(type.FullName!);
         }
@@ -93,13 +94,21 @@ public class ComponentSchemaTests
     }
 
     [Test]
-    public void AStructThatIsBothAComponentAndATagIsRejected()
+    public void ATagWithFieldsIsRejected()
     {
         var schema = new ComponentSchema();
 
-        Assert.Throws<ArgumentException>(() => ComponentInfo.Of<ComponentAndTag>());
-        Assert.Throws<ArgumentException>(() => schema.IdOf<ComponentAndTag>());
+        Assert.Throws<ArgumentException>(() => ComponentInfo.Of<TagWithField>());
+        Assert.Throws<ArgumentException>(() => schema.IdOf<TagWithField>());
         Assert.That(schema.Count, Is.Zero);
+    }
+
+    [Test]
+    public void AnEmptyTagHasNoSizeAlthoughTheStructReportsOne()
+    {
+        Assert.That(Unsafe.SizeOf<Stunned>(), Is.EqualTo(1));
+        Assert.That(ComponentInfo.Of<Stunned>().IsTag, Is.True);
+        Assert.That(ComponentInfo.Of<Stunned>().Size, Is.Zero);
     }
 
     [Test]
@@ -156,5 +165,8 @@ public class ComponentSchemaTests
         Assert.That(world.Has<Speed>(entity), Is.False);
     }
 
-    private struct ComponentAndTag : IComponentData, ITagData;
+    private struct TagWithField : ITagData
+    {
+        public int Value { get; set; }
+    }
 }

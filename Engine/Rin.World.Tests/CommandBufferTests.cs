@@ -82,24 +82,24 @@ public class CommandBufferTests
     }
 
     [Test]
-    public void TagCommandsFollowRecordOrder()
+    public void TagAddsAndRemovesFollowRecordOrderLikeAnyComponent()
     {
         var world = new World();
         var added = world.Spawn();
         var removedAgain = world.Spawn();
-        world.AddTag<Stunned>(removedAgain);
+        world.Add(removedAgain, new Stunned());
 
         var buffer = new CommandBuffer(world);
-        buffer.AddTag<Stunned>(added);
-        buffer.RemoveTag<Stunned>(removedAgain);
-        buffer.AddTag<Stunned>(removedAgain);
-        buffer.RemoveTag<Stunned>(removedAgain);
-        Assert.That(world.HasTag<Stunned>(added), Is.False);
+        buffer.Add(added, new Stunned());
+        buffer.Remove<Stunned>(removedAgain);
+        buffer.Add(removedAgain, new Stunned());
+        buffer.Remove<Stunned>(removedAgain);
+        Assert.That(world.Has<Stunned>(added), Is.False);
 
         buffer.Playback();
 
-        Assert.That(world.HasTag<Stunned>(added), Is.True);
-        Assert.That(world.HasTag<Stunned>(removedAgain), Is.False);
+        Assert.That(world.Has<Stunned>(added), Is.True);
+        Assert.That(world.Has<Stunned>(removedAgain), Is.False);
     }
 
     [Test]

@@ -147,7 +147,7 @@ public class DeterminismTests
             world.Commands.Add(entity, local);
             world.Commands.Add(entity, new WorldTransform());
             world.Commands.Add(entity, new Speed(random.NextFloat(0.5f, 2f)));
-            world.Commands.AddTag<Wanderer>(entity);
+            world.Commands.Add(entity, new Wanderer());
             world.Commands.Add(entity, new StaticMesh { Mesh = mesh });
             if (physics) world.Commands.Add(entity, new RigidBody { Shape = ColliderShape.Sphere(0.3f), State = PhysicsState.Simulated });
         }

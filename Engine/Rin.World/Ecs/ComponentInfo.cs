@@ -1,3 +1,4 @@
+using System.Reflection;
 using System.Runtime.CompilerServices;
 using Rin.World.Ecs;
 
@@ -31,8 +32,8 @@ public sealed record ComponentInfo(
     public static ComponentInfo Of<T>() where T : unmanaged
     {
         var isTag = typeof(ITagData).IsAssignableFrom(typeof(T));
-        if (isTag && typeof(IComponentData).IsAssignableFrom(typeof(T)))
-            throw new ArgumentException($"{typeof(T).Name} cannot be both an {nameof(IComponentData)} and an {nameof(ITagData)}.");
+        if (isTag && typeof(T).GetFields(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic).Length > 0)
+            throw new ArgumentException($"{typeof(T).Name} is an {nameof(ITagData)}, so it cannot have fields.");
         return new ComponentInfo(
             typeof(T).Name,
             typeof(T),

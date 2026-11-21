@@ -11,13 +11,13 @@ world.SetPosition(parent, new Vector3(1, 0, 0));
 
 var child = world.Spawn();
 world.Add(child, new Health(20));
-world.AddTag<Poisoned>(child);
+world.Add(child, new Poisoned());
 world.SetPosition(child, new Vector3(0, 2, 0));
 world.SetParent(child, parent);
 
 var queued = world.Commands.Spawn();
 world.Commands.Add(queued, new Health(30));
-world.Commands.AddTag<Poisoned>(queued);
+world.Commands.Add(queued, new Poisoned());
 world.Commands.Playback();
 
 world.Update(world.TickInterval);
@@ -25,7 +25,7 @@ Check(world.Get<WorldTransform>(child).Matrix.Translation == new Vector3(1, 2, 0
 
 foreach (var chunk in world.Query<Health>())
     for (var i = 0; i < chunk.Length; i++)
-        if (world.HasTag<Poisoned>(chunk.Entities[i])) chunk.Components1[i].Value -= 5;
+        if (world.Has<Poisoned>(chunk.Entities[i])) chunk.Components1[i].Value -= 5;
 
 Check(world.Get<Health>(child).Value == 15 && world.Get<Health>(queued).Value == 25, "the query wrote through its span");
 Check(world.Get<Health>(parent).Value == 10, "the untagged entity was left alone");
@@ -36,7 +36,7 @@ Check(!world.IsAlive(child) && world.EntityCount == 1, "despawning the parent de
 
 world.RestoreSnapshot(snapshot);
 Check(world.EntityCount == 3 && world.GetParent(child) == parent, "the restore brought back the hierarchy");
-Check(world.Get<Health>(child).Value == 15 && world.HasTag<Poisoned>(child), "the restore brought back components and tags");
+Check(world.Get<Health>(child).Value == 15 && world.Has<Poisoned>(child), "the restore brought back components and tags");
 
 Console.WriteLine("Rin.World AOT smoke test passed.");
 return 0;

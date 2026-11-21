@@ -43,16 +43,17 @@ public class WorldTests
     }
 
     [Test]
-    public void TagsCanBeAddedAndRemoved()
+    public void TagsAreAddedReadAndRemovedAsComponents()
     {
         var world = new World();
         var entity = world.Spawn();
 
-        world.AddTag<Stunned>(entity);
-        Assert.That(world.HasTag<Stunned>(entity), Is.True);
+        world.Add(entity, new Stunned());
+        Assert.That(world.Has<Stunned>(entity), Is.True);
+        Assert.DoesNotThrow(() => world.Get<Stunned>(entity));
 
-        world.RemoveTag<Stunned>(entity);
-        Assert.That(world.HasTag<Stunned>(entity), Is.False);
+        world.Remove<Stunned>(entity);
+        Assert.That(world.Has<Stunned>(entity), Is.False);
     }
 
     [Test]

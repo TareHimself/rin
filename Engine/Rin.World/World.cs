@@ -102,8 +102,8 @@ public sealed class World
     public void AddRestoreListener(IWorldRestoreListener listener) => _restoreListeners.Add(listener);
 
     /// <summary>
-    ///     Overwrites <paramref name="snapshot" /> with the simulation state: every entity with its components, tags and
-    ///     parent, the entity id allocator, <see cref="TickIndex" />, the tick accumulator and <see cref="Random" />.
+    ///     Overwrites <paramref name="snapshot" /> with the simulation state: every entity with its components and parent,
+    ///     the entity id allocator, <see cref="TickIndex" />, the tick accumulator and <see cref="Random" />.
     ///     <see cref="EcsNotSavedAttribute" /> components are left out.
     /// </summary>
     public void SaveSnapshot(WorldSnapshot snapshot)
@@ -195,12 +195,6 @@ public sealed class World
     public void Set<T>(Entity entity, in T component) where T : unmanaged, IComponentData => _store.Set(entity, component);
 
     public bool Remove<T>(Entity entity) where T : unmanaged, IComponentData => _store.Remove<T>(entity);
-
-    public bool HasTag<T>(Entity entity) where T : unmanaged, ITagData => _store.HasTag<T>(entity);
-
-    public void AddTag<T>(Entity entity) where T : unmanaged, ITagData => _store.AddTag<T>(entity);
-
-    public void RemoveTag<T>(Entity entity) where T : unmanaged, ITagData => _store.RemoveTag<T>(entity);
 
     public void SetParent(Entity child, Entity parent)
     {

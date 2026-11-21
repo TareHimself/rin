@@ -76,10 +76,7 @@ internal sealed partial class ArchetypeStore
     public ref T TryGetRef<T>(Entity entity) where T : unmanaged
     {
         if (!_ids.IsAlive(entity) || !Schema.TryGetId<T>(out var id)) return ref Unsafe.NullRef<T>();
-        var location = _locations[entity.Id];
-        var column = location.Archetype.ColumnOf(id);
-        if (column < 0) return ref Unsafe.NullRef<T>();
-        return ref location.Archetype.Columns[column].Get<T>(location.Row);
+        return ref RefAt<T>(_locations[entity.Id], id);
     }
 
     /// <summary>
@@ -90,7 +87,7 @@ internal sealed partial class ArchetypeStore
         var location = Resolve(entity);
         if (Schema.TryGetId<T>(out var existing) && location.Archetype.Has(existing))
         {
-            location.Archetype.Columns[location.Archetype.ColumnOf(existing)].Get<T>(location.Row) = component;
+            RefAt<T>(location, existing) = component;
             return false;
         }
 
@@ -98,8 +95,7 @@ internal sealed partial class ArchetypeStore
         EnsureCanGainComponents(entity);
         var id = Schema.IdOf<T>();
         Move(entity.Id, WithComponent(location.Archetype, id));
-        location = _locations[entity.Id];
-        location.Archetype.Columns[location.Archetype.ColumnOf(id)].Get<T>(location.Row) = component;
+        RefAt<T>(_locations[entity.Id], id) = component;
         FireAddHooks(entity, id);
         return true;
     }
@@ -119,19 +115,6 @@ internal sealed partial class ArchetypeStore
         Move(entity.Id, WithoutComponent(location.Archetype, id));
         return true;
     }
-
-    public bool HasTag<T>(Entity entity) where T : unmanaged => Has<T>(entity);
-
-    public void AddTag<T>(Entity entity) where T : unmanaged
-    {
-        var location = Resolve(entity);
-        if (Schema.TryGetId<T>(out var existing) && location.Archetype.Has(existing)) return;
-
-        Phase.EnsureCanMoveRows();
-        Move(entity.Id, WithComponent(location.Archetype, Schema.IdOf<T>()));
-    }
-
-    public void RemoveTag<T>(Entity entity) where T : unmanaged => Remove<T>(entity);
 
     public Archetype GetOrCreateArchetype(ReadOnlySpan<ComponentId> key)
     {
@@ -204,6 +187,18 @@ internal sealed partial class ArchetypeStore
         return target;
     }
 
+    /// <summary>
+    ///     The component in its column, the shared <see cref="TagValue{T}" /> for a tag, or a null reference when the
+    ///     archetype lacks it.
+    /// </summary>
+    private static ref T RefAt<T>(EntityLocation location, ComponentId id) where T : unmanaged
+    {
+        var archetype = location.Archetype;
+        var column = archetype.ColumnOf(id);
+        if (column >= 0) return ref archetype.Columns[column].Get<T>(location.Row);
+        return ref archetype.Has(id) ? ref TagValue<T>.Shared : ref Unsafe.NullRef<T>();
+    }
+
     private EntityLocation Resolve(Entity entity)
     {
         if (!_ids.IsAlive(entity)) throw new InvalidOperationException($"{entity} is not alive.");
@@ -218,3 +213,11 @@ internal sealed partial class ArchetypeStore
 ///     Where an entity's components are.
 /// </summary>
 internal readonly record struct EntityLocation(Archetype Archetype, int Row);
+
+/// <summary>
+///     What a tag's reference points at, since a tag has no column. Tags have no fields, so sharing it loses nothing.
+/// </summary>
+internal static class TagValue<T> where T : unmanaged
+{
+    public static T Shared;
+}

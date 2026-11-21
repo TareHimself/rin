@@ -102,7 +102,7 @@ public class QueryTests
     {
         var world = new World();
         var stunned = Spawn(world, 1);
-        world.AddTag<Stunned>(stunned);
+        world.Add(stunned, new Stunned());
         var armored = Spawn(world, 2);
         world.Add(armored, new Armor(1));
         Spawn(world, 3);
@@ -116,7 +116,7 @@ public class QueryTests
     {
         var world = new World();
         var stunned = Spawn(world, 1);
-        world.AddTag<Stunned>(stunned);
+        world.Add(stunned, new Stunned());
         var plain = Spawn(world, 2);
 
         var awake = world.Query<Health>().Without<Stunned>();
@@ -132,7 +132,7 @@ public class QueryTests
         var slow = world.Query<Health>().Without<Speed>().With<Stunned>();
 
         var entity = Spawn(world, 1);
-        world.AddTag<Stunned>(entity);
+        world.Add(entity, new Stunned());
         Assert.That(slow.EntityCount, Is.EqualTo(1));
 
         world.Add(entity, new Speed(1f));
@@ -175,7 +175,7 @@ public class QueryTests
         });
         Assert.Throws<InvalidOperationException>(() =>
         {
-            foreach (var _ in world.Query<Health>()) world.AddTag<Stunned>(entity);
+            foreach (var _ in world.Query<Health>()) world.Add(entity, new Stunned());
         });
 
         Assert.That(world.Schema.Count, Is.EqualTo(count));
@@ -235,7 +235,7 @@ public class QueryTests
         for (var i = 0; i < 100; i++)
         {
             var entity = Spawn(world, i);
-            if (i % 2 == 0) world.AddTag<Stunned>(entity);
+            if (i % 2 == 0) world.Add(entity, new Stunned());
         }
 
         var awake = world.Query<Health>().Without<Stunned>();
