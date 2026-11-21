@@ -11,19 +11,17 @@ namespace Rin.World;
 ///     changing its layout means a new schema. <see cref="Clone" /> copies every id, which keeps the
 ///     <see cref="Engine" /> ids the same in every schema made from it.
 /// </remarks>
-public sealed partial class ComponentSchema
+public sealed class ComponentSchema
 {
     private const int Absent = -1;
 
     private readonly Lock _gate = new();
-    private readonly Dictionary<Type, ComponentId> _byType;
     private ComponentInfo[] _infos;
     private int[] _localIds;
     private int _count;
 
     public ComponentSchema()
     {
-        _byType = [];
         _infos = new ComponentInfo[16];
         _localIds = [];
     }
@@ -32,7 +30,6 @@ public sealed partial class ComponentSchema
     {
         lock (source._gate)
         {
-            _byType = new Dictionary<Type, ComponentId>(source._byType);
             _infos = (ComponentInfo[])source._infos.Clone();
             _localIds = (int[])source._localIds.Clone();
             _count = source._count;
@@ -40,9 +37,9 @@ public sealed partial class ComponentSchema
     }
 
     /// <summary>
-    ///     Every component and tag of Rin.World, frozen, so clones of it never collide with a later append.
+    ///     <see cref="ComponentModule.Engine" />, frozen, so clones of it never collide with a later append.
     /// </summary>
-    public static ComponentSchema Engine { get; } = CreateEngine();
+    public static ComponentSchema Engine { get; } = Compose(ComponentModule.Engine);
 
     public int Count => Volatile.Read(ref _count);
 
@@ -51,6 +48,21 @@ public sealed partial class ComponentSchema
     public ComponentInfo this[ComponentId id] =>
         (uint)id.Value < (uint)Count ? _infos[id.Value] : throw new ArgumentOutOfRangeException(nameof(id), id, null);
 
+    /// <summary>
+    ///     A frozen schema holding <paramref name="modules" /> in order, so the same modules in the same order always give
+    ///     the same ids. A module or type already placed is skipped.
+    /// </summary>
+    public static ComponentSchema Compose(params ReadOnlySpan<ComponentModule> modules)
+    {
+        var schema = new ComponentSchema();
+        foreach (var module in modules) schema.AppendModule(module);
+        schema.Freeze();
+        return schema;
+    }
+
+    /// <summary>
+    ///     An unfrozen copy with the same ids, for worlds that add types on first use.
+    /// </summary>
     public ComponentSchema Clone() => new(this);
 
     /// <summary>
@@ -62,6 +74,19 @@ public sealed partial class ComponentSchema
     }
 
     /// <summary>
+    ///     A hash of every component's <see cref="ComponentInfo.LayoutHash" /> in id order, so two processes can check
+    ///     they agree on every id.
+    /// </summary>
+    public ulong Fingerprint()
+    {
+        var count = Count;
+        var infos = Volatile.Read(ref _infos);
+        var hash = Fnv.Basis;
+        for (var i = 0; i < count; i++) hash = Fnv.Mix(hash, infos[i].LayoutHash());
+        return hash;
+    }
+
+    /// <summary>
     ///     The id of <typeparamref name="T" />, added on first use unless the schema is frozen.
     /// </summary>
     public ComponentId IdOf<T>() where T : unmanaged =>
@@ -69,11 +94,20 @@ public sealed partial class ComponentSchema
 
     public bool TryGetId<T>(out ComponentId id) where T : unmanaged
     {
-        var index = TypeIndex<T>.Value;
+        id = new ComponentId(LocalIdOf(TypeIndex<T>.Value));
+        return id.Value != Absent;
+    }
+
+    private void AppendModule(ComponentModule module)
+    {
+        foreach (var info in module.Components)
+            if (LocalIdOf(info.TypeIndex) == Absent) Append(info);
+    }
+
+    private int LocalIdOf(int typeIndex)
+    {
         var localIds = Volatile.Read(ref _localIds);
-        var value = index < localIds.Length ? localIds[index] : Absent;
-        id = new ComponentId(value);
-        return value != Absent;
+        return typeIndex < localIds.Length ? localIds[typeIndex] : Absent;
     }
 
     private ComponentId AddLazily<T>() where T : unmanaged
@@ -81,14 +115,8 @@ public sealed partial class ComponentSchema
         lock (_gate)
         {
             if (TryGetId<T>(out var existing)) return existing;
-            if (!_byType.TryGetValue(typeof(T), out var id))
-            {
-                EnsureNotFrozen(typeof(T).Name);
-                id = Append(ComponentInfo.Of<T>());
-            }
-
-            MapTypeIndex(TypeIndex<T>.Value, id);
-            return id;
+            EnsureNotFrozen(typeof(T));
+            return Append(ComponentInfo.Of<T>());
         }
     }
 
@@ -103,8 +131,8 @@ public sealed partial class ComponentSchema
         }
 
         _infos[id.Value] = info;
-        _byType.Add(info.Type, id);
         Volatile.Write(ref _count, _count + 1);
+        MapTypeIndex(info.TypeIndex, id);
         return id;
     }
 
@@ -123,8 +151,10 @@ public sealed partial class ComponentSchema
         Volatile.Write(ref _localIds[typeIndex], id.Value);
     }
 
-    private void EnsureNotFrozen(string name)
+    private void EnsureNotFrozen(Type type)
     {
-        if (IsFrozen) throw new InvalidOperationException($"{name} cannot be added because the schema is frozen.");
+        if (IsFrozen)
+            throw new InvalidOperationException(
+                $"{type.FullName} is not in this frozen schema. Compose it with the component module of {type.Assembly.GetName().Name}.");
     }
 }

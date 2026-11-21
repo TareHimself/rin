@@ -5,6 +5,7 @@ Roslyn incremental source generators, consumed by Rin.Core, Rin.World, Rin.World
 | Generator | Triggers on |
 | --- | --- |
 | `AudioEffectGenerator` | Types marked `Rin.Core.Audio.Effects.AudioEffectAttribute` |
+| `ComponentModuleGenerator` | Structs implementing `Rin.World.IComponentData`, one `ComponentModule` per assembly |
 | `GraphicsShaderGenerator` | Properties marked with an attribute deriving from `Rin.Core.Graphics.Shaders.ShaderAttribute` |
 | `ProviderResolvedGenerator` | Properties marked `Rin.Core.Shared.Providers.ResolvedAttribute` |
 

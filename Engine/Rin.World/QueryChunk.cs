@@ -10,30 +10,27 @@ namespace Rin.World;
 public readonly ref struct QueryChunk<T1>
     where T1 : unmanaged, IComponentData
 {
-    private readonly Span<T1> _components1;
-    private readonly Column _column1;
-    private readonly ChunkChangeTicks _ticks;
+    private readonly ChunkView _view;
+    private readonly ChunkColumn<T1> _column1;
 
-    internal QueryChunk(Column column1, ChunkEntities entities, ChunkChangeTicks ticks)
+    internal QueryChunk(ChunkView view, ComponentId id1)
     {
-        _column1 = column1;
-        _components1 = column1.Span<T1>(entities.Length);
-        _ticks = ticks;
-        Entities = entities;
+        _view = view;
+        _column1 = view.Column<T1>(id1);
     }
 
-    public ReadOnlySpan<T1> Components1 => _components1;
+    public ReadOnlySpan<T1> Components1 => _column1.Components;
 
-    public ChunkEntities Entities { get; }
+    public ChunkEntities Entities => _view.Entities;
 
-    public int Length => Entities.Length;
+    public int Length => _view.Length;
 
     /// <summary>
     ///     Row <paramref name="index" /> of <typeparamref name="T" />, one of the queried components, stamped as changed.
     /// </summary>
     public ref T Write<T>(int index) where T : unmanaged, IComponentData
     {
-        if (typeof(T) == typeof(T1)) return ref Unsafe.As<T1, T>(ref _ticks.Stamp(_components1, _column1, index));
+        if (typeof(T) == typeof(T1)) return ref Unsafe.As<T1, T>(ref _column1.Write(index, _view.Ticks));
         throw ChunkChangeTicks.NotQueried<T>();
     }
 
@@ -43,7 +40,7 @@ public readonly ref struct QueryChunk<T1>
     /// </summary>
     public bool HasChanged<T>(int index) where T : unmanaged, IComponentData
     {
-        if (typeof(T) == typeof(T1)) return _ticks.IsNewer(_column1, index);
+        if (typeof(T) == typeof(T1)) return _column1.HasChanged(index, _view.Ticks);
         throw ChunkChangeTicks.NotQueried<T>();
     }
 
@@ -62,37 +59,32 @@ public readonly ref struct QueryChunk<T1, T2>
     where T1 : unmanaged, IComponentData
     where T2 : unmanaged, IComponentData
 {
-    private readonly Span<T1> _components1;
-    private readonly Span<T2> _components2;
-    private readonly Column _column1;
-    private readonly Column _column2;
-    private readonly ChunkChangeTicks _ticks;
+    private readonly ChunkView _view;
+    private readonly ChunkColumn<T1> _column1;
+    private readonly ChunkColumn<T2> _column2;
 
-    internal QueryChunk(Column column1, Column column2, ChunkEntities entities, ChunkChangeTicks ticks)
+    internal QueryChunk(ChunkView view, ComponentId id1, ComponentId id2)
     {
-        _column1 = column1;
-        _components1 = column1.Span<T1>(entities.Length);
-        _column2 = column2;
-        _components2 = column2.Span<T2>(entities.Length);
-        _ticks = ticks;
-        Entities = entities;
+        _view = view;
+        _column1 = view.Column<T1>(id1);
+        _column2 = view.Column<T2>(id2);
     }
 
-    public ReadOnlySpan<T1> Components1 => _components1;
+    public ReadOnlySpan<T1> Components1 => _column1.Components;
 
-    public ReadOnlySpan<T2> Components2 => _components2;
+    public ReadOnlySpan<T2> Components2 => _column2.Components;
 
-    public ChunkEntities Entities { get; }
+    public ChunkEntities Entities => _view.Entities;
 
-    public int Length => Entities.Length;
+    public int Length => _view.Length;
 
     /// <summary>
     ///     Row <paramref name="index" /> of <typeparamref name="T" />, one of the queried components, stamped as changed.
     /// </summary>
     public ref T Write<T>(int index) where T : unmanaged, IComponentData
     {
-        if (typeof(T) == typeof(T1)) return ref Unsafe.As<T1, T>(ref _ticks.Stamp(_components1, _column1, index));
-        if (typeof(T) == typeof(T2)) return ref Unsafe.As<T2, T>(ref _ticks.Stamp(_components2, _column2, index));
+        if (typeof(T) == typeof(T1)) return ref Unsafe.As<T1, T>(ref _column1.Write(index, _view.Ticks));
+        if (typeof(T) == typeof(T2)) return ref Unsafe.As<T2, T>(ref _column2.Write(index, _view.Ticks));
         throw ChunkChangeTicks.NotQueried<T>();
     }
 
@@ -102,8 +94,8 @@ public readonly ref struct QueryChunk<T1, T2>
     /// </summary>
     public bool HasChanged<T>(int index) where T : unmanaged, IComponentData
     {
-        if (typeof(T) == typeof(T1)) return _ticks.IsNewer(_column1, index);
-        if (typeof(T) == typeof(T2)) return _ticks.IsNewer(_column2, index);
+        if (typeof(T) == typeof(T1)) return _column1.HasChanged(index, _view.Ticks);
+        if (typeof(T) == typeof(T2)) return _column2.HasChanged(index, _view.Ticks);
         throw ChunkChangeTicks.NotQueried<T>();
     }
 
@@ -130,44 +122,37 @@ public readonly ref struct QueryChunk<T1, T2, T3>
     where T2 : unmanaged, IComponentData
     where T3 : unmanaged, IComponentData
 {
-    private readonly Span<T1> _components1;
-    private readonly Span<T2> _components2;
-    private readonly Span<T3> _components3;
-    private readonly Column _column1;
-    private readonly Column _column2;
-    private readonly Column _column3;
-    private readonly ChunkChangeTicks _ticks;
+    private readonly ChunkView _view;
+    private readonly ChunkColumn<T1> _column1;
+    private readonly ChunkColumn<T2> _column2;
+    private readonly ChunkColumn<T3> _column3;
 
-    internal QueryChunk(Column column1, Column column2, Column column3, ChunkEntities entities, ChunkChangeTicks ticks)
+    internal QueryChunk(ChunkView view, ComponentId id1, ComponentId id2, ComponentId id3)
     {
-        _column1 = column1;
-        _components1 = column1.Span<T1>(entities.Length);
-        _column2 = column2;
-        _components2 = column2.Span<T2>(entities.Length);
-        _column3 = column3;
-        _components3 = column3.Span<T3>(entities.Length);
-        _ticks = ticks;
-        Entities = entities;
+        _view = view;
+        _column1 = view.Column<T1>(id1);
+        _column2 = view.Column<T2>(id2);
+        _column3 = view.Column<T3>(id3);
     }
 
-    public ReadOnlySpan<T1> Components1 => _components1;
+    public ReadOnlySpan<T1> Components1 => _column1.Components;
 
-    public ReadOnlySpan<T2> Components2 => _components2;
+    public ReadOnlySpan<T2> Components2 => _column2.Components;
 
-    public ReadOnlySpan<T3> Components3 => _components3;
+    public ReadOnlySpan<T3> Components3 => _column3.Components;
 
-    public ChunkEntities Entities { get; }
+    public ChunkEntities Entities => _view.Entities;
 
-    public int Length => Entities.Length;
+    public int Length => _view.Length;
 
     /// <summary>
     ///     Row <paramref name="index" /> of <typeparamref name="T" />, one of the queried components, stamped as changed.
     /// </summary>
     public ref T Write<T>(int index) where T : unmanaged, IComponentData
     {
-        if (typeof(T) == typeof(T1)) return ref Unsafe.As<T1, T>(ref _ticks.Stamp(_components1, _column1, index));
-        if (typeof(T) == typeof(T2)) return ref Unsafe.As<T2, T>(ref _ticks.Stamp(_components2, _column2, index));
-        if (typeof(T) == typeof(T3)) return ref Unsafe.As<T3, T>(ref _ticks.Stamp(_components3, _column3, index));
+        if (typeof(T) == typeof(T1)) return ref Unsafe.As<T1, T>(ref _column1.Write(index, _view.Ticks));
+        if (typeof(T) == typeof(T2)) return ref Unsafe.As<T2, T>(ref _column2.Write(index, _view.Ticks));
+        if (typeof(T) == typeof(T3)) return ref Unsafe.As<T3, T>(ref _column3.Write(index, _view.Ticks));
         throw ChunkChangeTicks.NotQueried<T>();
     }
 
@@ -177,9 +162,9 @@ public readonly ref struct QueryChunk<T1, T2, T3>
     /// </summary>
     public bool HasChanged<T>(int index) where T : unmanaged, IComponentData
     {
-        if (typeof(T) == typeof(T1)) return _ticks.IsNewer(_column1, index);
-        if (typeof(T) == typeof(T2)) return _ticks.IsNewer(_column2, index);
-        if (typeof(T) == typeof(T3)) return _ticks.IsNewer(_column3, index);
+        if (typeof(T) == typeof(T1)) return _column1.HasChanged(index, _view.Ticks);
+        if (typeof(T) == typeof(T2)) return _column2.HasChanged(index, _view.Ticks);
+        if (typeof(T) == typeof(T3)) return _column3.HasChanged(index, _view.Ticks);
         throw ChunkChangeTicks.NotQueried<T>();
     }
 
@@ -209,51 +194,42 @@ public readonly ref struct QueryChunk<T1, T2, T3, T4>
     where T3 : unmanaged, IComponentData
     where T4 : unmanaged, IComponentData
 {
-    private readonly Span<T1> _components1;
-    private readonly Span<T2> _components2;
-    private readonly Span<T3> _components3;
-    private readonly Span<T4> _components4;
-    private readonly Column _column1;
-    private readonly Column _column2;
-    private readonly Column _column3;
-    private readonly Column _column4;
-    private readonly ChunkChangeTicks _ticks;
+    private readonly ChunkView _view;
+    private readonly ChunkColumn<T1> _column1;
+    private readonly ChunkColumn<T2> _column2;
+    private readonly ChunkColumn<T3> _column3;
+    private readonly ChunkColumn<T4> _column4;
 
-    internal QueryChunk(Column column1, Column column2, Column column3, Column column4, ChunkEntities entities, ChunkChangeTicks ticks)
+    internal QueryChunk(ChunkView view, ComponentId id1, ComponentId id2, ComponentId id3, ComponentId id4)
     {
-        _column1 = column1;
-        _components1 = column1.Span<T1>(entities.Length);
-        _column2 = column2;
-        _components2 = column2.Span<T2>(entities.Length);
-        _column3 = column3;
-        _components3 = column3.Span<T3>(entities.Length);
-        _column4 = column4;
-        _components4 = column4.Span<T4>(entities.Length);
-        _ticks = ticks;
-        Entities = entities;
+        _view = view;
+        _column1 = view.Column<T1>(id1);
+        _column2 = view.Column<T2>(id2);
+        _column3 = view.Column<T3>(id3);
+        _column4 = view.Column<T4>(id4);
     }
 
-    public ReadOnlySpan<T1> Components1 => _components1;
+    public ReadOnlySpan<T1> Components1 => _column1.Components;
 
-    public ReadOnlySpan<T2> Components2 => _components2;
+    public ReadOnlySpan<T2> Components2 => _column2.Components;
 
-    public ReadOnlySpan<T3> Components3 => _components3;
+    public ReadOnlySpan<T3> Components3 => _column3.Components;
 
-    public ReadOnlySpan<T4> Components4 => _components4;
+    public ReadOnlySpan<T4> Components4 => _column4.Components;
 
-    public ChunkEntities Entities { get; }
+    public ChunkEntities Entities => _view.Entities;
 
-    public int Length => Entities.Length;
+    public int Length => _view.Length;
 
     /// <summary>
     ///     Row <paramref name="index" /> of <typeparamref name="T" />, one of the queried components, stamped as changed.
     /// </summary>
     public ref T Write<T>(int index) where T : unmanaged, IComponentData
     {
-        if (typeof(T) == typeof(T1)) return ref Unsafe.As<T1, T>(ref _ticks.Stamp(_components1, _column1, index));
-        if (typeof(T) == typeof(T2)) return ref Unsafe.As<T2, T>(ref _ticks.Stamp(_components2, _column2, index));
-        if (typeof(T) == typeof(T3)) return ref Unsafe.As<T3, T>(ref _ticks.Stamp(_components3, _column3, index));
-        if (typeof(T) == typeof(T4)) return ref Unsafe.As<T4, T>(ref _ticks.Stamp(_components4, _column4, index));
+        if (typeof(T) == typeof(T1)) return ref Unsafe.As<T1, T>(ref _column1.Write(index, _view.Ticks));
+        if (typeof(T) == typeof(T2)) return ref Unsafe.As<T2, T>(ref _column2.Write(index, _view.Ticks));
+        if (typeof(T) == typeof(T3)) return ref Unsafe.As<T3, T>(ref _column3.Write(index, _view.Ticks));
+        if (typeof(T) == typeof(T4)) return ref Unsafe.As<T4, T>(ref _column4.Write(index, _view.Ticks));
         throw ChunkChangeTicks.NotQueried<T>();
     }
 
@@ -263,10 +239,10 @@ public readonly ref struct QueryChunk<T1, T2, T3, T4>
     /// </summary>
     public bool HasChanged<T>(int index) where T : unmanaged, IComponentData
     {
-        if (typeof(T) == typeof(T1)) return _ticks.IsNewer(_column1, index);
-        if (typeof(T) == typeof(T2)) return _ticks.IsNewer(_column2, index);
-        if (typeof(T) == typeof(T3)) return _ticks.IsNewer(_column3, index);
-        if (typeof(T) == typeof(T4)) return _ticks.IsNewer(_column4, index);
+        if (typeof(T) == typeof(T1)) return _column1.HasChanged(index, _view.Ticks);
+        if (typeof(T) == typeof(T2)) return _column2.HasChanged(index, _view.Ticks);
+        if (typeof(T) == typeof(T3)) return _column3.HasChanged(index, _view.Ticks);
+        if (typeof(T) == typeof(T4)) return _column4.HasChanged(index, _view.Ticks);
         throw ChunkChangeTicks.NotQueried<T>();
     }
 

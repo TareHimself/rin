@@ -18,6 +18,7 @@
 
     <ItemGroup>
         <ProjectReference Include="$(EngineDir)Rin.Core\Rin.Core.csproj" />
+        <ProjectReference Include="$(EngineDir)Rin.World\Rin.World.csproj" />
         <ProjectReference Include="$(EngineDir)Rin.SourceGenerators\Rin.SourceGenerators.csproj" />
     </ItemGroup>
 

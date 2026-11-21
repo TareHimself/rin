@@ -9,21 +9,28 @@ namespace Rin.World;
 ///     column.
 /// </summary>
 /// <remarks>
-///     Every component is a C# struct, so infos come only from <see cref="Of{T}" />.
+///     Every component is a C# struct, so infos come only from <see cref="Of{T}()" />.
 /// </remarks>
 public sealed record ComponentInfo
 {
-    private ComponentInfo(string name, Type type, int size, bool isSaved)
+    private ComponentInfo(string name, Type type, int typeIndex, int size, bool isSaved, ComponentField[] fields)
     {
         Name = name;
         Type = type;
+        TypeIndex = typeIndex;
         Size = size;
         IsSaved = isSaved;
+        Fields = fields;
     }
 
     public string Name { get; }
 
     public Type Type { get; }
+
+    /// <summary>
+    ///     The struct's <see cref="Ecs.TypeIndex{T}" />, so a schema maps it to an id without a generic type argument.
+    /// </summary>
+    internal int TypeIndex { get; }
 
     public int Size { get; }
 
@@ -33,16 +40,21 @@ public sealed record ComponentInfo
     public bool IsSaved { get; }
 
     /// <summary>
-    ///     Empty until field offsets are generated for the inspector.
+    ///     The public instance fields, filled by a generated <see cref="ComponentModule" /> and empty otherwise.
     /// </summary>
-    public ComponentField[] Fields { get; } = [];
+    public ComponentField[] Fields { get; }
 
     public bool IsTag => Size == 0;
 
     /// <summary>
     ///     A tag for an <see cref="ITagData" />, otherwise a component of the struct's size.
     /// </summary>
-    public static ComponentInfo Of<T>() where T : unmanaged
+    public static ComponentInfo Of<T>() where T : unmanaged => Of<T>([]);
+
+    /// <summary>
+    ///     <see cref="Of{T}()" /> with the struct's fields, which a generated <see cref="ComponentModule" /> passes.
+    /// </summary>
+    public static ComponentInfo Of<T>(ComponentField[] fields) where T : unmanaged
     {
         var isTag = typeof(ITagData).IsAssignableFrom(typeof(T));
         if (isTag && typeof(T).GetFields(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic).Length > 0)
@@ -50,21 +62,22 @@ public sealed record ComponentInfo
         return new ComponentInfo(
             typeof(T).Name,
             typeof(T),
+            Ecs.TypeIndex<T>.Value,
             isTag ? 0 : Unsafe.SizeOf<T>(),
-            !typeof(T).IsDefined(typeof(EcsNotSavedAttribute), false));
+            !typeof(T).IsDefined(typeof(EcsNotSavedAttribute), false),
+            fields);
     }
 
     /// <summary>
     ///     A hash of the name, size and <see cref="IsSaved" />, the same in every process, so a snapshot can check it
     ///     restores into a schema that lays its components out the same way.
     /// </summary>
-    internal ulong LayoutHash()
+    public ulong LayoutHash()
     {
-        const ulong prime = 1099511628211;
-        var hash = 14695981039346656037;
-        foreach (var c in Name) hash = (hash ^ c) * prime;
-        hash = (hash ^ (uint)Size) * prime;
-        return (hash ^ (IsSaved ? 1u : 0u)) * prime;
+        var hash = Fnv.Basis;
+        foreach (var c in Name) hash = Fnv.Mix(hash, c);
+        hash = Fnv.Mix(hash, (uint)Size);
+        return Fnv.Mix(hash, IsSaved ? 1u : 0u);
     }
 }
 

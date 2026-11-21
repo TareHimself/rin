@@ -8,4 +8,4 @@ dotnet test Engine/Rin.SourceGenerators.Tests/Rin.SourceGenerators.Tests.csproj 
 
 CI passes `-p:RinShadeSkipCompile=true` for this project.
 
-References: Rin.Core, Rin.SourceGenerators (both as normal project references).
+References: Rin.Core, Rin.World, Rin.SourceGenerators (all as normal project references). The component module tests compile the generated code and load it, so they check real field offsets.

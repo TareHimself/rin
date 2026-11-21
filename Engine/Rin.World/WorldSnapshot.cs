@@ -1,5 +1,6 @@
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using Rin.World.Ecs;
 
 namespace Rin.World;
 
@@ -33,14 +34,11 @@ public sealed class WorldSnapshot
     /// </summary>
     public ulong ComputeHash()
     {
-        const ulong offset = 14695981039346656037;
-        const ulong prime = 1099511628211;
-
         var bytes = Bytes;
-        var hash = offset;
+        var hash = Fnv.Basis;
         var words = MemoryMarshal.Cast<byte, ulong>(bytes);
-        for (var i = 0; i < words.Length; i++) hash = (hash ^ words[i]) * prime;
-        for (var i = words.Length * sizeof(ulong); i < bytes.Length; i++) hash = (hash ^ bytes[i]) * prime;
+        for (var i = 0; i < words.Length; i++) hash = Fnv.Mix(hash, words[i]);
+        for (var i = words.Length * sizeof(ulong); i < bytes.Length; i++) hash = Fnv.Mix(hash, bytes[i]);
         return hash;
     }
 
