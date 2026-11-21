@@ -5,6 +5,6 @@ namespace Rin.World;
 /// </summary>
 /// <remarks>
 ///     <paramref name="component" /> points into the entity's row, so it is stale after the handler makes a structural
-///     change. Use <see cref="World.Get{T}" /> to read the component again, or to write it.
+///     change. Read it again with <see cref="World.Get{T}" />, and change it with <see cref="World.Write{T}" />.
 /// </remarks>
 public delegate void ComponentHook<T>(Entity entity, in T component) where T : unmanaged, IComponentData;

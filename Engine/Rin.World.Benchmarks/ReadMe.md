@@ -15,6 +15,8 @@ Set `RinShadeSkipCompile=true` in the environment first: BenchmarkDotNet rebuild
 | `CommandBufferBenchmarks` | record and play back an add, then a remove, per entity |
 | `DespawnBenchmarks` | despawn every entity |
 | `SnapshotBenchmarks` | `SaveSnapshot` and `RestoreSnapshot` |
+| `ChangedQueryBenchmarks` | a frame system reading a `Changed` query against one reading every row, with nothing written and with 1% of rows written per frame |
+| `FrameExtractBenchmarks` | one `Update` of transform propagation plus render extract over static meshes on a null render backend, still and with 1% moving |
 
 Add and remove are timed as a pair because the entities must return to their archetype for the next run.
 

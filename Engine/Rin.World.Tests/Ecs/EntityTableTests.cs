@@ -1,6 +1,6 @@
 namespace Rin.World.Tests.Ecs;
 
-public class EntityIdAllocatorTests
+public class EntityTableTests
 {
     [Test]
     public void TheSameSpawnsAndDespawnsGiveTheSameHandlesInTwoWorlds()
@@ -66,6 +66,37 @@ public class EntityIdAllocatorTests
         Assert.That(spawned, Has.All.Matches<Entity>(entity => entity.IsValid));
         Assert.That(world.IsAlive(default), Is.False);
         Assert.That(world.GetParent(spawned[1]), Is.EqualTo(default(Entity)), "a root's parent is the default handle");
+    }
+
+    [Test]
+    public void EveryLiveEntityFindsItsOwnComponentsThroughDespawnsReusedIdsAndARestore()
+    {
+        var world = new World();
+        var live = new Dictionary<Entity, int>();
+        for (var i = 0; i < 30; i++) SpawnWithHealth(world, live, i);
+        foreach (var entity in live.Keys.Where((_, index) => index % 3 == 0).ToList())
+        {
+            world.Despawn(entity);
+            live.Remove(entity);
+        }
+
+        for (var i = 30; i < 40; i++) SpawnWithHealth(world, live, i);
+        var snapshot = new WorldSnapshot();
+        world.SaveSnapshot(snapshot);
+        foreach (var entity in live.Keys.Take(5).ToList()) world.Despawn(entity);
+        world.RestoreSnapshot(snapshot);
+        SpawnWithHealth(world, live, 40);
+
+        Assert.That(world.EntityCount, Is.EqualTo(live.Count));
+        foreach (var (entity, health) in live) Assert.That(world.Get<Health>(entity).Value, Is.EqualTo(health), $"{entity}");
+    }
+
+    private static void SpawnWithHealth(World world, Dictionary<Entity, int> live, int health)
+    {
+        var entity = world.Spawn();
+        world.Add(entity, new Health(health));
+        if (health % 2 == 0) world.Add(entity, new Stunned());
+        live.Add(entity, health);
     }
 
     private static List<Entity> RunSequence(World world)

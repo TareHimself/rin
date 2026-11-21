@@ -7,16 +7,12 @@ namespace Rin.World.Transforms;
 /// </summary>
 /// <remarks>
 ///     Adding a missing component is a structural change, which the backend rejects inside a query loop. Inside one,
-///     write through the <see cref="LocalTransform" /> span instead.
+///     write the <see cref="LocalTransform" /> through the query chunk instead.
 /// </remarks>
 public static class TransformExtensions
 {
-    public static void SetLocalTransform(this World world, Entity entity, in LocalTransform transform)
-    {
-        ref var local = ref world.GetOrAddTransform(entity);
-        local = transform;
-        local.IsDirty = true;
-    }
+    public static void SetLocalTransform(this World world, Entity entity, in LocalTransform transform) =>
+        world.GetOrAddTransform(entity) = transform;
 
     public static void SetPosition(this World world, Entity entity, in Vector3 position) =>
         world.GetOrAddTransform(entity).Position = position;
@@ -46,6 +42,6 @@ public static class TransformExtensions
     {
         if (!world.Has<LocalTransform>(entity)) world.Add(entity, new LocalTransform());
         if (!world.Has<WorldTransform>(entity)) world.Add(entity, new WorldTransform());
-        return ref world.Get<LocalTransform>(entity);
+        return ref world.Write<LocalTransform>(entity);
     }
 }

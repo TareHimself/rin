@@ -5,13 +5,13 @@ namespace Rin.World;
 public readonly struct ChunkEntities
 {
     private readonly int[] _ids;
-    private readonly EntityIdAllocator _allocator;
+    private readonly EntityTable _entities;
 
-    internal ChunkEntities(int[] ids, int length, EntityIdAllocator allocator)
+    internal ChunkEntities(int[] ids, int length, EntityTable entities)
     {
         _ids = ids;
         Length = length;
-        _allocator = allocator;
+        _entities = entities;
     }
 
     public int Length { get; }
@@ -21,7 +21,7 @@ public readonly struct ChunkEntities
         get
         {
             ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual((uint)index, (uint)Length, nameof(index));
-            return _allocator.HandleOf(_ids[index]);
+            return _entities.HandleOf(_ids[index]);
         }
     }
 }

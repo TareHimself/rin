@@ -14,7 +14,7 @@ public sealed class World
     private const int SnapshotFormat = 0x52534E32;
 
     private readonly ArchetypeStore _store;
-    private readonly SystemSchedule _schedule = new();
+    private readonly SystemSchedule _schedule;
     private readonly List<IWorldRestoreListener> _restoreListeners = [];
     private float _accumulator;
     private bool _updating;
@@ -30,6 +30,7 @@ public sealed class World
     public World(ComponentSchema schema)
     {
         _store = new ArchetypeStore(schema);
+        _schedule = new SystemSchedule(_store.Clock);
         Commands = new CommandBuffer(this);
         _schedule.Add(FramePhase.Extract, new TransformPropagation(this));
     }
@@ -64,6 +65,12 @@ public sealed class World
     public float InterpolationAlpha { get; private set; }
 
     public ComponentSchema Schema => _store.Schema;
+
+    /// <summary>
+    ///     The tick component writes are stamped with now. It goes up before and after every system run and on every
+    ///     snapshot restore, and is never saved.
+    /// </summary>
+    public uint ChangeTick => _store.Clock.Current;
 
     public int EntityCount => _store.EntityCount;
 
@@ -102,8 +109,8 @@ public sealed class World
     public void AddRestoreListener(IWorldRestoreListener listener) => _restoreListeners.Add(listener);
 
     /// <summary>
-    ///     Overwrites <paramref name="snapshot" /> with the simulation state: every entity with its components, tags and
-    ///     parent, the entity id allocator, <see cref="TickIndex" />, the tick accumulator and <see cref="Random" />.
+    ///     Overwrites <paramref name="snapshot" /> with the simulation state: every entity with its components and parent,
+    ///     the entity table, <see cref="TickIndex" />, the tick accumulator and <see cref="Random" />.
     ///     <see cref="EcsNotSavedAttribute" /> components are left out.
     /// </summary>
     public void SaveSnapshot(WorldSnapshot snapshot)
@@ -182,7 +189,15 @@ public sealed class World
 
     public bool Has<T>(Entity entity) where T : unmanaged, IComponentData => _store.Has<T>(entity);
 
-    public ref T Get<T>(Entity entity) where T : unmanaged, IComponentData => ref _store.Get<T>(entity);
+    /// <summary>
+    ///     Read-only, so a write cannot skip the change tick. Use <see cref="Write{T}" /> to change the component.
+    /// </summary>
+    public ref readonly T Get<T>(Entity entity) where T : unmanaged, IComponentData => ref _store.Get<T>(entity);
+
+    /// <summary>
+    ///     The component to change in place, stamped with <see cref="ChangeTick" />.
+    /// </summary>
+    public ref T Write<T>(Entity entity) where T : unmanaged, IComponentData => ref _store.Write<T>(entity);
 
     /// <summary>
     ///     Adds the component, or overwrites it when present. <see cref="OnAdd{T}" /> hooks fire only for a new component.
@@ -194,24 +209,24 @@ public sealed class World
     /// </summary>
     public void Set<T>(Entity entity, in T component) where T : unmanaged, IComponentData => _store.Set(entity, component);
 
+    /// <summary>
+    ///     Whether the component was added or written after <paramref name="changeTick" />, a past <see cref="ChangeTick" />.
+    /// </summary>
+    public bool HasChangedSince<T>(Entity entity, uint changeTick) where T : unmanaged, IComponentData =>
+        _store.HasChangedSince<T>(entity, changeTick);
+
     public bool Remove<T>(Entity entity) where T : unmanaged, IComponentData => _store.Remove<T>(entity);
-
-    public bool HasTag<T>(Entity entity) where T : unmanaged, ITagData => _store.HasTag<T>(entity);
-
-    public void AddTag<T>(Entity entity) where T : unmanaged, ITagData => _store.AddTag<T>(entity);
-
-    public void RemoveTag<T>(Entity entity) where T : unmanaged, ITagData => _store.RemoveTag<T>(entity);
 
     public void SetParent(Entity child, Entity parent)
     {
         _store.SetParent(child, parent);
-        MarkTransformDirty(child);
+        MarkTransformChanged(child);
     }
 
     public void ClearParent(Entity child)
     {
         _store.ClearParent(child);
-        MarkTransformDirty(child);
+        MarkTransformChanged(child);
     }
 
     /// <summary>
@@ -252,18 +267,29 @@ public sealed class World
 
     private void RunTick()
     {
-        _schedule.RunTick(new TickContext(this, TickIndex, TickInterval));
-        Commands.Playback();
+        using (_store.Clock.EnterTickPhase())
+        {
+            _schedule.RunTick(new TickContext(this, TickIndex, TickInterval));
+            Commands.Playback();
+        }
+
         TickIndex++;
     }
+
+    /// <summary>
+    ///     Whether any of <paramref name="ids" /> that the entity has was written after <paramref name="changeTick" />.
+    /// </summary>
+    internal bool HasAnyChangedSince(Entity entity, ReadOnlySpan<ComponentId> ids, uint changeTick) =>
+        _store.HasAnyChangedSince(entity, ids, changeTick);
 
     /// <summary>
     ///     Whether <paramref name="entity" /> is collected by a despawn whose remove hooks have not finished.
     /// </summary>
     internal bool IsDespawning(Entity entity) => _store.IsDespawning(entity);
 
-    private void MarkTransformDirty(Entity entity)
+    // A new parent changes the world matrix but no transform row, so stamp one for propagation to see.
+    private void MarkTransformChanged(Entity entity)
     {
-        if (_store.Has<LocalTransform>(entity)) _store.Get<LocalTransform>(entity).IsDirty = true;
+        if (_store.Has<LocalTransform>(entity)) _store.Write<LocalTransform>(entity);
     }
 }

@@ -138,6 +138,82 @@ public class SystemScheduleTests
         Assert.That(frames.Deltas, Has.Count.EqualTo(1));
     }
 
+    [Test]
+    public void ASystemDoesNotSeeItsOwnWritesOnItsNextRun()
+    {
+        var world = new World { TickInterval = Interval };
+        var entity = world.Spawn();
+        world.Add(entity, new Health(0));
+        var writer = new HealthWriter(entity);
+        world.AddSystem(FramePhase.Update, writer);
+
+        world.Update(0f);
+        world.Update(0f);
+
+        Assert.That(writer.SawChangeOnRun, Is.EqualTo(new[] { true, false }));
+    }
+
+    [Test]
+    public void ASystemSeesWritesMadeBetweenItsRuns()
+    {
+        var world = new World { TickInterval = Interval };
+        var entity = world.Spawn();
+        world.Add(entity, new Health(0));
+        var writer = new HealthWriter(entity);
+        world.AddSystem(FramePhase.Update, writer);
+        world.AddSystem(FramePhase.Late, new HealthSetter(entity));
+
+        world.Update(0f);
+        world.Set(entity, new Health(10));
+        world.Update(0f);
+        world.Update(0f);
+
+        Assert.That(writer.SawChangeOnRun, Is.EqualTo(new[] { true, true, true }));
+    }
+
+    [Test]
+    public void EverySystemRunsAtATickOfItsOwn()
+    {
+        var world = new World { TickInterval = Interval };
+        var first = new TickReader();
+        var second = new TickReader();
+        world.AddSystem(TickPhase.Gameplay, first);
+        world.AddSystem(TickPhase.Gameplay, second);
+        var before = world.ChangeTick;
+
+        world.Update(Interval);
+
+        Assert.That(first.ChangeTick, Is.GreaterThan(before));
+        Assert.That(second.ChangeTick, Is.GreaterThan(first.ChangeTick + 1));
+        Assert.That(world.ChangeTick, Is.GreaterThan(second.ChangeTick));
+    }
+
+    private sealed class HealthWriter(Entity entity) : FrameSystem
+    {
+        private uint _lastRun;
+
+        public List<bool> SawChangeOnRun { get; } = [];
+
+        public override void Update(in FrameContext context)
+        {
+            SawChangeOnRun.Add(context.World.HasChangedSince<Health>(entity, _lastRun));
+            _lastRun = context.World.ChangeTick;
+            context.World.Set(entity, new Health(context.World.Get<Health>(entity).Value + 1));
+        }
+    }
+
+    private sealed class HealthSetter(Entity entity) : FrameSystem
+    {
+        public override void Update(in FrameContext context) => context.World.Set(entity, new Health(-1));
+    }
+
+    private sealed class TickReader : TickSystem
+    {
+        public uint ChangeTick { get; private set; }
+
+        public override void Tick(in TickContext context) => ChangeTick = context.World.ChangeTick;
+    }
+
     private sealed class TickRecorder : TickSystem
     {
         public readonly List<long> Ticks = [];

@@ -18,6 +18,22 @@ public class WorldHookTests
     }
 
     [Test]
+    public void TagHooksFireOnAddAndRemoveLikeAnyComponent()
+    {
+        var world = new World();
+        var log = new List<string>();
+        world.OnAdd((Entity _, in Stunned _) => log.Add("add"));
+        world.OnRemove((Entity _, in Stunned _) => log.Add("remove"));
+        var entity = world.Spawn();
+
+        world.Add(entity, new Stunned());
+        world.Add(entity, new Stunned());
+        world.Remove<Stunned>(entity);
+
+        Assert.That(log, Is.EqualTo(new[] { "add", "remove" }));
+    }
+
+    [Test]
     public void OnRemoveSeesTheValueBeforeItIsRemoved()
     {
         var world = new World();

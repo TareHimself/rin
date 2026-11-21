@@ -20,7 +20,7 @@ public class WorldSnapshotTests
         world.Add(parent, new Health(10));
         world.Add(first, new Health(20));
         world.Add(first, new Speed(1.5f));
-        world.AddTag<Stunned>(second);
+        world.Add(second, new Stunned());
         world.SetPosition(second, new Vector3(1, 2, 3));
         world.SetParent(second, parent);
         world.SetParent(first, parent);
@@ -29,9 +29,9 @@ public class WorldSnapshotTests
         world.SaveSnapshot(snapshot);
         var draws = Draw(world.Random);
 
-        world.Get<Health>(parent) = new Health(0);
+        world.Write<Health>(parent) = new Health(0);
         world.Remove<Speed>(first);
-        world.RemoveTag<Stunned>(second);
+        world.Remove<Stunned>(second);
         world.Despawn(second);
         world.Add(world.Spawn(), new Armor(5));
         Tick(world, 2);
@@ -43,7 +43,7 @@ public class WorldSnapshotTests
         Assert.That(world.EntityCount, Is.EqualTo(3));
         Assert.That(world.Get<Health>(parent).Value, Is.EqualTo(10));
         Assert.That(world.Get<Speed>(first).Value, Is.EqualTo(1.5f));
-        Assert.That(world.HasTag<Stunned>(second), Is.True);
+        Assert.That(world.Has<Stunned>(second), Is.True);
         Assert.That(world.Get<LocalTransform>(second).Position, Is.EqualTo(new Vector3(1, 2, 3)));
         Assert.That(world.GetParent(first), Is.EqualTo(parent));
         Assert.That(world.GetParent(second), Is.EqualTo(parent));
@@ -60,7 +60,7 @@ public class WorldSnapshotTests
             var entity = world.Spawn();
             world.Add(entity, new Health(i));
             if (i % 2 == 0) world.Add(entity, new Speed(i));
-            if (i % 3 == 0) world.AddTag<Stunned>(entity);
+            if (i % 3 == 0) world.Add(entity, new Stunned());
             if (i > 0 && i % 4 == 0) world.SetParent(entity, new Entity(i - 1, 0));
         }
 
@@ -107,7 +107,7 @@ public class WorldSnapshotTests
         var source = new World(schema);
         var entity = source.Spawn();
         source.Add(entity, new Health(4));
-        source.AddTag<Stunned>(entity);
+        source.Add(entity, new Stunned());
         var snapshot = new WorldSnapshot();
         source.SaveSnapshot(snapshot);
 
@@ -115,7 +115,7 @@ public class WorldSnapshotTests
         target.RestoreSnapshot(snapshot);
 
         Assert.That(target.Get<Health>(entity).Value, Is.EqualTo(4));
-        Assert.That(target.HasTag<Stunned>(entity), Is.True);
+        Assert.That(target.Has<Stunned>(entity), Is.True);
         Assert.That(target.Query<Health>().EntityCount, Is.EqualTo(1));
     }
 
@@ -260,7 +260,7 @@ public class WorldSnapshotTests
             world.SetPosition(entity, new Vector3(i, 0, 0));
             world.Add(entity, new Health(i));
             if (i % 2 == 0) world.Add(entity, new Speed(i));
-            if (i % 5 == 0) world.AddTag<Stunned>(entity);
+            if (i % 5 == 0) world.Add(entity, new Stunned());
             if (i % 10 != 0) world.SetParent(entity, new Entity(i / 10 * 10 + 1, 0));
         }
 

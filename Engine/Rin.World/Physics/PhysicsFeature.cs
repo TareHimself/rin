@@ -70,13 +70,14 @@ public sealed class PhysicsFeature : IWorldRestoreListener
 
     void IWorldRestoreListener.AfterRestore()
     {
-        foreach (var (bodies, rigidBodies, entities) in _bodies)
-            for (var i = 0; i < bodies.Length; i++)
+        foreach (var chunk in _bodies)
+            for (var i = 0; i < chunk.Length; i++)
             {
-                var entity = entities[i];
-                var handle = CreateBodyHandle(entity, rigidBodies[i]);
+                var entity = chunk.Entities[i];
+                ref readonly var rigidBody = ref chunk.Components2[i];
+                var handle = CreateBodyHandle(entity, rigidBody);
                 Bodies.Add(handle, entity);
-                bodies[i] = new PhysicsBody { Handle = handle, State = rigidBodies[i].State };
+                chunk.Write<PhysicsBody>(i) = new PhysicsBody { Handle = handle, State = rigidBody.State };
             }
     }
 
@@ -103,7 +104,7 @@ public sealed class PhysicsFeature : IWorldRestoreListener
         PhysicsSystem.SetCollisionChannel(handle, desc.CollisionChannel);
         if (World.Has<Velocity>(entity))
         {
-            ref var velocity = ref World.Get<Velocity>(entity);
+            ref var velocity = ref World.Write<Velocity>(entity);
             PhysicsSystem.SetLinearVelocity(handle, velocity.Linear);
             PhysicsSystem.SetAngularVelocity(handle, velocity.Angular);
             velocity.IsDirty = false;

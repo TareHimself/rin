@@ -13,7 +13,7 @@ public class GameTaskSchedulerRestoreTests
         world.Add(entity, new Health(1));
         var snapshot = new WorldSnapshot();
         world.SaveSnapshot(snapshot);
-        world.Get<Health>(entity) = new Health(7);
+        world.Write<Health>(entity) = new Health(7);
         var log = new List<string>();
         tasks.Run(entity, async ctx =>
         {
@@ -52,7 +52,7 @@ public class GameTaskSchedulerRestoreTests
         tasks.Run(entity, ctx => ChangeInFinally(ctx, () => world.Despawn(entity)));
         tasks.Run(entity, ctx => ChangeInFinally(ctx, () => ctx.Run(async inner => await inner.NextTick())));
         tasks.Run(entity, ctx => ChangeInFinally(ctx, () => world.Commands.Add(entity, new Health(5))));
-        tasks.Run(entity, ctx => ChangeInFinally(ctx, () => world.Get<Health>(entity).Value = 99));
+        tasks.Run(entity, ctx => ChangeInFinally(ctx, () => world.Write<Health>(entity).Value = 99));
 
         world.RestoreSnapshot(snapshot);
         var restored = new WorldSnapshot();

@@ -32,14 +32,11 @@ public sealed class CommandBuffer
     public void Set<T>(Entity entity, in T component) where T : unmanaged, IComponentData =>
         Record(CommandKind.Set, entity, component);
 
-    public void Remove<T>(Entity entity) where T : unmanaged, IComponentData =>
-        RecordWithoutValue<ComponentCommands<T>>(CommandKind.Remove, entity, ComponentCommands<T>.Slot);
-
-    public void AddTag<T>(Entity entity) where T : unmanaged, ITagData =>
-        RecordWithoutValue<TagCommands<T>>(CommandKind.AddTag, entity, TagCommands<T>.Slot);
-
-    public void RemoveTag<T>(Entity entity) where T : unmanaged, ITagData =>
-        RecordWithoutValue<TagCommands<T>>(CommandKind.RemoveTag, entity, TagCommands<T>.Slot);
+    public void Remove<T>(Entity entity) where T : unmanaged, IComponentData
+    {
+        CommandsOf<T>();
+        _commands.Add(new Command(CommandKind.Remove, entity, ComponentCommands<T>.Slot, -1));
+    }
 
     public void Playback()
     {
@@ -72,22 +69,14 @@ public sealed class CommandBuffer
         else _typed[command.Slot]!.Apply(_world, command);
     }
 
-    private void Record<T>(CommandKind kind, Entity entity, in T component) where T : unmanaged, IComponentData
-    {
-        var components = GetTyped<ComponentCommands<T>>(ComponentCommands<T>.Slot);
-        _commands.Add(new Command(kind, entity, ComponentCommands<T>.Slot, components.Store(component)));
-    }
+    private void Record<T>(CommandKind kind, Entity entity, in T component) where T : unmanaged, IComponentData =>
+        _commands.Add(new Command(kind, entity, ComponentCommands<T>.Slot, CommandsOf<T>().Store(component)));
 
-    private void RecordWithoutValue<TCommands>(CommandKind kind, Entity entity, int slot) where TCommands : TypedCommands, new()
+    private ComponentCommands<T> CommandsOf<T>() where T : unmanaged, IComponentData
     {
-        GetTyped<TCommands>(slot);
-        _commands.Add(new Command(kind, entity, slot, -1));
-    }
-
-    private TCommands GetTyped<TCommands>(int slot) where TCommands : TypedCommands, new()
-    {
+        var slot = ComponentCommands<T>.Slot;
         if (slot >= _typed.Length) Array.Resize(ref _typed, slot + 1);
-        return (TCommands)(_typed[slot] ??= new TCommands());
+        return (ComponentCommands<T>)(_typed[slot] ??= new ComponentCommands<T>());
     }
 
     private enum CommandKind : byte
@@ -95,15 +84,13 @@ public sealed class CommandBuffer
         Despawn,
         Add,
         Set,
-        Remove,
-        AddTag,
-        RemoveTag
+        Remove
     }
 
     private readonly record struct Command(CommandKind Kind, Entity Entity, int Slot, int ValueIndex);
 
     /// <summary>
-    ///     Applies the commands of one component or tag type, so values are stored unboxed.
+    ///     Applies the commands of one component type, so values are stored unboxed.
     /// </summary>
     private abstract class TypedCommands
     {
@@ -111,9 +98,7 @@ public sealed class CommandBuffer
 
         public abstract void Apply(World world, in Command command);
 
-        public virtual void Clear()
-        {
-        }
+        public abstract void Clear();
 
         protected static int NextSlot() => Interlocked.Increment(ref _slotCount) - 1;
     }
@@ -147,16 +132,5 @@ public sealed class CommandBuffer
         }
 
         public override void Clear() => _values.Clear();
-    }
-
-    private sealed class TagCommands<T> : TypedCommands where T : unmanaged, ITagData
-    {
-        public static readonly int Slot = NextSlot();
-
-        public override void Apply(World world, in Command command)
-        {
-            if (command.Kind == CommandKind.AddTag) world.AddTag<T>(command.Entity);
-            else world.RemoveTag<T>(command.Entity);
-        }
     }
 }

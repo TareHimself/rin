@@ -6,6 +6,9 @@ namespace Rin.World;
 public interface IComponentData;
 
 /// <summary>
-///     Marks an empty struct as an ECS tag, a component without data.
+///     Marks an empty struct as an ECS tag, a component without a column.
 /// </summary>
-public interface ITagData;
+/// <remarks>
+///     An empty struct still reports a size of 1, so the marker, not the size, is what makes it a tag.
+/// </remarks>
+public interface ITagData : IComponentData;

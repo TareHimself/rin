@@ -3,15 +3,16 @@ using System.Runtime.InteropServices;
 namespace Rin.World.Ecs;
 
 /// <summary>
-///     The entity part of a <see cref="WorldSnapshot" />: a layout hash per component id the snapshot uses, the id
-///     allocator, then every non-empty archetype with its key, entity ids and one raw byte block per saved column, then
-///     each parent's children, ended by <see cref="EntityIdAllocator.NoId" />.
+///     The entity part of a <see cref="WorldSnapshot" />: a layout hash per component id the snapshot uses, the entity
+///     table, then every non-empty archetype with its key, entity ids and one raw byte block per saved column, then
+///     each parent's children, ended by <see cref="EntityTable.NoId" />.
 /// </summary>
 /// <remarks>
 ///     Component ids are only valid within one schema, so <see cref="Validate" /> checks that the store's schema
 ///     describes every used id the same way before a restore changes anything. Entities go straight back into their
 ///     archetype in the saved order, so query order after a restore matches the order at save time.
-///     <see cref="EcsNotSavedAttribute" /> columns are cleared rather than copied.
+///     <see cref="EcsNotSavedAttribute" /> columns are cleared rather than copied. Change ticks are not saved: a restore
+///     stamps every row with a fresh tick, so every change query sees every restored row as changed.
 /// </remarks>
 internal sealed partial class ArchetypeStore
 {
@@ -20,7 +21,7 @@ internal sealed partial class ArchetypeStore
     public void Save(WorldSnapshot snapshot)
     {
         SaveSchema(snapshot);
-        _ids.Save(snapshot);
+        _entities.Save(snapshot);
 
         var nonEmpty = 0;
         foreach (var archetype in _archetypes)
@@ -33,7 +34,7 @@ internal sealed partial class ArchetypeStore
         foreach (var archetype in _archetypes)
         foreach (var id in archetype.EntityIds)
             SaveChildren(id, snapshot);
-        snapshot.Write(EntityIdAllocator.NoId);
+        snapshot.Write(EntityTable.NoId);
     }
 
     /// <summary>
@@ -46,7 +47,8 @@ internal sealed partial class ArchetypeStore
         foreach (var archetype in _archetypes) archetype.Clear();
         _hierarchy.Clear();
         EntityCount = 0;
-        _ids.Restore(ref reader);
+        _entities.Restore(ref reader);
+        Clock.Advance();
 
         var archetypeCount = reader.Read<int>();
         for (var i = 0; i < archetypeCount; i++) RestoreArchetype(ref reader);
@@ -61,7 +63,7 @@ internal sealed partial class ArchetypeStore
     public void Validate(SnapshotReader reader)
     {
         var usedCount = ValidateSchema(ref reader);
-        EntityIdAllocator.Skip(ref reader);
+        EntityTable.Skip(ref reader);
         var archetypeCount = reader.Read<int>();
         for (var i = 0; i < archetypeCount; i++) ValidateArchetype(ref reader, usedCount);
     }
@@ -148,11 +150,7 @@ internal sealed partial class ArchetypeStore
         var count = reader.Read<int>();
         var ids = MemoryMarshal.Cast<byte, int>(reader.ReadBytes(count * sizeof(int)));
         var start = archetype.AddRows(ids);
-        for (var i = 0; i < count; i++)
-        {
-            EnsureLocation(ids[i]);
-            _locations[ids[i]] = new EntityLocation(archetype, start + i);
-        }
+        for (var i = 0; i < count; i++) _entities.SetLocation(ids[i], new EntityLocation(archetype, start + i));
 
         EntityCount += count;
 
@@ -162,12 +160,13 @@ internal sealed partial class ArchetypeStore
             var column = columns[i];
             if (Schema[archetype.ColumnIds[i]].IsSaved) reader.ReadBytes(count * column.Stride).CopyTo(column.Bytes(start, count));
             else column.ClearRows(start, count);
+            column.StampRows(start, count, Clock.Current);
         }
     }
 
     private void RestoreChildren(ref SnapshotReader reader)
     {
-        for (var parent = reader.Read<int>(); parent != EntityIdAllocator.NoId; parent = reader.Read<int>())
+        for (var parent = reader.Read<int>(); parent != EntityTable.NoId; parent = reader.Read<int>())
         {
             var count = reader.Read<int>();
             for (var i = 0; i < count; i++) _hierarchy.SetParent(reader.Read<int>(), parent);

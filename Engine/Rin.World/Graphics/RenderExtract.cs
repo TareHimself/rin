@@ -7,36 +7,51 @@ using Rin.World.Transforms;
 namespace Rin.World.Graphics;
 
 /// <summary>
-///     Pushes mesh transforms whose <see cref="WorldTransform.Version" /> changed, every skinned pose, dirty or moved
-///     lights and environment lights, and the world's interpolation alpha to the render system.
+///     Pushes mesh transforms and lights written since its last run, every skinned pose, and the world's interpolation
+///     alpha to the render system.
 /// </summary>
+/// <remarks>
+///     Every query but the poses is a <c>Changed</c> query, so a still scene costs one tick compare per archetype. A
+///     light with a <see cref="WorldTransform" /> is pushed when the light or the transform changed; one without is
+///     placed at the origin and pushed when the light changed.
+/// </remarks>
 internal sealed class RenderExtract : FrameSystem
 {
-    private readonly World _world;
     private readonly IRenderSystem _renderSystem;
     private readonly PoseSources _poseSources;
+    private readonly EnvironmentMaps _environments;
     private readonly Query<StaticMesh, WorldTransform, RenderProxy> _staticMeshes;
     private readonly Query<SkinnedMesh, WorldTransform, RenderProxy> _skinnedMeshTransforms;
     private readonly Query<SkinnedMesh, RenderProxy> _skinnedMeshPoses;
-    private readonly Query<PointLight, RenderProxy> _pointLights;
-    private readonly Query<DirectionalLight, RenderProxy> _directionalLights;
-    private readonly Query<EnvironmentLight, RenderProxy> _environmentLights;
-    private readonly EnvironmentMaps _environments;
+    private readonly Query<PointLight, WorldTransform, RenderProxy> _placedPointLights;
+    private readonly Query<PointLight, RenderProxy> _unplacedPointLights;
+    private readonly Query<DirectionalLight, WorldTransform, RenderProxy> _placedDirectionalLights;
+    private readonly Query<DirectionalLight, RenderProxy> _unplacedDirectionalLights;
+    private readonly Query<EnvironmentLight, WorldTransform, RenderProxy> _placedEnvironmentLights;
+    private readonly Query<EnvironmentLight, RenderProxy> _unplacedEnvironmentLights;
     private float _time;
 
     public RenderExtract(World world, IRenderSystem renderSystem, PoseSources poseSources,
         EnvironmentMaps environments)
     {
-        _environments = environments;
-        _environmentLights = world.Query<EnvironmentLight, RenderProxy>();
-        _world = world;
         _renderSystem = renderSystem;
         _poseSources = poseSources;
-        _staticMeshes = world.Query<StaticMesh, WorldTransform, RenderProxy>();
-        _skinnedMeshTransforms = world.Query<SkinnedMesh, WorldTransform, RenderProxy>();
+        _environments = environments;
+        _staticMeshes = world.Query<StaticMesh, WorldTransform, RenderProxy>().Changed<WorldTransform>();
+        _skinnedMeshTransforms = world.Query<SkinnedMesh, WorldTransform, RenderProxy>().Changed<WorldTransform>();
         _skinnedMeshPoses = world.Query<SkinnedMesh, RenderProxy>();
-        _pointLights = world.Query<PointLight, RenderProxy>();
-        _directionalLights = world.Query<DirectionalLight, RenderProxy>();
+        _placedPointLights = world.Query<PointLight, WorldTransform, RenderProxy>()
+            .Changed<PointLight>().Changed<WorldTransform>();
+        _unplacedPointLights = world.Query<PointLight, RenderProxy>()
+            .Without<WorldTransform>().Changed<PointLight>();
+        _placedDirectionalLights = world.Query<DirectionalLight, WorldTransform, RenderProxy>()
+            .Changed<DirectionalLight>().Changed<WorldTransform>();
+        _unplacedDirectionalLights = world.Query<DirectionalLight, RenderProxy>()
+            .Without<WorldTransform>().Changed<DirectionalLight>();
+        _placedEnvironmentLights = world.Query<EnvironmentLight, WorldTransform, RenderProxy>()
+            .Changed<EnvironmentLight>().Changed<WorldTransform>();
+        _unplacedEnvironmentLights = world.Query<EnvironmentLight, RenderProxy>()
+            .Without<WorldTransform>().Changed<EnvironmentLight>();
     }
 
     public override void Update(in FrameContext context)
@@ -55,16 +70,10 @@ internal sealed class RenderExtract : FrameSystem
     private void PushMeshTransforms<TMesh>(Query<TMesh, WorldTransform, RenderProxy> meshes)
         where TMesh : unmanaged, IComponentData
     {
-        foreach (var (_, transforms, proxies) in meshes)
-            for (var i = 0; i < transforms.Length; i++)
-            {
-                ref readonly var transform = ref transforms[i];
-                ref var proxy = ref proxies[i];
-                if (transform.Version == proxy.LastPushedVersion) continue;
-
-                _renderSystem.UpdateProxyTransform(proxy.Handle, transform.Matrix);
-                proxy.LastPushedVersion = transform.Version;
-            }
+        foreach (var chunk in meshes)
+            for (var i = 0; i < chunk.Length; i++)
+                if (chunk.HasChanged<WorldTransform>(i))
+                    _renderSystem.UpdateProxyTransform(chunk.Components3[i].Handle, chunk.Components2[i].Matrix);
     }
 
     // Poses have no cheap change check, so every one is pushed each frame.
@@ -77,58 +86,49 @@ internal sealed class RenderExtract : FrameSystem
 
     private void PushPointLights()
     {
-        foreach (var (lights, proxies, entities) in _pointLights)
-            for (var i = 0; i < lights.Length; i++)
-            {
-                ref var light = ref lights[i];
-                ref var proxy = ref proxies[i];
-                var (matrix, version) = TransformOf(entities[i]);
-                if (!light.IsDirty && version == proxy.LastPushedVersion) continue;
+        foreach (var chunk in _placedPointLights)
+            for (var i = 0; i < chunk.Length; i++)
+                if (chunk.HasChanged<PointLight>(i) || chunk.HasChanged<WorldTransform>(i))
+                    _renderSystem.UpdateLightProxy(chunk.Components3[i].Handle,
+                        chunk.Components1[i].ToLightInfo(chunk.Components2[i].Matrix));
 
-                _renderSystem.UpdateLightProxy(proxy.Handle, light.ToLightInfo(matrix));
-                light.IsDirty = false;
-                proxy.LastPushedVersion = version;
-            }
+        foreach (var chunk in _unplacedPointLights)
+            for (var i = 0; i < chunk.Length; i++)
+                if (chunk.HasChanged<PointLight>(i))
+                    _renderSystem.UpdateLightProxy(chunk.Components2[i].Handle,
+                        chunk.Components1[i].ToLightInfo(Matrix4x4.Identity));
     }
 
     private void PushDirectionalLights()
     {
-        foreach (var (lights, proxies, entities) in _directionalLights)
-            for (var i = 0; i < lights.Length; i++)
-            {
-                ref var light = ref lights[i];
-                ref var proxy = ref proxies[i];
-                var (matrix, version) = TransformOf(entities[i]);
-                if (!light.IsDirty && version == proxy.LastPushedVersion) continue;
+        foreach (var chunk in _placedDirectionalLights)
+            for (var i = 0; i < chunk.Length; i++)
+                if (chunk.HasChanged<DirectionalLight>(i) || chunk.HasChanged<WorldTransform>(i))
+                    _renderSystem.UpdateLightProxy(chunk.Components3[i].Handle,
+                        chunk.Components1[i].ToLightInfo(chunk.Components2[i].Matrix));
 
-                _renderSystem.UpdateLightProxy(proxy.Handle, light.ToLightInfo(matrix));
-                light.IsDirty = false;
-                proxy.LastPushedVersion = version;
-            }
+        foreach (var chunk in _unplacedDirectionalLights)
+            for (var i = 0; i < chunk.Length; i++)
+                if (chunk.HasChanged<DirectionalLight>(i))
+                    _renderSystem.UpdateLightProxy(chunk.Components2[i].Handle,
+                        chunk.Components1[i].ToLightInfo(Matrix4x4.Identity));
     }
 
     private void PushEnvironmentLights()
     {
-        foreach (var (lights, proxies, entities) in _environmentLights)
-            for (var i = 0; i < lights.Length; i++)
-            {
-                ref var light = ref lights[i];
-                ref var proxy = ref proxies[i];
-                var (matrix, version) = TransformOf(entities[i]);
-                if (!light.IsDirty && version == proxy.LastPushedVersion) continue;
+        foreach (var chunk in _placedEnvironmentLights)
+            for (var i = 0; i < chunk.Length; i++)
+                if (chunk.HasChanged<EnvironmentLight>(i) || chunk.HasChanged<WorldTransform>(i))
+                    PushEnvironmentLight(chunk.Components3[i].Handle, chunk.Components1[i], chunk.Components2[i].Matrix);
 
-                if (_environments.TryDescribe(light, matrix, out var volume))
-                    _renderSystem.UpdateEnvironmentProxy(proxy.Handle, volume);
-                light.IsDirty = false;
-                proxy.LastPushedVersion = version;
-            }
+        foreach (var chunk in _unplacedEnvironmentLights)
+            for (var i = 0; i < chunk.Length; i++)
+                if (chunk.HasChanged<EnvironmentLight>(i))
+                    PushEnvironmentLight(chunk.Components2[i].Handle, chunk.Components1[i], Matrix4x4.Identity);
     }
 
-    // Looked up per light so a light without transform components still pushes its property changes.
-    private (Matrix4x4 Matrix, uint Version) TransformOf(Entity entity)
+    private void PushEnvironmentLight(RenderProxyHandle handle, in EnvironmentLight light, in Matrix4x4 world)
     {
-        if (!_world.Has<WorldTransform>(entity)) return (Matrix4x4.Identity, 0);
-        ref readonly var transform = ref _world.Get<WorldTransform>(entity);
-        return (transform.Matrix, transform.Version);
+        if (_environments.TryDescribe(light, world, out var volume)) _renderSystem.UpdateEnvironmentProxy(handle, volume);
     }
 }

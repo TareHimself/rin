@@ -10,7 +10,7 @@ internal sealed class ChildStore
     private int[]?[] _children = new int[]?[64];
     private int[] _childCounts = new int[64];
 
-    public int ParentOf(int id) => id < _parents.Length ? _parents[id] : EntityIdAllocator.NoId;
+    public int ParentOf(int id) => id < _parents.Length ? _parents[id] : EntityTable.NoId;
 
     public ReadOnlySpan<int> ChildrenOf(int id) =>
         id < _childCounts.Length && _childCounts[id] > 0 ? _children[id].AsSpan(0, _childCounts[id]) : [];
@@ -34,14 +34,14 @@ internal sealed class ChildStore
     public void ClearParent(int child)
     {
         var parent = ParentOf(child);
-        if (parent == EntityIdAllocator.NoId) return;
+        if (parent == EntityTable.NoId) return;
 
         var children = _children[parent]!;
         ref var count = ref _childCounts[parent];
         var index = Array.IndexOf(children, child, 0, count);
         children.AsSpan(index + 1, count - index - 1).CopyTo(children.AsSpan(index));
         count--;
-        _parents[child] = EntityIdAllocator.NoId;
+        _parents[child] = EntityTable.NoId;
     }
 
     /// <summary>
@@ -50,7 +50,7 @@ internal sealed class ChildStore
     public void Remove(int id)
     {
         ClearParent(id);
-        foreach (var child in ChildrenOf(id)) _parents[child] = EntityIdAllocator.NoId;
+        foreach (var child in ChildrenOf(id)) _parents[child] = EntityTable.NoId;
         if (id < _childCounts.Length) _childCounts[id] = 0;
     }
 

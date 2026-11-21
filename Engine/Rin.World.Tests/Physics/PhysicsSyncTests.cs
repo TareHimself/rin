@@ -130,18 +130,18 @@ public class PhysicsSyncTests : PhysicsFeatureFixture
     }
 
     [Test]
-    public void AnUnchangedSimulatedPoseDoesNotDirtyTheTransform()
+    public void AnUnchangedSimulatedPoseDoesNotStampTheTransform()
     {
         var entity = _world.Spawn();
         _world.SetPosition(entity, new Vector3(1, 2, 3));
         _world.Add(entity, Box(PhysicsState.Simulated));
         Tick();
-        var version = _world.Get<WorldTransform>(entity).Version;
+        var settled = _world.ChangeTick;
 
         Tick();
 
-        Assert.That(_world.Get<WorldTransform>(entity).Version, Is.EqualTo(version));
-        Assert.That(_world.Get<LocalTransform>(entity).IsDirty, Is.False);
+        Assert.That(_world.HasChangedSince<LocalTransform>(entity, settled), Is.False);
+        Assert.That(_world.HasChangedSince<WorldTransform>(entity, settled), Is.False);
     }
 
     [Test]
@@ -153,7 +153,7 @@ public class PhysicsSyncTests : PhysicsFeatureFixture
         var stepped = Vector3.Zero;
         _physics.OnUpdate = _ => stepped = _physics.GetLinearVelocity(HandleOf(entity));
 
-        _world.Get<Velocity>(entity).Linear = new Vector3(4, 5, 6);
+        _world.Write<Velocity>(entity).Linear = new Vector3(4, 5, 6);
         Tick();
 
         Assert.That(stepped, Is.EqualTo(new Vector3(4, 5, 6)));

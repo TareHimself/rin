@@ -31,14 +31,14 @@ public sealed class SlidingDoor(Entity patroller, Vector3 closedPosition, Vector
                 await ctx.Until(IsPatrollerNear);
                 ScriptLog.Write(this, $"patroller is near, opening over {SlideSeconds} s");
                 await SlideTo(ctx, openPosition);
-                World.Get<DoorState>(Entity).IsOpen = true;
+                World.Write<DoorState>(Entity).IsOpen = true;
             }
 
             ScriptLog.Write(this, $"open, closing in {HoldOpenSeconds} s");
             await ctx.Seconds(HoldOpenSeconds);
             ScriptLog.Write(this, "closing");
             await SlideTo(ctx, closedPosition);
-            World.Get<DoorState>(Entity).IsOpen = false;
+            World.Write<DoorState>(Entity).IsOpen = false;
         }
     }
 

@@ -1,4 +1,6 @@
 
+using Rin.World.Scheduling;
+
 namespace Rin.World.Tests.Ecs;
 
 public class QueryTests
@@ -41,16 +43,16 @@ public class QueryTests
     }
 
     [Test]
-    public void WritesThroughTheSpansAreStored()
+    public void WritesThroughTheChunkAreStored()
     {
         var world = new World();
         var entity = world.Spawn();
         world.Add(entity, new Health(1));
         world.Add(entity, new Speed(1f));
 
-        foreach (var (health, speed) in world.Query<Health, Speed>())
-            for (var i = 0; i < health.Length; i++)
-                health[i].Value += (int)speed[i].Value;
+        foreach (var chunk in world.Query<Health, Speed>())
+            for (var i = 0; i < chunk.Length; i++)
+                chunk.Write<Health>(i).Value += (int)chunk.Components2[i].Value;
 
         Assert.That(world.Get<Health>(entity).Value, Is.EqualTo(2));
     }
@@ -102,7 +104,7 @@ public class QueryTests
     {
         var world = new World();
         var stunned = Spawn(world, 1);
-        world.AddTag<Stunned>(stunned);
+        world.Add(stunned, new Stunned());
         var armored = Spawn(world, 2);
         world.Add(armored, new Armor(1));
         Spawn(world, 3);
@@ -116,7 +118,7 @@ public class QueryTests
     {
         var world = new World();
         var stunned = Spawn(world, 1);
-        world.AddTag<Stunned>(stunned);
+        world.Add(stunned, new Stunned());
         var plain = Spawn(world, 2);
 
         var awake = world.Query<Health>().Without<Stunned>();
@@ -132,11 +134,95 @@ public class QueryTests
         var slow = world.Query<Health>().Without<Speed>().With<Stunned>();
 
         var entity = Spawn(world, 1);
-        world.AddTag<Stunned>(entity);
+        world.Add(entity, new Stunned());
         Assert.That(slow.EntityCount, Is.EqualTo(1));
 
         world.Add(entity, new Speed(1f));
         Assert.That(slow.EntityCount, Is.Zero);
+    }
+
+    [Test]
+    public void AChangedQuerySeesEveryRowOnItsFirstRun()
+    {
+        var world = new World();
+        var first = Spawn(world, 1);
+        var second = Spawn(world, 2);
+
+        Assert.That(Visit(world.Query<Health>().Changed<Health>()), Is.EquivalentTo(new[] { first, second }));
+    }
+
+    [Test]
+    public void AChangedQuerySkipsArchetypesWhereNoChangedComponentWasWritten()
+    {
+        var world = new World();
+        Spawn(world, 1);
+        var moving = Spawn(world, 2);
+        world.Add(moving, new Speed(1f));
+        var changed = world.Query<Health>().Changed<Health>();
+        Visit(changed);
+
+        world.Update(0f);
+        world.Write<Health>(moving).Value = 3;
+        Assert.That(Visit(changed), Is.EqualTo(new[] { moving }));
+
+        world.Update(0f);
+        Assert.That(Visit(changed), Is.Empty);
+    }
+
+    [Test]
+    public void AChangedQueryIteratedTwiceAtOneTickSeesTheSameArchetypes()
+    {
+        var world = new World();
+        var entity = Spawn(world, 1);
+        var changed = world.Query<Health>().Changed<Health>();
+
+        Assert.That(Visit(changed), Is.EqualTo(new[] { entity }));
+        Assert.That(Visit(changed), Is.EqualTo(new[] { entity }));
+    }
+
+    [Test]
+    public void ChangedAlsoRequiresTheComponent()
+    {
+        var world = new World();
+        Spawn(world, 1);
+        var withSpeed = Spawn(world, 2);
+        world.Add(withSpeed, new Speed(1f));
+
+        Assert.That(Visit(world.Query<Health>().Changed<Speed>()), Is.EqualTo(new[] { withSpeed }));
+    }
+
+    [Test]
+    public void FilteringAChangedQueryKeepsItsChangeTracking()
+    {
+        var world = new World();
+        Spawn(world, 1);
+        var filtered = world.Query<Health>().Changed<Health>().Without<Stunned>();
+        Visit(filtered);
+
+        world.Update(0f);
+
+        Assert.That(Visit(filtered), Is.Empty);
+    }
+
+    [Test]
+    public void ChangedOnATagThrows()
+    {
+        var world = new World();
+
+        Assert.Throws<ArgumentException>(() => world.Query<Health>().Changed<Stunned>());
+    }
+
+    [Test]
+    public void AChangedQueryThrowsWhenIteratedDuringTheTickAndLeavesNoGuardBehind()
+    {
+        var world = new World { TickInterval = 0.125f };
+        Spawn(world, 1);
+        var changed = world.Query<Health>().Changed<Health>();
+        world.AddSystem(TickPhase.Gameplay, new QueryVisitor(changed));
+
+        Assert.Throws<InvalidOperationException>(() => world.Update(0.125f));
+        Assert.DoesNotThrow(() => world.Add(world.Spawn(), new Speed(1f)));
+        Assert.That(Visit(changed), Is.Not.Empty);
     }
 
     [Test]
@@ -175,7 +261,7 @@ public class QueryTests
         });
         Assert.Throws<InvalidOperationException>(() =>
         {
-            foreach (var _ in world.Query<Health>()) world.AddTag<Stunned>(entity);
+            foreach (var _ in world.Query<Health>()) world.Add(entity, new Stunned());
         });
 
         Assert.That(world.Schema.Count, Is.EqualTo(count));
@@ -235,7 +321,7 @@ public class QueryTests
         for (var i = 0; i < 100; i++)
         {
             var entity = Spawn(world, i);
-            if (i % 2 == 0) world.AddTag<Stunned>(entity);
+            if (i % 2 == 0) world.Add(entity, new Stunned());
         }
 
         var awake = world.Query<Health>().Without<Stunned>();
@@ -278,15 +364,20 @@ public class QueryTests
 
     private static void Iterate(Query<Health> one, Query<Health, Speed, Armor, Ammo> four)
     {
-        foreach (var (health, _) in one)
-            for (var i = 0; i < health.Length; i++)
-                health[i].Value++;
+        foreach (var chunk in one)
+            for (var i = 0; i < chunk.Length; i++)
+                chunk.Write<Health>(i).Value++;
 
         foreach (var chunk in four)
             for (var i = 0; i < chunk.Length; i++)
             {
-                chunk.Components1[i].Value += chunk.Components3[i].Value + chunk.Components4[i].Value;
+                chunk.Write<Health>(i).Value += chunk.Components3[i].Value + chunk.Components4[i].Value;
                 _ = chunk.Entities[i];
             }
+    }
+
+    private sealed class QueryVisitor(Query<Health> query) : TickSystem
+    {
+        public override void Tick(in TickContext context) => Visit(query);
     }
 }

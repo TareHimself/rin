@@ -11,7 +11,7 @@ public readonly record struct Entity(int Id, short Generation)
     /// <summary>
     ///     False for <c>default</c>. Says nothing about whether the entity is still alive, see <see cref="World.IsAlive" />.
     /// </summary>
-    public bool IsValid => Id != EntityIdAllocator.NoId;
+    public bool IsValid => Id != EntityTable.NoId;
 
     public override string ToString() => IsValid ? $"Entity({Id}:{Generation})" : "Entity(none)";
 }

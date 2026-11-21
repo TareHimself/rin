@@ -36,7 +36,6 @@ public class EnvironmentLightTests : RenderFeatureFixture
             Assert.That(_render.CreatedEnvironments[0].Volume.Map, Is.SameAs(_feature.Environments.Get(_map)));
             Assert.That(_render.CreatedEnvironments[0].Volume.Intensity, Is.EqualTo(2f));
             Assert.That(_world.Get<RenderProxy>(entity).Handle, Is.EqualTo(_render.CreatedEnvironments[0].Handle));
-            Assert.That(_world.Get<EnvironmentLight>(entity).IsDirty, Is.False);
         });
     }
 
@@ -69,7 +68,7 @@ public class EnvironmentLightTests : RenderFeatureFixture
         _world.Update(0f);
         _render.PushedEnvironments.Clear();
 
-        _world.Get<EnvironmentLight>(entity).Extent = new Vector3(4f);
+        _world.Write<EnvironmentLight>(entity).Extent = new Vector3(4f);
         _world.Update(0f);
         _world.Update(0f);
 
@@ -90,7 +89,7 @@ public class EnvironmentLightTests : RenderFeatureFixture
         _world.Update(0f);
         _render.PushedEnvironments.Clear();
 
-        _world.Get<LocalTransform>(entity).Position = new Vector3(5f, 0f, 0f);
+        _world.Write<LocalTransform>(entity).Position = new Vector3(5f, 0f, 0f);
         _world.Update(0f);
 
         Assert.Multiple(() =>

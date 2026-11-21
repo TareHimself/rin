@@ -144,7 +144,6 @@ public class RenderFeatureTests : RenderFeatureFixture
         Assert.That(light.Location, Is.EqualTo(new Vector3(1, 2, 3)));
         Assert.That(light.Intensity, Is.EqualTo(50f / (4f * MathF.PI)));
         Assert.That(light.Radius, Is.EqualTo(7f));
-        Assert.That(_world.Get<PointLight>(entity).IsDirty, Is.False);
     }
 
     [Test]

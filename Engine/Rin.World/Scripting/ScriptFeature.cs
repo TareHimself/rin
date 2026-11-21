@@ -115,7 +115,7 @@ public sealed class ScriptFeature : IWorldRestoreListener
         {
             if (_slots[slot] is not { } scripts) continue;
             var entity = scripts[0].Entity;
-            if (World.IsAlive(entity) && World.Has<ScriptRef>(entity)) World.Get<ScriptRef>(entity) = new ScriptRef(slot);
+            if (World.IsAlive(entity) && World.Has<ScriptRef>(entity)) World.Write<ScriptRef>(entity) = new ScriptRef(slot);
             else ReleaseAll(slot, CancelReason.Restored);
         }
 

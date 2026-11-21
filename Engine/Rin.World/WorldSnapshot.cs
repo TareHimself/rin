@@ -57,6 +57,12 @@ public sealed class WorldSnapshot
 
     internal void WriteBytes(ReadOnlySpan<byte> bytes) => bytes.CopyTo(Reserve(bytes.Length));
 
+    /// <summary>
+    ///     Appends room for <paramref name="count" /> values for the caller to fill.
+    /// </summary>
+    internal Span<T> Reserve<T>(int count) where T : unmanaged =>
+        MemoryMarshal.Cast<byte, T>(Reserve(count * Unsafe.SizeOf<T>()));
+
     internal SnapshotReader CreateReader() => new(Bytes);
 
     private Span<byte> Reserve(int count)
