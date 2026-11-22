@@ -218,7 +218,8 @@ public sealed class SceneTestExample : Example
     {
         var box = world.Spawn();
         world.SetLocalTransform(box, new LocalTransform { Position = position, Scale = size });
-        world.Add(box, new RigidBody { Shape = ColliderShape.Box(size), State = state });
+        world.Add(box, new RigidBody { State = state });
+        world.Add(box, new BoxCollider { Size = size });
         if (mesh.IsValid) world.Add(box, new StaticMesh { Mesh = mesh, Materials = _boxMaterials });
     }
 

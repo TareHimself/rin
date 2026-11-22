@@ -72,6 +72,53 @@ public class DefaultRenderSystemTests
     }
 
     [Test]
+    public void ATransformPushedInAFrameWithoutATickIsDrawnAtOnce()
+    {
+        var render = new DefaultRenderSystem();
+        var handle = CreateProxy(render, Matrix4x4.Identity);
+        var target = Matrix4x4.CreateTranslation(10, 0, 0);
+
+        render.BeginFrame(ticked: false);
+        render.UpdateProxyTransform(handle, target);
+        render.SetInterpolationAlpha(0f);
+        var context = (DefaultWorldViewData)render.Snapshot(TestCameras.Identity, new Extent2D(1, 1));
+
+        Assert.That(context.Snapshot.StaticGeometry[0].Transform, Is.EqualTo(target));
+    }
+
+    [Test]
+    public void ATickStartsANewBlendSoARowThatStoppedMovingIsDrawnWhereItStopped()
+    {
+        var render = new DefaultRenderSystem();
+        var handle = CreateProxy(render, Matrix4x4.Identity);
+        render.BeginFrame(ticked: true);
+        render.UpdateProxyTransform(handle, Matrix4x4.CreateTranslation(10, 0, 0));
+        render.SetInterpolationAlpha(0.5f);
+        var moving = (DefaultWorldViewData)render.Snapshot(TestCameras.Identity, new Extent2D(1, 1));
+        var movingX = moving.Snapshot.StaticGeometry[0].Transform.Translation.X;
+
+        render.BeginFrame(ticked: true);
+        var stopped = (DefaultWorldViewData)render.Snapshot(TestCameras.Identity, new Extent2D(1, 1));
+
+        Assert.That(movingX, Is.EqualTo(5f).Within(1e-4f));
+        Assert.That(stopped.Snapshot.StaticGeometry[0].Transform.Translation.X, Is.EqualTo(10f).Within(1e-4f));
+    }
+
+    [Test]
+    public void AFrameWithNothingToSettleKeepsTheSameScene()
+    {
+        var render = new DefaultRenderSystem();
+        CreateProxy(render, Matrix4x4.Identity);
+        var first = (DefaultWorldViewData)render.Snapshot(TestCameras.Identity, new Extent2D(1, 1));
+
+        render.BeginFrame(ticked: false);
+        render.BeginFrame(ticked: true);
+        var second = (DefaultWorldViewData)render.Snapshot(TestCameras.Identity, new Extent2D(1, 1));
+
+        Assert.That(second.Snapshot, Is.SameAs(first.Snapshot));
+    }
+
+    [Test]
     public void SnapshotSlerpsRotationInsteadOfLinearlyBlendingTheMatrix()
     {
         var render = new DefaultRenderSystem();

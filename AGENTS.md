@@ -98,6 +98,11 @@ Where the usual code design principles meet the performance rules and the ECS:
 - **Functional core, imperative shell:** ECS systems mutate component columns in place. Keep the per-row decision
   a pure function of the row's data; the system's loop over the columns is the shell.
 
+## ECS components
+
+- List every requirement of a component in one attribute list: `[EcsRequires<LocalTransform>, EcsRequires<RigidBody>]`,
+  not one bracket per requirement.
+
 ## Tooling
 
 - Python tooling runs through uv (`uv run ...`), with versions pinned in `pyproject.toml` and `uv.lock`. Commit `uv.lock` when the dependencies change.

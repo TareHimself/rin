@@ -173,7 +173,7 @@ public sealed class World
         if (_accumulator >= TickInterval) _accumulator = 0f;
         InterpolationAlpha = _accumulator / TickInterval;
 
-        _schedule.RunFrame(new FrameContext(this, scaledDeltaSeconds, InterpolationAlpha));
+        _schedule.RunFrame(new FrameContext(this, scaledDeltaSeconds, InterpolationAlpha, ticks));
         Commands.Playback();
     }
 
@@ -186,6 +186,11 @@ public sealed class World
     public void Despawn(Entity entity) => _store.Despawn(entity);
 
     public bool IsAlive(Entity entity) => _store.IsAlive(entity);
+
+    /// <summary>
+    ///     Replaces the contents of <paramref name="entities" /> with every live entity, in id order.
+    /// </summary>
+    public void CollectEntities(List<Entity> entities) => _store.Entities.CollectAlive(entities);
 
     public bool Has<T>(Entity entity) where T : unmanaged, IComponentData => _store.Has<T>(entity);
 

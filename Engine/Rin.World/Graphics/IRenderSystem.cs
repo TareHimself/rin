@@ -11,6 +11,13 @@ public interface IRenderSystem : IDisposable
     RenderProxyHandle CreateSkinnedMeshProxy(in SkinnedMeshProxyDesc desc);
     RenderProxyHandle CreateLightProxy(in LightInfo desc);
     RenderProxyHandle CreateEnvironmentProxy(in EnvironmentVolume desc);
+
+    /// <summary>
+    ///     Called before a frame's transforms are pushed. After a tick they blend from the last tick's pose by the
+    ///     interpolation alpha. With no tick, a pushed transform was changed outside the simulation, so it is drawn at once.
+    /// </summary>
+    void BeginFrame(bool ticked);
+
     void UpdateProxyTransform(RenderProxyHandle handle, in Matrix4x4 worldTransform);
     void UpdateSkinnedProxyPose(RenderProxyHandle handle, in SkeletalPose pose);
     void SetInterpolationAlpha(float alpha);

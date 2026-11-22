@@ -75,8 +75,9 @@ public sealed class LevelExample : Example
         _meshFactory = null;
     }
 
-    private static bool IsLevelPath(string argument) =>
-        Directory.Exists(argument) ||
+    // The example's own name is an argument too, and matches its source folder when run from Examples/Examples.
+    private bool IsLevelPath(string argument) =>
+        (argument != Name && Directory.Exists(argument)) ||
         argument.EndsWith(".glb", StringComparison.OrdinalIgnoreCase) ||
         argument.EndsWith(".gltf", StringComparison.OrdinalIgnoreCase);
 

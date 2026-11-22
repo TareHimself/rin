@@ -56,6 +56,7 @@ internal sealed class RenderExtract : FrameSystem
 
     public override void Update(in FrameContext context)
     {
+        _renderSystem.BeginFrame(context.TicksRun > 0);
         PushMeshTransforms(_staticMeshes);
         PushMeshTransforms(_skinnedMeshTransforms);
         PushSkinnedPoses();

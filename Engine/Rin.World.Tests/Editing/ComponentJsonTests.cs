@@ -3,7 +3,6 @@ using System.Text.Json.Nodes;
 using Rin.Core.Views;
 using Rin.World.Editing;
 using Rin.World.Graphics;
-using Rin.World.Physics;
 using Rin.World.Transforms;
 
 namespace Rin.World.Tests.Editing;
@@ -69,14 +68,13 @@ public class ComponentJsonTests
     [Test]
     public void EnumsReadByNameAndNestedStructsByField()
     {
-        var body = Read<RigidBody>(new JsonObject
+        var tether = Read<Tether>(new JsonObject
         {
-            ["State"] = "controlled",
-            ["Shape"] = new JsonObject { ["Kind"] = "Sphere", ["Radius"] = 2 }
+            ["End"] = new JsonObject { ["Mode"] = "taut", ["Length"] = 2 }
         });
 
-        Assert.That(body.State, Is.EqualTo(PhysicsState.Controlled));
-        Assert.That(body.Shape, Is.EqualTo(ColliderShape.Sphere(2f)));
+        Assert.That(tether.End.Mode, Is.EqualTo(TetherMode.Taut));
+        Assert.That(tether.End.Length, Is.EqualTo(2f));
     }
 
     [Test]

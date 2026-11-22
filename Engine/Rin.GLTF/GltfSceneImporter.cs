@@ -37,12 +37,13 @@ public sealed class GltfSceneImporter
     private readonly List<Entity> _entities = [];
     private readonly List<(string? Name, Entity Entity)> _cameras = [];
     private readonly Dictionary<string, Entity> _entitiesByNodeName = [];
+    private readonly Dictionary<Entity, string> _names = [];
     private readonly List<(Node Node, JsonObject Components, Entity Entity)> _pendingComponents = [];
     private readonly List<string> _warnings = [];
     private readonly PhysicsShapes? _shapes;
     private readonly GltfColliders _colliders;
     private readonly GltfEnvironments _environments;
-    private readonly HashSet<Node> _ownersWithBodies = [];
+    private readonly Dictionary<Node, Entity> _bodies = [];
 
     private GltfSceneImporter(RenderFeature render, Func<Material?, IMeshMaterial?> resolveMaterial, PhysicsShapes? shapes,
         string? levelDirectory)
@@ -71,13 +72,14 @@ public sealed class GltfSceneImporter
         Func<Material?, IMeshMaterial?> resolveMaterial, PhysicsShapes? shapes = null, string? levelDirectory = null)
     {
         var importer = new GltfSceneImporter(render, resolveMaterial, shapes, levelDirectory);
-        if (model.DefaultScene is not { } scene) return new ImportedScene([], null, ["The file has no scene."]);
+        if (model.DefaultScene is not { } scene) return new ImportedScene([], null, ["The file has no scene."], new Dictionary<Entity, string>());
 
         foreach (var node in scene.VisualChildren) importer.SpawnNode(node, null);
         importer.AddPendingComponents();
+        importer.AddColliders();
         importer.WarnAboutCollidersWithoutBodies();
         var startCamera = importer.FindStartCamera(ReadString(scene.Extras, StartCameraKey));
-        return new ImportedScene(importer._entities, startCamera, importer._warnings);
+        return new ImportedScene(importer._entities, startCamera, importer._warnings, importer._names);
     }
 
     private void SpawnNode(Node node, Entity? parent)
@@ -86,7 +88,11 @@ public sealed class GltfSceneImporter
         _entities.Add(entity);
         if (parent is { } parentEntity) World.SetParent(entity, parentEntity);
         World.SetLocalTransform(entity, LocalTransformOf(node));
-        if (node.Name is { } name) _entitiesByNodeName.TryAdd(name, entity);
+        if (node.Name is { } name)
+        {
+            _entitiesByNodeName.TryAdd(name, entity);
+            _names[entity] = name;
+        }
         if ((node.Extras as JsonObject)?[ComponentsKey] is JsonObject components)
             _pendingComponents.Add((node, components, entity));
 
@@ -221,19 +227,21 @@ public sealed class GltfSceneImporter
 
         if (!TryResolveProcessLocalFields(node, info, values, component)) return;
         World.Add(entity, id, component);
+        if (info.Type == typeof(RigidBody)) _bodies[node] = entity;
     }
 
-    // Fields that only mean something in this process are not in the saved fields, so they are found here: a body's
-    // shape from its collider nodes, an environment light's map from the file its Map names.
+    // Collider nodes replace whatever collider the node's own components gave it, like the add-on's bounding box.
+    private void AddColliders()
+    {
+        foreach (var (node, entity) in _bodies)
+            if (_colliders.ShapeOf(node, _shapes) is { } shape)
+                Colliders.Set(World, entity, shape);
+    }
+
+    // Fields that only mean something in this process are not in the saved fields, so they are found here: an
+    // environment light's map from the file its Map names.
     private bool TryResolveProcessLocalFields(Node node, ComponentInfo info, JsonObject values, byte[] component)
     {
-        if (info.Type == typeof(RigidBody))
-        {
-            _ownersWithBodies.Add(node);
-            if (_colliders.ShapeOf(node, _shapes) is { } shape) MemoryMarshal.AsRef<RigidBody>(component.AsSpan()).Shape = shape;
-            return true;
-        }
-
         if (info.Type != typeof(EnvironmentLight)) return true;
         if (_environments.Load(node.Name ?? "", ReadString(values, MapField)) is not { } map) return false;
         MemoryMarshal.AsRef<EnvironmentLight>(component.AsSpan()).Map = map;
@@ -243,7 +251,7 @@ public sealed class GltfSceneImporter
     private void WarnAboutCollidersWithoutBodies()
     {
         foreach (var owner in _colliders.Owners)
-            if (!_ownersWithBodies.Contains(owner))
+            if (!_bodies.ContainsKey(owner))
                 _warnings.Add($"Node '{owner.Name}' has colliders but no RigidBody, so they are ignored.");
     }
 

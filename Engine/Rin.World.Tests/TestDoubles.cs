@@ -161,6 +161,10 @@ internal sealed class FakeRenderSystem : IRenderSystem
         Destroyed.Add(handle);
     }
 
+    public void BeginFrame(bool ticked)
+    {
+    }
+
     public void SetInterpolationAlpha(float alpha) => LastInterpolationAlpha = alpha;
     public void SetTime(float seconds) => LastTime = seconds;
 
@@ -446,6 +450,23 @@ internal struct Stunned : ITagData;
 internal struct Follow : IComponentData
 {
     public Entity Target;
+}
+
+internal enum TetherMode
+{
+    Loose,
+    Taut
+}
+
+internal struct TetherEnd
+{
+    public TetherMode Mode;
+    public float Length;
+}
+
+internal struct Tether : IComponentData
+{
+    public TetherEnd End;
 }
 
 internal static class TestCameras

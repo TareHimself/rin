@@ -27,6 +27,21 @@ public class WorldTests
     }
 
     [Test]
+    public void CollectEntitiesListsLiveEntitiesInIdOrderAndReplacesTheList()
+    {
+        var world = new World();
+        var first = world.Spawn();
+        var second = world.Spawn();
+        var third = world.Spawn();
+        world.Despawn(second);
+        var entities = new List<Entity> { default };
+
+        world.CollectEntities(entities);
+
+        Assert.That(entities, Is.EqualTo(new[] { first, third }));
+    }
+
+    [Test]
     public void AddOverwritesAndSetRequiresTheComponent()
     {
         var world = new World();

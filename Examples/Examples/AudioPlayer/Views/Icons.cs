@@ -1,9 +1,7 @@
-using Rin.Core.Views;
-
 namespace Examples.AudioPlayer.Views;
 
 /// <summary>
-///     Font Awesome 6 Free solid codepoints, loaded from the font in <c>assets/fonts</c>.
+///     Font Awesome 6 Free solid codepoints for <see cref="IconFont" />.
 /// </summary>
 public static class Icons
 {
@@ -19,27 +17,4 @@ public static class Icons
     public const char Music = '';
     public const char Remove = '';
     public const char Back = '\uf060';
-
-    private const string FontPath = "fonts/fa-solid-900.ttf";
-    private const string FamilyKeyword = "Awesome";
-
-    public static string Family { get; private set; } = string.Empty;
-
-    public static void Load()
-    {
-        var fonts = IViewsModule.Get().FontManager;
-        if (FindFamily() is null)
-        {
-            using var stream = File.OpenRead(ExampleHost.AssetPath(FontPath));
-            fonts.LoadFont(stream);
-        }
-
-        Family = FindFamily() ?? throw new InvalidOperationException($"{FontPath} did not load");
-    }
-
-    private static string? FindFamily()
-    {
-        return IViewsModule.Get().FontManager.GetFonts()
-            .FirstOrDefault(f => f.Name.Contains(FamilyKeyword, StringComparison.OrdinalIgnoreCase))?.Name;
-    }
 }

@@ -87,7 +87,8 @@ public class DeterminismTests
                 _physics = new PhysicsFeature(World, _bepu);
                 var floor = World.Spawn();
                 World.SetPosition(floor, new Vector3(0, -0.5f, 0));
-                World.Add(floor, new RigidBody { Shape = ColliderShape.Box(new Vector3(100, 1, 100)), State = PhysicsState.Static });
+                World.Add(floor, new RigidBody { State = PhysicsState.Static });
+                World.Add(floor, new BoxCollider { Size = new Vector3(100, 1, 100) });
             }
 
             World.AddSystem(TickPhase.Input, new InputPlayback(mesh, physics));
@@ -149,7 +150,11 @@ public class DeterminismTests
             world.Commands.Add(entity, new Speed(random.NextFloat(0.5f, 2f)));
             world.Commands.Add(entity, new Wanderer());
             world.Commands.Add(entity, new StaticMesh { Mesh = mesh });
-            if (physics) world.Commands.Add(entity, new RigidBody { Shape = ColliderShape.Sphere(0.3f), State = PhysicsState.Simulated });
+            if (physics)
+            {
+                world.Commands.Add(entity, new RigidBody { State = PhysicsState.Simulated });
+                world.Commands.Add(entity, new SphereCollider { Radius = 0.3f });
+            }
         }
 
         private static void DespawnFirstWanderer(World world)

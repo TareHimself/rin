@@ -1,4 +1,5 @@
 using Examples.AudioPlayer.Views;
+using Examples.Common.Views;
 using Rin.Core.Audio;
 using Rin.Core.Graphics;
 using Rin.Core.Graphics.Windows;
@@ -18,7 +19,7 @@ public sealed class AudioPlayerExample : Example
     public override void Start(ExampleContext context)
     {
         IAudioModule.Get().SetVolume(StartVolume);
-        Icons.Load();
+        IconFont.Load();
 
         var player = context.Add(new PlayerView());
         player.AddFiles(context.Args);

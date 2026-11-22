@@ -33,6 +33,23 @@ namespace Apple { public struct Bravo : IComponentData { public int Value; } }
     }
 
     [Fact]
+    public void EveryEcsRequiresBecomesARequirementInDeclarationOrder()
+    {
+        var module = ModuleOf(@"
+public struct Transform : IComponentData { public float X; }
+public struct Collider : IComponentData;
+[EcsRequires<Transform>, EcsRequires<Collider>]
+public struct Body : IComponentData { public float Mass; }
+[EcsRequires<Body>]
+public struct Grounded : ITagData;
+");
+
+        Assert.Equal(["Transform", "Collider"], module.Single(info => info.Name == "Body").Requires.Select(type => type.Name));
+        Assert.Equal(["Body"], module.Single(info => info.Name == "Grounded").Requires.Select(type => type.Name));
+        Assert.Empty(module.Single(info => info.Name == "Transform").Requires);
+    }
+
+    [Fact]
     public void ATagHasNoSizeAndNoFields()
     {
         var tag = Single("public struct Stunned : ITagData;");

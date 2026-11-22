@@ -27,7 +27,8 @@ public class PhysicsFeatureQueryTests
     {
         var entity = _world.Spawn();
         _world.SetPosition(entity, position);
-        _world.Add(entity, new RigidBody { Shape = ColliderShape.Sphere(1f), State = PhysicsState.Static });
+        _world.Add(entity, new RigidBody { State = PhysicsState.Static });
+        _world.Add(entity, new SphereCollider { Radius = 1f });
         return entity;
     }
 
@@ -123,7 +124,8 @@ public class PhysicsFeatureQueryTests
     {
         var entity = _world.Spawn();
         _world.SetPosition(entity, new Vector3(0, 5, 0));
-        _world.Add(entity, new RigidBody { Shape = ColliderShape.Sphere(0.5f), State = PhysicsState.Simulated });
+        _world.Add(entity, new RigidBody { State = PhysicsState.Simulated });
+        _world.Add(entity, new SphereCollider { Radius = 0.5f });
 
         for (var i = 0; i < 30; i++) _world.Update(_world.TickInterval);
 

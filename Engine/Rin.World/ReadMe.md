@@ -46,7 +46,7 @@ flowchart LR
 
 A saved field of any other type (a pointer, `nint`, `char`, a `Nullable<T>`) is compile error RIN00028. A composed schema lists each type once in `FieldTypes`, and `FieldTypeOf(type)` finds one.
 
-**Access by id** lets tools work with components they only know from the schema, like an inspector or a scene loader: `world.ComponentsOf(entity)` lists the ids, `Read` and `Write` give a component's bytes (`Write` marks it changed), `Add`, `AddDefault` and `Remove` change the archetype and fire hooks like their typed versions, and a `ComponentField` reads or writes its slice of those bytes. `AddDefault` uses `ComponentInfo.DefaultValue`, the bytes of `new T()` with field initializers. `[EcsDerived]` marks a component or field computed from other data, like `WorldTransform`, so editors can hide it or show it read-only.
+**Access by id** lets tools work with components they only know from the schema, like an inspector or a scene loader: `world.ComponentsOf(entity)` lists the ids, `Read` and `Write` give a component's bytes (`Write` marks it changed), `Add`, `AddDefault` and `Remove` change the archetype and fire hooks like their typed versions, and a `ComponentField` reads or writes its slice of those bytes. `AddDefault` uses `ComponentInfo.DefaultValue`, the bytes of `new T()` with field initializers. `[EcsDerived]` marks a component or field computed from other data, like `WorldTransform`, so editors can hide it or show it read-only. `[EcsRequires<T>]` says a component only works alongside `T` (`RigidBody` needs `LocalTransform`), so editors can add `T` first: `schema.CollectRequirements(id, list)` gives every requirement in the order to add them, and composing a schema throws if a requirement is missing or loops back.
 
 <a id="editor-components"></a>**Editor JSON**: `ComponentJson` writes a schema of every editable component (saved, not derived, with at least one field that is neither process-local nor derived, or a tag) with its fields and defaults, and reads a component's fields from JSON into its bytes. Values follow the field kind: numbers, bools, arrays for vectors and quaternions, an enum's name, an entity's object name, an object for a struct, or an array for a struct of numbers like `Color`. The [Blender add-on](../../Tools/Blender/rin/ReadMe.md) builds its panels from that schema, and the glTF importer reads node extras with it.
 
@@ -151,7 +151,7 @@ return new SurfaceMaterial<PbrMaterial>(new PbrMaterial
 
 ## Physics
 
-`new PhysicsFeature(world, physicsSystem)`, then add a `RigidBody` (shape, `PhysicsState`, mass, trigger) and optionally `Velocity`.
+`new PhysicsFeature(world, physicsSystem)`, then add a `RigidBody` (`PhysicsState`, mass, trigger), one collider component (`BoxCollider`, `SphereCollider`, `CapsuleCollider` or `CompoundCollider`) and optionally `Velocity`. The body is built once the entity has both a `RigidBody` and a collider, in either order; two colliders on one entity throw.
 
 | `PhysicsState` | Behaviour |
 | --- | --- |
@@ -159,7 +159,7 @@ return new SurfaceMaterial<PbrMaterial>(new PbrMaterial
 | `Controlled` | Follows the entity's transform every tick |
 | `Simulated` | Bepu moves it and writes the pose back to `LocalTransform` |
 
-A shape is a box, sphere or capsule, or a compound: register the parts once with `PhysicsFeature.Shapes.AddCompound` and use `ColliderShape.CompoundOf(handle)`, so many bodies can share them. A compound's scale is fixed when its body is made. `RigidBody` is read once, so remove and re-add it to change the shape. `PhysicsFeature.Contacts` holds the last tick's contacts. Casts and overlaps return entities.
+For a compound, register the parts once with `PhysicsFeature.Shapes.AddCompound` and put the handle in a `CompoundCollider`, so many bodies can share them. A compound's scale is fixed when its body is made. The body and collider are read once, so remove and re-add one to change the shape or state. `Colliders.Set` swaps an entity's collider for any `ColliderShape`. `PhysicsFeature.Contacts` holds the last tick's contacts. Casts and overlaps return entities.
 
 ## Determinism and snapshots
 

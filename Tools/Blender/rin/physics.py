@@ -4,6 +4,7 @@ from mathutils import Vector
 from . import colliders, components
 
 RIGID_BODY = colliders.RIGID_BODY
+BOX_COLLIDER = "Rin.World.Physics.BoxCollider"
 
 
 def local_bounds(obj):
@@ -23,18 +24,21 @@ def bounds_shape(obj, warnings):
     return {"Kind": "Box", "Size": [size.x, size.z, size.y]}
 
 
-# The mesh bounds give a fallback box; colliders, when there are any, replace it on import.
 def rigid_body_component(obj, warnings, _folder):
     if not colliders.has_body(obj) or not components.is_loaded(RIGID_BODY):
         return None
-    fields = components.export_fields(obj, components.type_entry_of(RIGID_BODY))
-    shape = bounds_shape(obj, warnings)
-    if shape is None and not colliders.colliders_of(obj):
+    if obj.type != "MESH" and not colliders.colliders_of(obj):
         warnings.append(f"{obj.name}: a Rigid Body without a mesh needs a collider, so it is not exported")
         return None
-    if shape is not None:
-        fields["Shape"] = shape
-    return RIGID_BODY, fields
+    return RIGID_BODY, components.export_fields(obj, components.type_entry_of(RIGID_BODY))
+
+
+# The mesh bounds give a fallback box collider; collider objects, when there are any, replace it on import.
+def box_collider_component(obj, warnings, _folder):
+    if not colliders.has_body(obj) or not components.is_loaded(BOX_COLLIDER):
+        return None
+    shape = bounds_shape(obj, warnings)
+    return None if shape is None else (BOX_COLLIDER, {"Size": shape["Size"]})
 
 
 class RIN_OT_remove_rigid_body(bpy.types.Operator):
@@ -92,11 +96,13 @@ def register():
     for cls in classes:
         bpy.utils.register_class(cls)
     components.export_sources.append(rigid_body_component)
+    components.export_sources.append(box_collider_component)
     components.custom_panels.add(RIGID_BODY)
 
 
 def unregister():
     components.custom_panels.discard(RIGID_BODY)
     components.export_sources.remove(rigid_body_component)
+    components.export_sources.remove(box_collider_component)
     for cls in reversed(classes):
         bpy.utils.unregister_class(cls)

@@ -11,7 +11,8 @@ public enum ColliderShapeKind : byte
 }
 
 /// <summary>
-///     An unmanaged collider description. Only the fields of its <see cref="Kind" /> are set; the rest stay zero.
+///     A collider description for the physics system and for compound parts. Only the fields of its <see cref="Kind" />
+///     are set; the rest stay zero. Entities hold a collider component instead (see <see cref="Colliders" />).
 /// </summary>
 public readonly record struct ColliderShape
 {

@@ -6,13 +6,15 @@ namespace Rin.World.Physics;
 
 /// <summary>
 ///     Connects an <see cref="World" /> to an <see cref="IPhysicsSystem" />. Hooks create a body and a
-///     <see cref="PhysicsBody" /> component when a <see cref="RigidBody" /> is added and destroy both when it is removed or
-///     despawned. Four <see cref="TickPhase.Physics" /> systems run in order: <see cref="PhysicsPush" />, the step,
-///     <see cref="PhysicsPull" /> and <see cref="ContactDispatch" />.
+///     <see cref="PhysicsBody" /> component once an entity has a <see cref="RigidBody" /> and a collider component, in
+///     either order, and destroy both when either is removed or the entity despawns. Four <see cref="TickPhase.Physics" />
+///     systems run in order: <see cref="PhysicsPush" />, the step, <see cref="PhysicsPull" /> and
+///     <see cref="ContactDispatch" />.
 /// </summary>
 /// <remarks>
-///     A snapshot restore destroys every entity body and creates a new one from <see cref="RigidBody" />, the restored
-///     world pose and <see cref="Velocity" />, and clears <see cref="Contacts" />. The physics system's own state (warm
+///     A <see cref="RigidBody" /> without a collider has no body until one is added. A snapshot restore destroys every
+///     entity body and creates a new one from <see cref="RigidBody" />, the collider, the restored world pose and
+///     <see cref="Velocity" />, and clears <see cref="Contacts" />. The physics system's own state (warm
 ///     starting, sleeping, contact history) is not restored, so a restored run matches another run that restored the same
 ///     way, but not a run that never restored.
 /// </remarks>
@@ -27,8 +29,16 @@ public sealed class PhysicsFeature : IWorldRestoreListener
         PhysicsSystem = physicsSystem;
         _contacts = new ContactDispatch(physicsSystem, Bodies);
 
-        world.OnAdd<RigidBody>(CreateBody);
-        world.OnRemove<RigidBody>(DestroyBody);
+        world.OnAdd<RigidBody>(OnBodyPartAdded);
+        world.OnAdd<BoxCollider>(OnBodyPartAdded);
+        world.OnAdd<SphereCollider>(OnBodyPartAdded);
+        world.OnAdd<CapsuleCollider>(OnBodyPartAdded);
+        world.OnAdd<CompoundCollider>(OnBodyPartAdded);
+        world.OnRemove<RigidBody>(OnBodyPartRemoved);
+        world.OnRemove<BoxCollider>(OnBodyPartRemoved);
+        world.OnRemove<SphereCollider>(OnBodyPartRemoved);
+        world.OnRemove<CapsuleCollider>(OnBodyPartRemoved);
+        world.OnRemove<CompoundCollider>(OnBodyPartRemoved);
         world.AddSystem(TickPhase.Physics, new PhysicsPush(world, physicsSystem));
         world.AddSystem(TickPhase.Physics, new PhysicsStep(physicsSystem));
         world.AddSystem(TickPhase.Physics, new PhysicsPull(world, physicsSystem));
@@ -42,7 +52,7 @@ public sealed class PhysicsFeature : IWorldRestoreListener
     public IPhysicsSystem PhysicsSystem { get; }
 
     /// <summary>
-    ///     The parts of every <see cref="ColliderShapeKind.Compound" /> collider.
+    ///     The parts of every <see cref="CompoundCollider" />.
     /// </summary>
     public PhysicsShapes Shapes { get; } = new();
 
@@ -80,15 +90,24 @@ public sealed class PhysicsFeature : IWorldRestoreListener
             {
                 var entity = chunk.Entities[i];
                 ref readonly var rigidBody = ref chunk.Components2[i];
-                chunk.Write<PhysicsBody>(i) = CreatePhysicsBody(entity, rigidBody);
+                if (Colliders.TryGetShape(World, entity, out var shape))
+                    chunk.Write<PhysicsBody>(i) = CreatePhysicsBody(entity, rigidBody, shape);
             }
     }
 
-    private void CreateBody(Entity entity, in RigidBody rigidBody) => World.Add(entity, CreatePhysicsBody(entity, rigidBody));
-
-    private PhysicsBody CreatePhysicsBody(Entity entity, in RigidBody rigidBody)
+    private void OnBodyPartAdded<T>(Entity entity, in T _) where T : unmanaged, IComponentData
     {
-        var handle = CreateBodyHandle(entity, rigidBody);
+        if (World.Has<PhysicsBody>(entity) || !World.Has<RigidBody>(entity)) return;
+        if (!Colliders.TryGetShape(World, entity, out var shape)) return;
+
+        World.Add(entity, CreatePhysicsBody(entity, World.Get<RigidBody>(entity), shape));
+    }
+
+    private void OnBodyPartRemoved<T>(Entity entity, in T _) where T : unmanaged, IComponentData => DestroyBody(entity);
+
+    private PhysicsBody CreatePhysicsBody(Entity entity, in RigidBody rigidBody, in ColliderShape shape)
+    {
+        var handle = CreateBodyHandle(entity, rigidBody, shape);
         Bodies.Add(handle, entity);
         var body = new PhysicsBody { Handle = handle, State = rigidBody.State };
         if (!World.Has<Velocity>(entity)) return body;
@@ -100,16 +119,16 @@ public sealed class PhysicsFeature : IWorldRestoreListener
         return body;
     }
 
-    private PhysicsBodyHandle CreateBodyHandle(Entity entity, in RigidBody desc)
+    private PhysicsBodyHandle CreateBodyHandle(Entity entity, in RigidBody desc, in ColliderShape shape)
     {
         var pose = Transform.From(World.ComputeWorldMatrix(entity));
-        var handle = desc.Shape.Kind switch
+        var handle = shape.Kind switch
         {
-            ColliderShapeKind.Box => PhysicsSystem.CreateBox(desc.Shape.Size, pose, desc.State),
-            ColliderShapeKind.Sphere => PhysicsSystem.CreateSphere(desc.Shape.Radius, pose, desc.State),
-            ColliderShapeKind.Capsule => PhysicsSystem.CreateCapsule(desc.Shape.Radius, desc.Shape.HalfHeight, pose, desc.State),
-            ColliderShapeKind.Compound => PhysicsSystem.CreateCompound(Shapes.PartsOf(desc.Shape.Compound), pose, desc.State),
-            _ => throw new ArgumentOutOfRangeException(nameof(desc), desc.Shape.Kind, "Unknown collider shape.")
+            ColliderShapeKind.Box => PhysicsSystem.CreateBox(shape.Size, pose, desc.State),
+            ColliderShapeKind.Sphere => PhysicsSystem.CreateSphere(shape.Radius, pose, desc.State),
+            ColliderShapeKind.Capsule => PhysicsSystem.CreateCapsule(shape.Radius, shape.HalfHeight, pose, desc.State),
+            ColliderShapeKind.Compound => PhysicsSystem.CreateCompound(Shapes.PartsOf(shape.Compound), pose, desc.State),
+            _ => throw new ArgumentOutOfRangeException(nameof(shape), shape.Kind, "Unknown collider shape.")
         };
 
         PhysicsSystem.SetMass(handle, desc.Mass);
@@ -118,7 +137,7 @@ public sealed class PhysicsFeature : IWorldRestoreListener
         return handle;
     }
 
-    private void DestroyBody(Entity entity, in RigidBody rigidBody)
+    private void DestroyBody(Entity entity)
     {
         if (!World.Has<PhysicsBody>(entity)) return;
         var handle = World.Get<PhysicsBody>(entity).Handle;

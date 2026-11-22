@@ -6,6 +6,7 @@ namespace Rin.World.Physics;
 ///     The body's linear and angular velocity. A value that differs from what the body last exchanged is pushed on the
 ///     next tick; simulated bodies write the stepped velocity back.
 /// </summary>
+[EcsRequires<RigidBody>]
 public struct Velocity : IComponentData
 {
     public Vector3 Linear;

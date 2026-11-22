@@ -106,6 +106,21 @@ public class SystemScheduleTests
     }
 
     [Test]
+    public void EachFrameSeesHowManyTicksRanBeforeIt()
+    {
+        var world = new World { TickInterval = Interval };
+        var frames = new FrameRecorder();
+        world.AddSystem(FramePhase.Update, frames);
+
+        world.Update(Interval * 2f);
+        world.Update(Interval * 0.5f);
+        world.TimeScale = 0f;
+        world.Update(Interval * 3f);
+
+        Assert.That(frames.TicksRun, Is.EqualTo(new[] { 2, 0, 0 }));
+    }
+
+    [Test]
     public void PhasesRunInFixedOrderAndSystemsInRegistrationOrder()
     {
         var world = new World { TickInterval = Interval };
@@ -230,11 +245,13 @@ public class SystemScheduleTests
     {
         public readonly List<float> Deltas = [];
         public readonly List<float> Alphas = [];
+        public readonly List<int> TicksRun = [];
 
         public override void Update(in FrameContext context)
         {
             Deltas.Add(context.DeltaSeconds);
             Alphas.Add(context.InterpolationAlpha);
+            TicksRun.Add(context.TicksRun);
         }
     }
 

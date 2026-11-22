@@ -8,7 +8,11 @@ public class PhysicsSyncTests : PhysicsFeatureFixture
 {
     private static readonly Quaternion QuarterTurnY = Quaternion.CreateFromAxisAngle(Vector3.UnitY, MathF.PI / 2);
 
-    private static RigidBody Box(PhysicsState state) => new() { Shape = ColliderShape.Box(Vector3.One), State = state };
+    private void AddBox(Entity entity, PhysicsState state)
+    {
+        _world.Add(entity, new RigidBody { State = state });
+        _world.Add(entity, new BoxCollider { Size = Vector3.One });
+    }
 
     private Entity RotatedParentAt(Vector3 position)
     {
@@ -23,7 +27,7 @@ public class PhysicsSyncTests : PhysicsFeatureFixture
     {
         var entity = _world.Spawn();
         _world.SetPosition(entity, Vector3.Zero);
-        _world.Add(entity, Box(PhysicsState.Controlled));
+        AddBox(entity, PhysicsState.Controlled);
         var stepped = Vector3.Zero;
         _physics.OnUpdate = _ => stepped = _physics.GetPosition(HandleOf(entity));
 
@@ -42,7 +46,7 @@ public class PhysicsSyncTests : PhysicsFeatureFixture
         var child = _world.Spawn();
         _world.SetPosition(child, Vector3.Zero);
         _world.SetParent(child, parent);
-        _world.Add(child, Box(PhysicsState.Controlled));
+        AddBox(child, PhysicsState.Controlled);
 
         _world.SetPosition(child, new Vector3(1, 0, 0));
         Tick();
@@ -57,7 +61,7 @@ public class PhysicsSyncTests : PhysicsFeatureFixture
     {
         var entity = _world.Spawn();
         _world.SetPosition(entity, Vector3.Zero);
-        _world.Add(entity, Box(PhysicsState.Static));
+        AddBox(entity, PhysicsState.Static);
 
         _world.SetPosition(entity, new Vector3(5, 0, 0));
         Tick();
@@ -70,7 +74,7 @@ public class PhysicsSyncTests : PhysicsFeatureFixture
     {
         var entity = _world.Spawn();
         _world.SetPosition(entity, Vector3.Zero);
-        _world.Add(entity, Box(PhysicsState.Simulated));
+        AddBox(entity, PhysicsState.Simulated);
         _physics.OnUpdate = _ =>
         {
             _physics.SetPosition(HandleOf(entity), new Vector3(0, -1, 0));
@@ -92,7 +96,7 @@ public class PhysicsSyncTests : PhysicsFeatureFixture
         var child = _world.Spawn();
         _world.SetLocalTransform(child, new LocalTransform { Scale = new Vector3(3) });
         _world.SetParent(child, parent);
-        _world.Add(child, Box(PhysicsState.Simulated));
+        AddBox(child, PhysicsState.Simulated);
         _physics.OnUpdate = _ =>
         {
             _physics.SetPosition(HandleOf(child), new Vector3(10, 0, -2));
@@ -116,8 +120,8 @@ public class PhysicsSyncTests : PhysicsFeatureFixture
         _world.SetPosition(root, Vector3.Zero);
         _world.SetPosition(child, Vector3.Zero);
         _world.SetParent(child, root);
-        _world.Add(child, Box(PhysicsState.Simulated));
-        _world.Add(root, Box(PhysicsState.Simulated));
+        AddBox(child, PhysicsState.Simulated);
+        AddBox(root, PhysicsState.Simulated);
         _physics.OnUpdate = _ =>
         {
             _physics.SetPosition(HandleOf(root), new Vector3(5, 0, 0));
@@ -134,7 +138,7 @@ public class PhysicsSyncTests : PhysicsFeatureFixture
     {
         var entity = _world.Spawn();
         _world.SetPosition(entity, new Vector3(1, 2, 3));
-        _world.Add(entity, Box(PhysicsState.Simulated));
+        AddBox(entity, PhysicsState.Simulated);
         Tick();
         var settled = _world.ChangeTick;
 
@@ -149,7 +153,7 @@ public class PhysicsSyncTests : PhysicsFeatureFixture
     {
         var entity = _world.Spawn();
         _world.Add(entity, new Velocity());
-        _world.Add(entity, Box(PhysicsState.Simulated));
+        AddBox(entity, PhysicsState.Simulated);
         var stepped = Vector3.Zero;
         _physics.OnUpdate = _ => stepped = _physics.GetLinearVelocity(HandleOf(entity));
 
@@ -164,7 +168,7 @@ public class PhysicsSyncTests : PhysicsFeatureFixture
     {
         var entity = _world.Spawn();
         _world.Add(entity, new Velocity());
-        _world.Add(entity, Box(PhysicsState.Simulated));
+        AddBox(entity, PhysicsState.Simulated);
         _physics.OnUpdate = _ =>
         {
             _physics.SetLinearVelocity(HandleOf(entity), new Vector3(7, 0, 0));
@@ -189,7 +193,7 @@ public class PhysicsSyncTests : PhysicsFeatureFixture
     {
         var entity = _world.Spawn();
         _world.Add(entity, new Velocity());
-        _world.Add(entity, Box(PhysicsState.Controlled));
+        AddBox(entity, PhysicsState.Controlled);
 
         _physics.SetLinearVelocity(HandleOf(entity), new Vector3(9, 0, 0));
         Tick();
@@ -201,7 +205,7 @@ public class PhysicsSyncTests : PhysicsFeatureFixture
     public void TheStepUsesTheTickInterval()
     {
         var entity = _world.Spawn();
-        _world.Add(entity, Box(PhysicsState.Static));
+        AddBox(entity, PhysicsState.Static);
         var steps = new List<float>();
         _physics.OnUpdate = steps.Add;
         _world.TickInterval = 0.1f;
@@ -221,7 +225,7 @@ public class PhysicsSyncTests : PhysicsFeatureFixture
             _world.SetPosition(entity, new Vector3(i, 0, 0));
             if (i % 2 == 0) _world.SetParent(entity, parent);
             _world.Add(entity, new Velocity { Linear = Vector3.UnitY });
-            _world.Add(entity, Box(i % 3 == 0 ? PhysicsState.Controlled : PhysicsState.Simulated));
+            AddBox(entity, i % 3 == 0 ? PhysicsState.Controlled : PhysicsState.Simulated);
         }
 
         for (var i = 0; i < 10; i++) Tick();

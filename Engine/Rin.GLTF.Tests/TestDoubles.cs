@@ -27,6 +27,10 @@ internal sealed class NullRenderSystem : IRenderSystem
     {
     }
 
+    public void BeginFrame(bool ticked)
+    {
+    }
+
     public void SetInterpolationAlpha(float alpha)
     {
     }

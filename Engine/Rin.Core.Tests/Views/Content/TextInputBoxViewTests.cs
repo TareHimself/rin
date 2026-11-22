@@ -460,6 +460,21 @@ public class TextInputBoxViewTests : FakeApplicationFixture
     }
 
     [Test]
+    public void AnUnfocusedInputShowsTheStartOfTextLongerThanItself()
+    {
+        var input = new TextInputBoxView();
+        var surface = new FakeSurface();
+        input.Content = "-15.0361";
+        input.Layout(new Vector2(FakeFont.Advance * 3f, 20f), fill: true);
+
+        input.CollectContent(Matrix4x4.Identity, new CommandList { SurfaceSize = new Vector2(800f, 600f) });
+        input.OnCursorDown(new CursorDownSurfaceEvent(surface, CursorButton.One, new Vector2(FakeFont.Advance * 0.2f, 5f)),
+            Matrix4x4.Identity);
+
+        Assert.That(input.CursorPosition, Is.EqualTo(-1), "the caret lands before the first character");
+    }
+
+    [Test]
     public void AControlKeyIsNotTypedAsAShortcutOrACharacter()
     {
         var input = new TextInputBoxView();
