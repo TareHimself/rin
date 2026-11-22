@@ -1,11 +1,12 @@
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using Rin.World.Ecs;
 
 namespace Rin.World;
 
 /// <summary>
-///     One archetype's rows of a query. The spans are read-only: <see cref="Write{T}" /> a row to change it, so the
-///     write is stamped with the change tick.
+///     One archetype's rows of a query. The spans are read-only: <see cref="Write{T}(int)" /> a row, or
+///     <see cref="WriteAll{T}" /> every row, to change them, so the write is stamped with the change tick.
 /// </summary>
 public readonly ref struct QueryChunk<T1>
     where T1 : unmanaged, IComponentData
@@ -35,6 +36,16 @@ public readonly ref struct QueryChunk<T1>
     }
 
     /// <summary>
+    ///     Every row of <typeparamref name="T" />, one of the queried components, stamped as changed at once. Faster than
+    ///     <see cref="Write{T}(int)" /> per row, but a change query then sees every row as changed.
+    /// </summary>
+    public Span<T> WriteAll<T>() where T : unmanaged, IComponentData
+    {
+        if (typeof(T) == typeof(T1)) return MemoryMarshal.Cast<T1, T>(_column1.WriteAll(_view.Ticks));
+        throw ChunkChangeTicks.NotQueried<T>();
+    }
+
+    /// <summary>
     ///     Whether row <paramref name="index" /> of <typeparamref name="T" /> was written since the query's last run.
     ///     Only for a query built with <c>Changed</c>.
     /// </summary>
@@ -52,8 +63,8 @@ public readonly ref struct QueryChunk<T1>
 }
 
 /// <summary>
-///     One archetype's rows of a query. The spans are read-only: <see cref="Write{T}" /> a row to change it, so the
-///     write is stamped with the change tick.
+///     One archetype's rows of a query. The spans are read-only: <see cref="Write{T}(int)" /> a row, or
+///     <see cref="WriteAll{T}" /> every row, to change them, so the write is stamped with the change tick.
 /// </summary>
 public readonly ref struct QueryChunk<T1, T2>
     where T1 : unmanaged, IComponentData
@@ -89,6 +100,17 @@ public readonly ref struct QueryChunk<T1, T2>
     }
 
     /// <summary>
+    ///     Every row of <typeparamref name="T" />, one of the queried components, stamped as changed at once. Faster than
+    ///     <see cref="Write{T}(int)" /> per row, but a change query then sees every row as changed.
+    /// </summary>
+    public Span<T> WriteAll<T>() where T : unmanaged, IComponentData
+    {
+        if (typeof(T) == typeof(T1)) return MemoryMarshal.Cast<T1, T>(_column1.WriteAll(_view.Ticks));
+        if (typeof(T) == typeof(T2)) return MemoryMarshal.Cast<T2, T>(_column2.WriteAll(_view.Ticks));
+        throw ChunkChangeTicks.NotQueried<T>();
+    }
+
+    /// <summary>
     ///     Whether row <paramref name="index" /> of <typeparamref name="T" /> was written since the query's last run.
     ///     Only for a query built with <c>Changed</c>.
     /// </summary>
@@ -114,8 +136,8 @@ public readonly ref struct QueryChunk<T1, T2>
 }
 
 /// <summary>
-///     One archetype's rows of a query. The spans are read-only: <see cref="Write{T}" /> a row to change it, so the
-///     write is stamped with the change tick.
+///     One archetype's rows of a query. The spans are read-only: <see cref="Write{T}(int)" /> a row, or
+///     <see cref="WriteAll{T}" /> every row, to change them, so the write is stamped with the change tick.
 /// </summary>
 public readonly ref struct QueryChunk<T1, T2, T3>
     where T1 : unmanaged, IComponentData
@@ -157,6 +179,18 @@ public readonly ref struct QueryChunk<T1, T2, T3>
     }
 
     /// <summary>
+    ///     Every row of <typeparamref name="T" />, one of the queried components, stamped as changed at once. Faster than
+    ///     <see cref="Write{T}(int)" /> per row, but a change query then sees every row as changed.
+    /// </summary>
+    public Span<T> WriteAll<T>() where T : unmanaged, IComponentData
+    {
+        if (typeof(T) == typeof(T1)) return MemoryMarshal.Cast<T1, T>(_column1.WriteAll(_view.Ticks));
+        if (typeof(T) == typeof(T2)) return MemoryMarshal.Cast<T2, T>(_column2.WriteAll(_view.Ticks));
+        if (typeof(T) == typeof(T3)) return MemoryMarshal.Cast<T3, T>(_column3.WriteAll(_view.Ticks));
+        throw ChunkChangeTicks.NotQueried<T>();
+    }
+
+    /// <summary>
     ///     Whether row <paramref name="index" /> of <typeparamref name="T" /> was written since the query's last run.
     ///     Only for a query built with <c>Changed</c>.
     /// </summary>
@@ -185,8 +219,8 @@ public readonly ref struct QueryChunk<T1, T2, T3>
 }
 
 /// <summary>
-///     One archetype's rows of a query. The spans are read-only: <see cref="Write{T}" /> a row to change it, so the
-///     write is stamped with the change tick.
+///     One archetype's rows of a query. The spans are read-only: <see cref="Write{T}(int)" /> a row, or
+///     <see cref="WriteAll{T}" /> every row, to change them, so the write is stamped with the change tick.
 /// </summary>
 public readonly ref struct QueryChunk<T1, T2, T3, T4>
     where T1 : unmanaged, IComponentData
@@ -230,6 +264,19 @@ public readonly ref struct QueryChunk<T1, T2, T3, T4>
         if (typeof(T) == typeof(T2)) return ref Unsafe.As<T2, T>(ref _column2.Write(index, _view.Ticks));
         if (typeof(T) == typeof(T3)) return ref Unsafe.As<T3, T>(ref _column3.Write(index, _view.Ticks));
         if (typeof(T) == typeof(T4)) return ref Unsafe.As<T4, T>(ref _column4.Write(index, _view.Ticks));
+        throw ChunkChangeTicks.NotQueried<T>();
+    }
+
+    /// <summary>
+    ///     Every row of <typeparamref name="T" />, one of the queried components, stamped as changed at once. Faster than
+    ///     <see cref="Write{T}(int)" /> per row, but a change query then sees every row as changed.
+    /// </summary>
+    public Span<T> WriteAll<T>() where T : unmanaged, IComponentData
+    {
+        if (typeof(T) == typeof(T1)) return MemoryMarshal.Cast<T1, T>(_column1.WriteAll(_view.Ticks));
+        if (typeof(T) == typeof(T2)) return MemoryMarshal.Cast<T2, T>(_column2.WriteAll(_view.Ticks));
+        if (typeof(T) == typeof(T3)) return MemoryMarshal.Cast<T3, T>(_column3.WriteAll(_view.Ticks));
+        if (typeof(T) == typeof(T4)) return MemoryMarshal.Cast<T4, T>(_column4.WriteAll(_view.Ticks));
         throw ChunkChangeTicks.NotQueried<T>();
     }
 

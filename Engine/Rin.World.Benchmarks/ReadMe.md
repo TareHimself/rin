@@ -11,7 +11,7 @@ Set `RinShadeSkipCompile=true` in the environment first: BenchmarkDotNet rebuild
 | Class | Cases |
 | --- | --- |
 | `EntityBenchmarks` | spawn with 3 components, add then remove one component, random `Get` and `Has` |
-| `QueryBenchmarks` | iterate 1, 2 and 4 components, writing one |
+| `QueryBenchmarks` | iterate 1, 2 and 4 components, writing one with `WriteAll`, and 1 written row by row with `Write` |
 | `CommandBufferBenchmarks` | record and play back an add, then a remove, per entity |
 | `DespawnBenchmarks` | despawn every entity |
 | `SnapshotBenchmarks` | `SaveSnapshot` and `RestoreSnapshot` |
