@@ -28,6 +28,8 @@ public sealed class FieldType
     /// </summary>
     public ComponentField[] Fields { get; }
 
+    public bool TryGetField(string name, out ComponentField field) => ComponentField.TryFind(Fields, name, out field);
+
     public static FieldType Of<T>(FieldKind kind) where T : unmanaged =>
         kind == FieldKind.Struct
             ? throw new ArgumentException($"A {nameof(FieldKind.Struct)} needs its fields, so use {nameof(Struct)}.", nameof(kind))

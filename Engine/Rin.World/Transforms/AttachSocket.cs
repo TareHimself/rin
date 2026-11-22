@@ -13,5 +13,6 @@ public struct AttachSocket(int boneIndex) : IComponentData
     /// <summary>
     ///     The bone's matrix in the parent's space as of the last socket sync.
     /// </summary>
+    [field: EcsDerived]
     public Matrix4x4 SocketMatrix { get; internal set; } = Matrix4x4.Identity;
 }
