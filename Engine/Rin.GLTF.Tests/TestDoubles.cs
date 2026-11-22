@@ -1,5 +1,6 @@
 using System.Numerics;
 using Rin.Core.Graphics;
+using Rin.World;
 using Rin.World.Graphics;
 using Rin.World.Graphics.ImageBasedLighting;
 using Rin.World.Mesh.Skinning;
@@ -53,4 +54,14 @@ internal sealed class NullRenderSystem : IRenderSystem
     }
 
     private RenderProxyHandle Create() => new(++_nextIndex, 1);
+}
+
+/// <summary>
+///     A game component for importing from node extras.
+/// </summary>
+public struct TestDoor() : IComponentData
+{
+    public float OpenSeconds = 1f;
+    public bool IsLocked;
+    public Entity Key;
 }

@@ -48,6 +48,8 @@ A saved field of any other type (a pointer, `nint`, `char`, a `Nullable<T>`) is 
 
 **Access by id** lets tools work with components they only know from the schema, like an inspector or a scene loader: `world.ComponentsOf(entity)` lists the ids, `Read` and `Write` give a component's bytes (`Write` marks it changed), `Add`, `AddDefault` and `Remove` change the archetype and fire hooks like their typed versions, and a `ComponentField` reads or writes its slice of those bytes. `AddDefault` uses `ComponentInfo.DefaultValue`, the bytes of `new T()` with field initializers. `[EcsDerived]` marks a component or field computed from other data, like `WorldTransform`, so editors can hide it or show it read-only.
 
+<a id="editor-components"></a>**Editor JSON**: `ComponentJson` writes a schema of every editable component (saved, not derived, with at least one field that is neither process-local nor derived, or a tag) with its fields and defaults, and reads a component's fields from JSON into its bytes. Values follow the field kind: numbers, bools, arrays for vectors and quaternions, an enum's name, an entity's object name, an object for a struct, or an array for a struct of numbers like `Color`. The [Blender add-on](../../Tools/Blender/rin/ReadMe.md) builds its panels from that schema, and the glTF importer reads node extras with it.
+
 **Composed schemas** give the same ids everywhere: `ComponentSchema.Compose(ComponentModule.Engine, physics, game)` places each module's components in order, skips a module or type already placed, and freezes the result, so `IdOf<T>` for a type outside it throws and names the assembly whose module is missing. `Compose(A, B)` is a prefix of `Compose(A, B, C)`, so snapshots carry forward. `schema.Fingerprint()` hashes every component's layout in id order, for two processes to check they agree. `Clone()` gives an unfrozen copy that adds types on first use.
 
 ## Entities and the update step
@@ -105,7 +107,7 @@ The `scripting` example has one small script per pattern (patrol, sequenced door
 | Component | What it does |
 | --- | --- |
 | `StaticMesh`, `SkinnedMesh` | A `MeshHandle` from `IMeshFactory.CreateMesh` plus a `MaterialSet` from `RenderFeature.Materials`. The mesh is drawable as soon as `CreateMesh` returns. Skinned meshes also need a pose source |
-| `PointLight`, `DirectionalLight` | Color and brightness in physical units: `Lumens` for a point light (a household bulb is about 800), `Lux` for a directional light (direct sun is about 100,000). A point light's optional `Radius` caps its reach; unset, it reaches until it gives less than 0.01 lux |
+| `PointLight`, `DirectionalLight` | Color and brightness in physical units: `Lumens` for a point light (a household bulb is about 800), `Lux` for a directional light (direct sun is about 100,000). A point light's `Radius` caps its reach; at 0, it reaches until it gives less than 0.01 lux |
 | `EnvironmentLight` | Lights the scene from an environment map: a handle from `RenderFeature.Environments`, an intensity, and an optional box (`Extent`, `BlendDistance`, `Priority`) |
 | `Camera` | `world.GetCameraView(entity)` for a `Viewport`. `Ev100` is the exposure in photographic stops (about 15 for direct sun, 5 to 9 indoors, higher is darker) and `ToneMapCurve` (`AgX` by default, `Neutral`, `Aces`) picks how it is fitted to the display |
 
@@ -157,7 +159,7 @@ return new SurfaceMaterial<PbrMaterial>(new PbrMaterial
 | `Controlled` | Follows the entity's transform every tick |
 | `Simulated` | Bepu moves it and writes the pose back to `LocalTransform` |
 
-`RigidBody` is read once, so remove and re-add it to change the shape. `PhysicsFeature.Contacts` holds the last tick's contacts. Casts and overlaps return entities.
+A shape is a box, sphere or capsule, or a compound: register the parts once with `PhysicsFeature.Shapes.AddCompound` and use `ColliderShape.CompoundOf(handle)`, so many bodies can share them. A compound's scale is fixed when its body is made. `RigidBody` is read once, so remove and re-add it to change the shape. `PhysicsFeature.Contacts` holds the last tick's contacts. Casts and overlaps return entities.
 
 ## Determinism and snapshots
 

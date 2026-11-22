@@ -41,6 +41,21 @@ public class PhysicsFeatureTests : PhysicsFeatureFixture
     }
 
     [Test]
+    public void ACompoundShapeCreatesOneBodyFromItsRegisteredParts()
+    {
+        var parts = new[]
+        {
+            new ShapePart(ColliderShape.Box(new Vector3(1f)), new Vector3(-1f, 0f, 0f)),
+            new ShapePart(ColliderShape.Sphere(0.5f), new Vector3(1f, 0f, 0f))
+        };
+        var entity = _world.Spawn();
+
+        _world.Add(entity, new RigidBody { Shape = ColliderShape.CompoundOf(_feature.Shapes.AddCompound(parts)) });
+
+        Assert.That(_physics.GetCompoundParts(_world.Get<PhysicsBody>(entity).Handle), Is.EqualTo(parts));
+    }
+
+    [Test]
     public void TheBodyGetsMassTriggerAndChannelFromTheRigidBody()
     {
         var entity = _world.Spawn();

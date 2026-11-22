@@ -1,0 +1,376 @@
+{
+  "components": [
+    {
+      "name": "Rin.GLTF.Tests.TestDoor",
+      "displayName": "TestDoor",
+      "fields": [
+        {
+          "name": "OpenSeconds",
+          "type": "float",
+          "typeName": "System.Single"
+        },
+        {
+          "name": "IsLocked",
+          "type": "bool",
+          "typeName": "System.Boolean"
+        },
+        {
+          "name": "Key",
+          "type": "entity",
+          "typeName": "Rin.World.Entity"
+        }
+      ],
+      "defaults": {
+        "OpenSeconds": 1,
+        "IsLocked": false,
+        "Key": null
+      }
+    },
+    {
+      "name": "Rin.World.Graphics.Camera",
+      "displayName": "Camera",
+      "fields": [
+        {
+          "name": "FieldOfView",
+          "type": "float",
+          "typeName": "System.Single"
+        },
+        {
+          "name": "NearClipPlane",
+          "type": "float",
+          "typeName": "System.Single"
+        },
+        {
+          "name": "FarClipPlane",
+          "type": "float",
+          "typeName": "System.Single"
+        },
+        {
+          "name": "Ev100",
+          "type": "float",
+          "typeName": "System.Single"
+        },
+        {
+          "name": "ToneMapCurve",
+          "type": "enum",
+          "typeName": "Rin.World.Graphics.ToneMapCurve",
+          "enumNames": [
+            "AgX",
+            "Neutral",
+            "Aces"
+          ]
+        }
+      ],
+      "defaults": {
+        "FieldOfView": 90,
+        "NearClipPlane": 0.01,
+        "FarClipPlane": 50,
+        "Ev100": 15,
+        "ToneMapCurve": "AgX"
+      }
+    },
+    {
+      "name": "Rin.World.Graphics.DirectionalLight",
+      "displayName": "DirectionalLight",
+      "fields": [
+        {
+          "name": "Color",
+          "type": "struct",
+          "typeName": "Rin.Core.Views.Color",
+          "fields": [
+            {
+              "name": "R",
+              "type": "float",
+              "typeName": "System.Single"
+            },
+            {
+              "name": "G",
+              "type": "float",
+              "typeName": "System.Single"
+            },
+            {
+              "name": "B",
+              "type": "float",
+              "typeName": "System.Single"
+            },
+            {
+              "name": "A",
+              "type": "float",
+              "typeName": "System.Single"
+            }
+          ]
+        },
+        {
+          "name": "Lux",
+          "type": "float",
+          "typeName": "System.Single"
+        },
+        {
+          "name": "Radius",
+          "type": "float",
+          "typeName": "System.Single"
+        }
+      ],
+      "defaults": {
+        "Color": [
+          1,
+          1,
+          1,
+          1
+        ],
+        "Lux": 100000,
+        "Radius": 10000
+      }
+    },
+    {
+      "name": "Rin.World.Graphics.ImageBasedLighting.EnvironmentLight",
+      "displayName": "EnvironmentLight",
+      "fields": [
+        {
+          "name": "Intensity",
+          "type": "float",
+          "typeName": "System.Single"
+        },
+        {
+          "name": "Extent",
+          "type": "vector3",
+          "typeName": "System.Numerics.Vector3"
+        },
+        {
+          "name": "BlendDistance",
+          "type": "float",
+          "typeName": "System.Single"
+        },
+        {
+          "name": "Priority",
+          "type": "int",
+          "typeName": "System.Int32"
+        }
+      ],
+      "defaults": {
+        "Intensity": 1,
+        "Extent": [
+          0,
+          0,
+          0
+        ],
+        "BlendDistance": 0,
+        "Priority": 0
+      }
+    },
+    {
+      "name": "Rin.World.Graphics.PointLight",
+      "displayName": "PointLight",
+      "fields": [
+        {
+          "name": "Color",
+          "type": "struct",
+          "typeName": "Rin.Core.Views.Color",
+          "fields": [
+            {
+              "name": "R",
+              "type": "float",
+              "typeName": "System.Single"
+            },
+            {
+              "name": "G",
+              "type": "float",
+              "typeName": "System.Single"
+            },
+            {
+              "name": "B",
+              "type": "float",
+              "typeName": "System.Single"
+            },
+            {
+              "name": "A",
+              "type": "float",
+              "typeName": "System.Single"
+            }
+          ]
+        },
+        {
+          "name": "Lumens",
+          "type": "float",
+          "typeName": "System.Single"
+        },
+        {
+          "name": "Radius",
+          "type": "float",
+          "typeName": "System.Single"
+        }
+      ],
+      "defaults": {
+        "Color": [
+          1,
+          1,
+          1,
+          1
+        ],
+        "Lumens": 800,
+        "Radius": 0
+      }
+    },
+    {
+      "name": "Rin.World.Physics.RigidBody",
+      "displayName": "RigidBody",
+      "fields": [
+        {
+          "name": "Shape",
+          "type": "struct",
+          "typeName": "Rin.World.Physics.ColliderShape",
+          "fields": [
+            {
+              "name": "Kind",
+              "type": "enum",
+              "typeName": "Rin.World.Physics.ColliderShapeKind",
+              "enumNames": [
+                "Box",
+                "Sphere",
+                "Capsule",
+                "Compound"
+              ]
+            },
+            {
+              "name": "Size",
+              "type": "vector3",
+              "typeName": "System.Numerics.Vector3"
+            },
+            {
+              "name": "Radius",
+              "type": "float",
+              "typeName": "System.Single"
+            },
+            {
+              "name": "HalfHeight",
+              "type": "float",
+              "typeName": "System.Single"
+            }
+          ]
+        },
+        {
+          "name": "State",
+          "type": "enum",
+          "typeName": "Rin.World.Physics.PhysicsState",
+          "enumNames": [
+            "Static",
+            "Controlled",
+            "Simulated"
+          ]
+        },
+        {
+          "name": "Mass",
+          "type": "float",
+          "typeName": "System.Single"
+        },
+        {
+          "name": "IsTrigger",
+          "type": "bool",
+          "typeName": "System.Boolean"
+        },
+        {
+          "name": "CollisionChannel",
+          "type": "int",
+          "typeName": "System.Int32"
+        }
+      ],
+      "defaults": {
+        "Shape": {
+          "Kind": "Box",
+          "Size": [
+            0,
+            0,
+            0
+          ],
+          "Radius": 0,
+          "HalfHeight": 0
+        },
+        "State": "Static",
+        "Mass": 1,
+        "IsTrigger": false,
+        "CollisionChannel": 0
+      }
+    },
+    {
+      "name": "Rin.World.Physics.Velocity",
+      "displayName": "Velocity",
+      "fields": [
+        {
+          "name": "Linear",
+          "type": "vector3",
+          "typeName": "System.Numerics.Vector3"
+        },
+        {
+          "name": "Angular",
+          "type": "vector3",
+          "typeName": "System.Numerics.Vector3"
+        }
+      ],
+      "defaults": {
+        "Linear": [
+          0,
+          0,
+          0
+        ],
+        "Angular": [
+          0,
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "name": "Rin.World.Transforms.AttachSocket",
+      "displayName": "AttachSocket",
+      "fields": [
+        {
+          "name": "BoneIndex",
+          "type": "int",
+          "typeName": "System.Int32"
+        }
+      ],
+      "defaults": {
+        "BoneIndex": 0
+      }
+    },
+    {
+      "name": "Rin.World.Transforms.LocalTransform",
+      "displayName": "LocalTransform",
+      "fields": [
+        {
+          "name": "Position",
+          "type": "vector3",
+          "typeName": "System.Numerics.Vector3"
+        },
+        {
+          "name": "Rotation",
+          "type": "quaternion",
+          "typeName": "System.Numerics.Quaternion"
+        },
+        {
+          "name": "Scale",
+          "type": "vector3",
+          "typeName": "System.Numerics.Vector3"
+        }
+      ],
+      "defaults": {
+        "Position": [
+          0,
+          0,
+          0
+        ],
+        "Rotation": [
+          0,
+          0,
+          0,
+          1
+        ],
+        "Scale": [
+          1,
+          1,
+          1
+        ]
+      }
+    }
+  ]
+}

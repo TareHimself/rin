@@ -1,8 +1,8 @@
 schema_version = "1.0.0"
 
-id = "rin_blender"
+id = "rin"
 version = "0.1.0"
-name = "Rin Level"
+name = "Rin"
 tagline = "Author Rin levels and export them as glTF"
 maintainer = "Oyintare Ebelo"
 type = "add-on"

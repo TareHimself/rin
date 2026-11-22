@@ -21,6 +21,7 @@
     <ItemGroup>
         <ProjectReference Include="$(EngineDir)Rin.GLTF\Rin.GLTF.csproj" />
         <ProjectReference Include="$(EngineDir)Rin.Graphics.Null\Rin.Graphics.Null.csproj" />
+        <ProjectReference Include="$(EngineDir)Rin.SourceGenerators\Rin.SourceGenerators.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
     </ItemGroup>
 
     <ItemGroup Label="Test assets">
@@ -32,7 +33,10 @@
             <Link>Assets\cube.glb</Link>
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
         </Content>
-        <Content Include="Assets/blender_level.glb">
+        <Content Include="Assets/blender_level/**">
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </Content>
+        <Content Include="Assets/editor.schema.json">
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
         </Content>
     </ItemGroup>

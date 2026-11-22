@@ -38,6 +38,11 @@ public interface IPhysicsSystem
     /// </summary>
     public PhysicsBodyHandle CreateConvexHull(ReadOnlySpan<Vector3> points, in Transform transform, PhysicsState state);
 
+    /// <summary>
+    ///     One body made of several primitives, each placed relative to the body's origin. Its scale is fixed at creation.
+    /// </summary>
+    public PhysicsBodyHandle CreateCompound(ReadOnlySpan<ShapePart> parts, in Transform transform, PhysicsState state);
+
     public void DestroyBody(PhysicsBodyHandle handle);
 
     public Vector3 GetLinearVelocity(PhysicsBodyHandle handle);
