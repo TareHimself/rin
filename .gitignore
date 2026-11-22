@@ -38,4 +38,7 @@ specs/
 # dotTrace performance snapshots
 *.dtp
 *.dtt
+
+# Written by rin-editor-schema for the Blender add-on
+/*.schema.json
 BenchmarkDotNet.Artifacts/

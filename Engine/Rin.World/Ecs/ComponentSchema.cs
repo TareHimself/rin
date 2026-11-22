@@ -108,6 +108,25 @@ public sealed class ComponentSchema
         return id.Value != Absent;
     }
 
+    /// <summary>
+    ///     The id of the component whose <see cref="Type.FullName" /> is <paramref name="fullName" />, for data that names
+    ///     components, like a level file.
+    /// </summary>
+    public bool TryGetId(string fullName, out ComponentId id)
+    {
+        var count = Count;
+        var infos = Volatile.Read(ref _infos);
+        for (var i = 0; i < count; i++)
+        {
+            if (infos[i].Type.FullName != fullName) continue;
+            id = new ComponentId(i);
+            return true;
+        }
+
+        id = default;
+        return false;
+    }
+
     private void AppendModule(ComponentModule module)
     {
         foreach (var info in module.Components)

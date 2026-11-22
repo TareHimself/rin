@@ -9,13 +9,16 @@ using Rin.World;
 using Rin.World.Graphics;
 using Rin.World.Graphics.Default;
 using Rin.World.Graphics.Mesh;
+using Rin.World.Physics;
+using Rin.World.Physics.Bepu;
 using Rin.World.Transforms;
 
 namespace Examples.Level;
 
 /// <summary>
-///     Opens a glTF level, such as one exported by the rin_blender add-on, from its start camera.
-///     Run it as <c>level path/to/level.glb [--ev100=N]</c>.
+///     Opens a glTF level, such as one exported by the Rin Blender add-on, from its start camera, with its rigid bodies
+///     simulated.
+///     Run it as <c>level path/to/level-folder [--ev100=N]</c>, or with a .glb in place of the folder.
 /// </summary>
 public sealed class LevelExample : Example
 {
@@ -29,6 +32,7 @@ public sealed class LevelExample : Example
 
     private RenderFeature? _render;
     private IMeshFactory? _meshFactory;
+    private BepuPhysicsSystem? _physicsSystem;
 
     public override string Name => "level";
 
@@ -38,14 +42,17 @@ public sealed class LevelExample : Example
     {
         if (context.Args.FirstOrDefault(IsLevelPath) is not { } path)
         {
-            Log.Warn("Pass a level to open: level path/to/level.glb [--ev100=N]");
+            Log.Warn("Pass a level to open: level path/to/level-folder [--ev100=N]");
             return;
         }
 
         var meshFactory = _meshFactory = Global.Provider.AddSingle<IMeshFactory>(new MeshFactory());
-        var render = _render = new RenderFeature(new World(), new DefaultRenderSystem(), meshFactory);
+        // Composed with this game's module, so the level's components are found by name.
+        var world = new World(ComponentSchema.Compose(ComponentModule.Engine, GeneratedComponents.Module));
+        var render = _render = new RenderFeature(world, new DefaultRenderSystem(), meshFactory);
+        var physics = new PhysicsFeature(render.World, _physicsSystem = new BepuPhysicsSystem());
 
-        var level = GltfSceneImporter.Load(path, render, _ => null);
+        var level = GltfSceneImporter.Load(path, render, _ => null, physics.Shapes);
         foreach (var warning in level.Warnings) Log.Warn(warning);
 
         var camera = level.StartCamera ?? SpawnCamera(render.World);
@@ -59,13 +66,17 @@ public sealed class LevelExample : Example
 
     public override void Stop()
     {
+        _render?.Environments.Dispose();
         _render?.RenderSystem.Dispose();
         _render = null;
+        _physicsSystem?.Destroy();
+        _physicsSystem = null;
         _meshFactory?.Dispose();
         _meshFactory = null;
     }
 
     private static bool IsLevelPath(string argument) =>
+        Directory.Exists(argument) ||
         argument.EndsWith(".glb", StringComparison.OrdinalIgnoreCase) ||
         argument.EndsWith(".gltf", StringComparison.OrdinalIgnoreCase);
 

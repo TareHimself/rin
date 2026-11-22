@@ -1,0 +1,9 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <OutputType>Exe</OutputType>
+        <RootNamespace>Rin.EditorSchema</RootNamespace>
+        <AssemblyName>rin-editor-schema</AssemblyName>
+    </PropertyGroup>
+
+</Project>

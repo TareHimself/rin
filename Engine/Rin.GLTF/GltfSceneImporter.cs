@@ -1,10 +1,11 @@
-using System.Globalization;
 using System.Numerics;
-using System.Text.Json;
+using System.Runtime.InteropServices;
 using System.Text.Json.Nodes;
-using Rin.Core.Views;
 using Rin.World;
+using Rin.World.Editing;
 using Rin.World.Graphics;
+using Rin.World.Graphics.ImageBasedLighting;
+using Rin.World.Physics;
 using Rin.World.Transforms;
 using SharpGLTF.Schema2;
 using Camera = Rin.World.Graphics.Camera;
@@ -13,15 +14,19 @@ using GltfCamera = SharpGLTF.Schema2.Camera;
 namespace Rin.GLTF;
 
 /// <summary>
-///     Spawns a glTF scene into a world: one entity per node, with its static meshes, punctual lights and cameras.
-///     Materials come from the caller. Node extras <see cref="LumensKey" /> and <see cref="LuxKey" /> override a light's
-///     brightness, and scene extra <see cref="StartCameraKey" /> names the camera node to start from.
+///     Spawns a glTF scene into a world: one entity per node, with its static meshes and cameras. Materials come from
+///     the caller. Node extra <see cref="ComponentsKey" /> adds components by full type name, with their fields as
+///     <see cref="ComponentJson" /> reads them, so the world's schema must hold the game's components. Collider
+///     nodes under a node become its <see cref="RigidBody" />'s shape, an <see cref="EnvironmentLight" />'s <c>Map</c>
+///     names a .hdr file in the level's folder, and scene extra <see cref="StartCameraKey" /> names the camera node to
+///     start from. A level folder holds its glTF as <see cref="LevelFileName" />.
 /// </summary>
 public sealed class GltfSceneImporter
 {
-    public const string LumensKey = "rin_lumens";
-    public const string LuxKey = "rin_lux";
     public const string StartCameraKey = "rin_start_camera";
+    public const string ComponentsKey = "rin_components";
+    public const string LevelFileName = "level.glb";
+    private const string MapField = "Map";
 
     private static readonly Quaternion HalfTurn = Quaternion.CreateFromAxisAngle(Vector3.UnitY, MathF.PI);
 
@@ -31,26 +36,46 @@ public sealed class GltfSceneImporter
     private readonly Dictionary<int, IMeshMaterial?> _materials = [];
     private readonly List<Entity> _entities = [];
     private readonly List<(string? Name, Entity Entity)> _cameras = [];
+    private readonly Dictionary<string, Entity> _entitiesByNodeName = [];
+    private readonly List<(Node Node, JsonObject Components, Entity Entity)> _pendingComponents = [];
     private readonly List<string> _warnings = [];
+    private readonly PhysicsShapes? _shapes;
+    private readonly GltfColliders _colliders;
+    private readonly GltfEnvironments _environments;
+    private readonly HashSet<Node> _ownersWithBodies = [];
 
-    private GltfSceneImporter(RenderFeature render, Func<Material?, IMeshMaterial?> resolveMaterial)
+    private GltfSceneImporter(RenderFeature render, Func<Material?, IMeshMaterial?> resolveMaterial, PhysicsShapes? shapes,
+        string? levelDirectory)
     {
         _render = render;
         _resolveMaterial = resolveMaterial;
+        _shapes = shapes;
+        _colliders = new GltfColliders(_warnings);
+        _environments = new GltfEnvironments(render.Environments, levelDirectory, _warnings);
     }
 
     private Rin.World.World World => _render.World;
 
-    public static ImportedScene Load(string path, RenderFeature render, Func<Material?, IMeshMaterial?> resolveMaterial) =>
-        Load(ModelRoot.Load(path), render, resolveMaterial);
-
-    public static ImportedScene Load(ModelRoot model, RenderFeature render,
-        Func<Material?, IMeshMaterial?> resolveMaterial)
+    /// <param name="path">A level folder, or a .glb or .gltf file.</param>
+    /// <param name="shapes">Where compound colliders are registered, usually <see cref="PhysicsFeature.Shapes" />.</param>
+    public static ImportedScene Load(string path, RenderFeature render, Func<Material?, IMeshMaterial?> resolveMaterial,
+        PhysicsShapes? shapes = null)
     {
-        var importer = new GltfSceneImporter(render, resolveMaterial);
+        var file = Directory.Exists(path) ? Path.Combine(path, LevelFileName) : path;
+        return Load(ModelRoot.Load(file), render, resolveMaterial, shapes, Path.GetDirectoryName(Path.GetFullPath(file)));
+    }
+
+    /// <param name="shapes">Where compound colliders are registered, usually <see cref="PhysicsFeature.Shapes" />.</param>
+    /// <param name="levelDirectory">Where files the level names, such as environment maps, are found.</param>
+    public static ImportedScene Load(ModelRoot model, RenderFeature render,
+        Func<Material?, IMeshMaterial?> resolveMaterial, PhysicsShapes? shapes = null, string? levelDirectory = null)
+    {
+        var importer = new GltfSceneImporter(render, resolveMaterial, shapes, levelDirectory);
         if (model.DefaultScene is not { } scene) return new ImportedScene([], null, ["The file has no scene."]);
 
         foreach (var node in scene.VisualChildren) importer.SpawnNode(node, null);
+        importer.AddPendingComponents();
+        importer.WarnAboutCollidersWithoutBodies();
         var startCamera = importer.FindStartCamera(ReadString(scene.Extras, StartCameraKey));
         return new ImportedScene(importer._entities, startCamera, importer._warnings);
     }
@@ -61,16 +86,20 @@ public sealed class GltfSceneImporter
         _entities.Add(entity);
         if (parent is { } parentEntity) World.SetParent(entity, parentEntity);
         World.SetLocalTransform(entity, LocalTransformOf(node));
+        if (node.Name is { } name) _entitiesByNodeName.TryAdd(name, entity);
+        if ((node.Extras as JsonObject)?[ComponentsKey] is JsonObject components)
+            _pendingComponents.Add((node, components, entity));
 
         if (node.Mesh is { } mesh) AddMesh(entity, node, mesh);
-        if (node.PunctualLight is not null || node.Camera is not null)
-        {
-            var viewer = ViewerEntity(entity, node);
-            if (node.PunctualLight is { } light) AddLight(viewer, node, light);
-            if (node.Camera is { } camera) AddCamera(viewer, node, camera);
-        }
+        if (node.Camera is { } camera) AddCamera(ViewerEntity(entity, node), node, camera);
+        if (node.PunctualLight is not null)
+            _warnings.Add($"Node '{node.Name}' has a glTF light, which is not imported. Give it a light component instead.");
 
-        foreach (var child in node.VisualChildren) SpawnNode(child, entity);
+        foreach (var child in node.VisualChildren)
+        {
+            if (GltfColliders.IsColliderNode(child)) _colliders.Collect(node, child);
+            else SpawnNode(child, entity);
+        }
     }
 
     private static LocalTransform LocalTransformOf(Node node)
@@ -79,8 +108,8 @@ public sealed class GltfSceneImporter
         return new LocalTransform { Position = position, Rotation = rotation, Scale = scale };
     }
 
-    // glTF cameras and lights look down -Z, so they get a half turn to look down Rin's forward. It goes on the node's
-    // own entity unless that would also turn its mesh or children.
+    // glTF cameras look down -Z, so they get a half turn to look down Rin's forward. It goes on the node's own entity
+    // unless that would also turn its mesh or children.
     private Entity ViewerEntity(Entity entity, Node node)
     {
         if (node.Mesh is null && !node.VisualChildren.Any())
@@ -137,24 +166,6 @@ public sealed class GltfSceneImporter
         return resolved;
     }
 
-    private void AddLight(Entity entity, Node node, PunctualLight light)
-    {
-        var color = Color.FromRgb(light.Color.X, light.Color.Y, light.Color.Z);
-        switch (light.LightType)
-        {
-            case PunctualLightType.Directional:
-                World.Add(entity, new DirectionalLight { Color = color, Lux = ReadFloat(node.Extras, LuxKey) ?? light.Intensity });
-                return;
-            case PunctualLightType.Spot:
-                _warnings.Add($"Spot light '{node.Name}' is imported as a point light.");
-                break;
-        }
-
-        var lumens = ReadFloat(node.Extras, LumensKey) ?? light.Intensity * 4f * MathF.PI;
-        var range = light.Range > 0f && float.IsFinite(light.Range) ? light.Range : 0f;
-        World.Add(entity, new PointLight { Color = color, Lumens = lumens, Radius = range });
-    }
-
     private void AddCamera(Entity entity, Node node, GltfCamera camera)
     {
         if (camera.Settings is not CameraPerspective perspective)
@@ -174,6 +185,71 @@ public sealed class GltfSceneImporter
         _cameras.Add((node.Name, entity));
     }
 
+    // Runs once every node exists, so Entity fields can name nodes anywhere in the scene.
+    private void AddPendingComponents()
+    {
+        foreach (var (node, components, entity) in _pendingComponents)
+        foreach (var (name, fields) in components)
+            AddComponent(node, entity, name, fields);
+    }
+
+    private void AddComponent(Node node, Entity entity, string name, JsonNode? fields)
+    {
+        if (!World.Schema.TryGetId(name, out var id) || !ComponentJson.IsEditable(World.Schema[id]))
+        {
+            _warnings.Add($"Node '{node.Name}' has unknown component '{name}'.");
+            return;
+        }
+
+        if (fields is not JsonObject values)
+        {
+            _warnings.Add($"Component '{name}' on node '{node.Name}' is not an object.");
+            return;
+        }
+
+        var info = World.Schema[id];
+        var component = info.DefaultValue.ToArray();
+        try
+        {
+            ComponentJson.ReadFields(info, values, component, FindEntity);
+        }
+        catch (InvalidDataException e)
+        {
+            _warnings.Add($"Component '{name}' on node '{node.Name}' was skipped: {e.Message}");
+            return;
+        }
+
+        if (!TryResolveProcessLocalFields(node, info, values, component)) return;
+        World.Add(entity, id, component);
+    }
+
+    // Fields that only mean something in this process are not in the saved fields, so they are found here: a body's
+    // shape from its collider nodes, an environment light's map from the file its Map names.
+    private bool TryResolveProcessLocalFields(Node node, ComponentInfo info, JsonObject values, byte[] component)
+    {
+        if (info.Type == typeof(RigidBody))
+        {
+            _ownersWithBodies.Add(node);
+            if (_colliders.ShapeOf(node, _shapes) is { } shape) MemoryMarshal.AsRef<RigidBody>(component.AsSpan()).Shape = shape;
+            return true;
+        }
+
+        if (info.Type != typeof(EnvironmentLight)) return true;
+        if (_environments.Load(node.Name ?? "", ReadString(values, MapField)) is not { } map) return false;
+        MemoryMarshal.AsRef<EnvironmentLight>(component.AsSpan()).Map = map;
+        return true;
+    }
+
+    private void WarnAboutCollidersWithoutBodies()
+    {
+        foreach (var owner in _colliders.Owners)
+            if (!_ownersWithBodies.Contains(owner))
+                _warnings.Add($"Node '{owner.Name}' has colliders but no RigidBody, so they are ignored.");
+    }
+
+    private Entity? FindEntity(string nodeName) =>
+        _entitiesByNodeName.TryGetValue(nodeName, out var entity) ? entity : null;
+
     private Entity? FindStartCamera(string? name)
     {
         if (_cameras.Count == 0) return null;
@@ -186,13 +262,6 @@ public sealed class GltfSceneImporter
         _warnings.Add($"Start camera '{name}' was not found, so the first camera is used.");
         return _cameras[0].Entity;
     }
-
-    // Parsed from text so a value built in code as an int reads the same as one loaded from a file.
-    private static float? ReadFloat(JsonNode? extras, string key) =>
-        (extras as JsonObject)?[key] is JsonValue { } value && value.GetValueKind() == JsonValueKind.Number &&
-        float.TryParse(value.ToJsonString(), NumberStyles.Float, CultureInfo.InvariantCulture, out var number)
-            ? number
-            : null;
 
     private static string? ReadString(JsonNode? extras, string key) =>
         (extras as JsonObject)?[key] is JsonValue value && value.TryGetValue(out string? text) ? text : null;
