@@ -103,6 +103,13 @@ public class BepuPhysicsSystem : IPhysicsSystem
         return Register(body);
     }
 
+    public PhysicsBodyHandle CreateCompound(ReadOnlySpan<ShapePart> parts, in Transform transform, PhysicsState state)
+    {
+        var body = new BepuCompoundBody(state, transform, this, parts);
+        body.Init();
+        return Register(body);
+    }
+
     public void DestroyBody(PhysicsBodyHandle handle)
     {
         var index = handle.Index;

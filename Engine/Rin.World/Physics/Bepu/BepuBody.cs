@@ -31,8 +31,25 @@ internal abstract class BepuBody
     public void Dispose()
     {
         RemoveFromSimulation();
+        DisposeShape();
+    }
+
+    protected virtual void DisposeShape()
+    {
         System.Simulation.Shapes.RemoveAndDispose(GetShapeIndex(), System.Simulation.BufferPool);
     }
+
+    /// <summary>
+    ///     Where Bepu's body origin sits relative to the entity's origin, in body space. Bepu centres a dynamic compound
+    ///     on its centre of mass, so its pose is offset from the entity's.
+    /// </summary>
+    protected virtual Vector3 LocalCenter => Vector3.Zero;
+
+    private Vector3 ToBepuPosition(in Vector3 position, in Quaternion orientation) =>
+        position + Vector3.Transform(LocalCenter, orientation);
+
+    private Vector3 FromBepuPosition(in RigidPose pose) =>
+        pose.Position - Vector3.Transform(LocalCenter, pose.Orientation);
 
     private void RemoveFromSimulation()
     {
@@ -88,8 +105,8 @@ internal abstract class BepuBody
 
         return _position = GetState() switch
         {
-            PhysicsState.Static => GetStaticReference().Pose.Position,
-            PhysicsState.Controlled or PhysicsState.Simulated => GetBodyReference().Pose.Position,
+            PhysicsState.Static => FromBepuPosition(GetStaticReference().Pose),
+            PhysicsState.Controlled or PhysicsState.Simulated => FromBepuPosition(GetBodyReference().Pose),
             _ => throw new ArgumentOutOfRangeException()
         };
     }
@@ -161,14 +178,14 @@ internal abstract class BepuBody
             case PhysicsState.Static:
             {
                 var reference = GetStaticReference();
-                reference.Pose.Position = position;
+                reference.Pose.Position = ToBepuPosition(position, reference.Pose.Orientation);
                 reference.UpdateBounds();
                 break;
             }
             case PhysicsState.Controlled or PhysicsState.Simulated:
             {
                 var reference = GetBodyReference();
-                reference.Pose.Position = position;
+                reference.Pose.Position = ToBepuPosition(position, reference.Pose.Orientation);
                 reference.Awake = true;
                 break;
             }
@@ -179,6 +196,7 @@ internal abstract class BepuBody
 
     public void SetOrientation(in Quaternion orientation)
     {
+        var position = GetPosition();
         _orientation = orientation;
         switch (GetState())
         {
@@ -186,6 +204,7 @@ internal abstract class BepuBody
             {
                 var reference = GetStaticReference();
                 reference.Pose.Orientation = orientation;
+                reference.Pose.Position = ToBepuPosition(position, orientation);
                 reference.UpdateBounds();
                 break;
             }
@@ -193,6 +212,7 @@ internal abstract class BepuBody
             {
                 var reference = GetBodyReference();
                 reference.Pose.Orientation = orientation;
+                reference.Pose.Position = ToBepuPosition(position, orientation);
                 reference.Awake = true;
                 break;
             }
@@ -271,7 +291,7 @@ internal abstract class BepuBody
     protected BodyDescription CreateBodyDescription()
     {
         var state = GetState();
-        var pose = new RigidPose(GetPosition(), GetOrientation());
+        var pose = new RigidPose(ToBepuPosition(GetPosition(), GetOrientation()), GetOrientation());
         var collidable = new CollidableDescription(GetShapeIndex(),
             ContinuousCollision ? ContinuousDetection.Continuous() : ContinuousDetection.Discrete);
         var bodyActivityDescription = new BodyActivityDescription(0.01f);
@@ -289,7 +309,7 @@ internal abstract class BepuBody
     {
         return new StaticDescription
         {
-            Pose = new RigidPose(GetPosition(), GetOrientation()),
+            Pose = new RigidPose(ToBepuPosition(GetPosition(), GetOrientation()), GetOrientation()),
             Shape = GetShapeIndex(),
             Continuity = ContinuousDetection.Discrete
         };

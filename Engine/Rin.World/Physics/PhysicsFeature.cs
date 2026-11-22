@@ -42,6 +42,11 @@ public sealed class PhysicsFeature : IWorldRestoreListener
     public IPhysicsSystem PhysicsSystem { get; }
 
     /// <summary>
+    ///     The parts of every <see cref="ColliderShapeKind.Compound" /> collider.
+    /// </summary>
+    public PhysicsShapes Shapes { get; } = new();
+
+    /// <summary>
     ///     The contacts of the last physics step. Written at the end of a tick's physics phase and kept until the next
     ///     one, so the next tick's gameplay sees them. An entity in a contact may have been despawned since.
     /// </summary>
@@ -103,6 +108,7 @@ public sealed class PhysicsFeature : IWorldRestoreListener
             ColliderShapeKind.Box => PhysicsSystem.CreateBox(desc.Shape.Size, pose, desc.State),
             ColliderShapeKind.Sphere => PhysicsSystem.CreateSphere(desc.Shape.Radius, pose, desc.State),
             ColliderShapeKind.Capsule => PhysicsSystem.CreateCapsule(desc.Shape.Radius, desc.Shape.HalfHeight, pose, desc.State),
+            ColliderShapeKind.Compound => PhysicsSystem.CreateCompound(Shapes.PartsOf(desc.Shape.Compound), pose, desc.State),
             _ => throw new ArgumentOutOfRangeException(nameof(desc), desc.Shape.Kind, "Unknown collider shape.")
         };
 

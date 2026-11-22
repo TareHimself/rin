@@ -265,6 +265,7 @@ internal sealed class FakePhysicsSystem : IPhysicsSystem
         public float SphereRadius;
         public float CapsuleRadius;
         public float CapsuleHalfHeight;
+        public ShapePart[] CompoundParts = [];
         public int CollisionChannel;
         public bool IsTrigger;
     }
@@ -310,6 +311,14 @@ internal sealed class FakePhysicsSystem : IPhysicsSystem
 
     public PhysicsBodyHandle CreateConvexHull(ReadOnlySpan<Vector3> points, in Transform transform, PhysicsState state) =>
         Create(transform, state, _ => { });
+
+    public PhysicsBodyHandle CreateCompound(ReadOnlySpan<ShapePart> parts, in Transform transform, PhysicsState state)
+    {
+        var copy = parts.ToArray();
+        return Create(transform, state, body => body.CompoundParts = copy);
+    }
+
+    public ShapePart[] GetCompoundParts(PhysicsBodyHandle handle) => _bodies[handle].CompoundParts;
 
     private PhysicsBodyHandle Create(in Transform transform, PhysicsState state, Action<Body> configure)
     {

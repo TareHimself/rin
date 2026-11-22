@@ -157,7 +157,7 @@ return new SurfaceMaterial<PbrMaterial>(new PbrMaterial
 | `Controlled` | Follows the entity's transform every tick |
 | `Simulated` | Bepu moves it and writes the pose back to `LocalTransform` |
 
-`RigidBody` is read once, so remove and re-add it to change the shape. `PhysicsFeature.Contacts` holds the last tick's contacts. Casts and overlaps return entities.
+A shape is a box, sphere or capsule, or a compound: register the parts once with `PhysicsFeature.Shapes.AddCompound` and use `ColliderShape.CompoundOf(handle)`, so many bodies can share them. A compound's scale is fixed when its body is made. `RigidBody` is read once, so remove and re-add it to change the shape. `PhysicsFeature.Contacts` holds the last tick's contacts. Casts and overlaps return entities.
 
 ## Determinism and snapshots
 
