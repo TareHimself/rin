@@ -91,18 +91,12 @@ Prefer zero-allocation or low-allocation code, and use pooling where it fits.
 
 ## Design principle exceptions
 
-Rin follows the usual code design principles, with these exceptions where they meet the performance rules and
-the ECS.
+Where the usual code design principles meet the performance rules and the ECS:
 
-- **Command-query separation:** a mutation may report whether it changed anything (`ScrollTo`, `TryX(out ...)`),
-  so callers don't pay for a second query. Hot-path helpers fill a buffer or span the caller passes in rather than
-  returning a new collection.
+- **Command-query separation:** hot-path helpers fill a buffer or span the caller passes in rather than returning
+  a new collection.
 - **Functional core, imperative shell:** ECS systems mutate component columns in place. Keep the per-row decision
   a pure function of the row's data; the system's loop over the columns is the shell.
-- **No implicit state machines:** a single bool is fine for a two-state interaction such as dragging. Use a named
-  state type with one transition function once there are three or more states or a transition needs a guard.
-- **Rule of three:** name a concept as a type or member at its first use, as Maintainability asks, but extract a
-  shared abstraction only at the third.
 
 ## Tooling
 
