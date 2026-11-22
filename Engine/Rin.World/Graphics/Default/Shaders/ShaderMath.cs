@@ -17,7 +17,7 @@ public static class ShaderMath
         var z = transformation.Row(2).XYZ;
 
         var scaleSquared = new Vector3(Shader.Dot(x, x), Shader.Dot(y, y), Shader.Dot(z, z));
-        var scaledNormal = normal / Shader.Sqrt(scaleSquared);
+        var scaledNormal = normal / scaleSquared;
         var transformed = x * scaledNormal.X + y * scaledNormal.Y + z * scaledNormal.Z;
 
         return Shader.Normalize(transformed);

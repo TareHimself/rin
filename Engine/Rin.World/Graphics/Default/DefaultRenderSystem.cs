@@ -32,6 +32,7 @@ public class DefaultRenderSystem : IRenderSystem
 
     private enum CommandKind
     {
+        BeginFrame,
         CreateStaticMesh,
         CreateSkinnedMesh,
         CreateLight,
@@ -55,6 +56,7 @@ public class DefaultRenderSystem : IRenderSystem
         public LightInfo Light;
         public EnvironmentVolume? Environment;
         public SkeletalPose Pose;
+        public bool Ticked;
     }
 
     /// <summary>
@@ -67,6 +69,7 @@ public class DefaultRenderSystem : IRenderSystem
     private readonly Stack<uint> _freeIndices = new();
     private readonly ConcurrentQueue<ProxyCommand> _commands = new();
     private float _interpolationAlpha = 1f;
+    private bool _snapTransforms;
     private float _time;
     private DefaultWorldSnapshot? _scene;
     private readonly Recycler<DefaultWorldSnapshot> _scenes;
@@ -111,6 +114,11 @@ public class DefaultRenderSystem : IRenderSystem
         _commands.Enqueue(new ProxyCommand { Kind = CommandKind.SetEnvironment, Handle = handle, Environment = desc });
     }
 
+    public void BeginFrame(bool ticked)
+    {
+        _commands.Enqueue(new ProxyCommand { Kind = CommandKind.BeginFrame, Ticked = ticked });
+    }
+
     public void UpdateProxyTransform(RenderProxyHandle handle, in Matrix4x4 worldTransform)
     {
         _commands.Enqueue(new ProxyCommand
@@ -145,11 +153,7 @@ public class DefaultRenderSystem : IRenderSystem
     public IWorldCollectedData Snapshot(in CameraView view, in Extent2D extent)
     {
         var changed = false;
-        while (_commands.TryDequeue(out var command))
-        {
-            Apply(command);
-            changed = true;
-        }
+        while (_commands.TryDequeue(out var command)) changed |= Apply(command);
 
         if (changed || _scene is null || _sceneAlpha != _interpolationAlpha)
         {
@@ -223,11 +227,17 @@ public class DefaultRenderSystem : IRenderSystem
         return new RenderProxyHandle(index, version);
     }
 
-    private void Apply(in ProxyCommand command)
+    /// <summary>
+    ///     Returns whether the command changed anything drawn.
+    /// </summary>
+    private bool Apply(in ProxyCommand command)
     {
         var handle = command.Handle;
         switch (command.Kind)
         {
+            case CommandKind.BeginFrame:
+                _snapTransforms = !command.Ticked;
+                return command.Ticked && SettleTransforms();
             case CommandKind.CreateStaticMesh:
                 Set(handle, new ProxyRow(ProxyKind.StaticMesh, command.StaticDesc.Transform)
                     { StaticDesc = command.StaticDesc });
@@ -244,7 +254,7 @@ public class DefaultRenderSystem : IRenderSystem
                     { Environment = command.Environment });
                 break;
             case CommandKind.UpdateTransform:
-                if (TryGet(handle, out var moved)) Set(handle, WithTransform(moved, command.Transform));
+                if (TryGet(handle, out var moved)) Set(handle, WithTransform(moved, command.Transform, _snapTransforms));
                 break;
             case CommandKind.UpdatePose:
                 if (!TryGet(handle, out var posed)) break;
@@ -262,12 +272,30 @@ public class DefaultRenderSystem : IRenderSystem
             default:
                 throw new ArgumentOutOfRangeException(nameof(command), command.Kind, null);
         }
+
+        return true;
     }
 
-    private static ProxyRow WithTransform(ProxyRow row, in Matrix4x4 transform)
+    // A tick starts a new blend window, so a row that stopped moving no longer blends towards its last move.
+    private bool SettleTransforms()
+    {
+        var settled = false;
+        for (var i = 0; i < _slots.Count; i++)
+        {
+            if (_slots[i] is not { } row || row.PreviousTransform == row.Transform) continue;
+
+            _slots[i] = row with { PreviousTransform = row.Transform };
+            settled = true;
+        }
+
+        return settled;
+    }
+
+    private static ProxyRow WithTransform(ProxyRow row, in Matrix4x4 transform, bool snap)
     {
         // Only roll Previous forward on a real change.
-        if (row.Transform != transform) row.PreviousTransform = row.Transform;
+        if (snap) row.PreviousTransform = transform;
+        else if (row.Transform != transform) row.PreviousTransform = row.Transform;
         row.Transform = transform;
         if (row.Kind == ProxyKind.StaticMesh) row.StaticDesc = row.StaticDesc with { Transform = transform };
         if (row.Kind == ProxyKind.SkinnedMesh) row.SkinnedDesc = row.SkinnedDesc with { Transform = transform };

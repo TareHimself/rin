@@ -199,6 +199,7 @@ public class TextInputBoxView : TextBoxView
         base.OnFocusLost();
         ClearPreedit();
         Surface?.StopTyping(this);
+        _scroll = _scroll with { X = 0f };
     }
 
     public override void OnKeyboard(KeyboardSurfaceEvent e)
@@ -366,12 +367,16 @@ public class TextInputBoxView : TextBoxView
     }
 
     /// <summary>
-    ///     Follows the caret when it moves, and otherwise only keeps the scroll inside the text.
+    ///     Follows the caret when it moves while focused, and otherwise only keeps the scroll inside the text.
     /// </summary>
+    /// <remarks>
+    ///     Assigning content from outside puts the caret at the end, so an unfocused field that followed it would show
+    ///     only the tail of a long value.
+    /// </remarks>
     private void UpdateScroll()
     {
         var caret = GetCaretOffset();
-        var caretMoved = caret != _shownCaret;
+        var caretMoved = caret != _shownCaret && IsFocused;
         _shownCaret = caret;
         var view = GetContentSize();
         var text = TextCaretLayout.Size(GetContentBounds());

@@ -79,6 +79,13 @@ internal sealed class EntityTable
 
     public Entity HandleOf(int id) => new(id, _slots[id].Generation);
 
+    public void CollectAlive(List<Entity> entities)
+    {
+        entities.Clear();
+        for (var id = FirstId; id < _nextId; id++)
+            if (_slots[id].State != EntityState.Free) entities.Add(HandleOf(id));
+    }
+
     /// <summary>
     ///     Writes the next id, the free list, then every slot's generation and every slot's state. Locations are not
     ///     saved: the archetypes put them back.

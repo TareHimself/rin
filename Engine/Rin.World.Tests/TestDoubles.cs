@@ -161,6 +161,10 @@ internal sealed class FakeRenderSystem : IRenderSystem
         Destroyed.Add(handle);
     }
 
+    public void BeginFrame(bool ticked)
+    {
+    }
+
     public void SetInterpolationAlpha(float alpha) => LastInterpolationAlpha = alpha;
     public void SetTime(float seconds) => LastTime = seconds;
 
