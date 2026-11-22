@@ -88,7 +88,8 @@ public class PhysicsFeatureRestoreTests : PhysicsFeatureFixture
     {
         var entity = _world.Spawn();
         _world.SetPosition(entity, position);
-        _world.Add(entity, new RigidBody { Shape = ColliderShape.Sphere(0.5f), State = PhysicsState.Simulated });
+        _world.Add(entity, new RigidBody { State = PhysicsState.Simulated });
+        _world.Add(entity, new SphereCollider { Radius = 0.5f });
         return entity;
     }
 }

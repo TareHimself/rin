@@ -12,7 +12,8 @@ public class ContactDispatchTests : PhysicsFeatureFixture
     private Entity SpawnBody()
     {
         var entity = _world.Spawn();
-        _world.Add(entity, new RigidBody { Shape = ColliderShape.Sphere(1f), State = PhysicsState.Simulated });
+        _world.Add(entity, new RigidBody { State = PhysicsState.Simulated });
+        _world.Add(entity, new SphereCollider { Radius = 1f });
         return entity;
     }
 
@@ -105,10 +106,12 @@ public class ContactDispatchTests : PhysicsFeatureFixture
         {
             var feature = new PhysicsFeature(world, physics);
             var floor = world.Spawn();
-            world.Add(floor, new RigidBody { Shape = ColliderShape.Box(new Vector3(10, 1, 10)), State = PhysicsState.Static });
+            world.Add(floor, new RigidBody { State = PhysicsState.Static });
+            world.Add(floor, new BoxCollider { Size = new Vector3(10, 1, 10) });
             var ball = world.Spawn();
             world.SetPosition(ball, new Vector3(0, 2, 0));
-            world.Add(ball, new RigidBody { Shape = ColliderShape.Sphere(0.5f), State = PhysicsState.Simulated });
+            world.Add(ball, new RigidBody { State = PhysicsState.Simulated });
+            world.Add(ball, new SphereCollider { Radius = 0.5f });
 
             var contacts = new List<EntityContact>();
             for (var i = 0; i < 120; i++)

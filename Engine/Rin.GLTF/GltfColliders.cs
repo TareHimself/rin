@@ -1,8 +1,7 @@
 using System.Numerics;
-using System.Runtime.InteropServices;
+using System.Text.Json;
 using System.Text.Json.Nodes;
 using Rin.World;
-using Rin.World.Editing;
 using Rin.World.Physics;
 using SharpGLTF.Schema2;
 
@@ -18,8 +17,6 @@ internal sealed class GltfColliders(List<string> warnings)
     public const string GroupKey = "rin_colliders";
 
     private const float CentredTolerance = 1e-4f;
-
-    private static readonly FieldType ShapeType = ComponentSchema.Engine.FieldTypeOf(typeof(ColliderShape))!;
 
     private readonly Dictionary<Node, List<ShapePart>> _partsByOwner = [];
 
@@ -73,19 +70,42 @@ internal sealed class GltfColliders(List<string> warnings)
         parts.Add(new ShapePart(Scaled(shape, scale), position, rotation));
     }
 
+    // A collider node holds { "Kind": "Box", "Size": [x, y, z] }, { "Kind": "Sphere", "Radius": r } or
+    // { "Kind": "Capsule", "Radius": r, "HalfHeight": h }.
     private static ColliderShape ReadShape(JsonNode json)
     {
-        if (json is not JsonObject shape || !shape.ContainsKey(nameof(ColliderShape.Kind)))
+        if (json is not JsonObject shape || shape[nameof(ColliderShape.Kind)]?.GetValue<string>() is not { } kind)
             throw new InvalidDataException($"Expected a collider with a Kind, got {json.ToJsonString()}.");
 
-        Span<byte> bytes = stackalloc byte[ShapeType.Size];
-        bytes.Clear();
-        ComponentJson.ReadStruct(ShapeType, shape, bytes, static _ => null);
-        var read = MemoryMarshal.Read<ColliderShape>(bytes);
-        return read.Kind == ColliderShapeKind.Compound
-            ? throw new InvalidDataException("A collider node cannot be a compound; nest collider nodes instead.")
-            : read;
+        try
+        {
+            return kind switch
+            {
+                nameof(ColliderShapeKind.Box) => ColliderShape.Box(ReadVector(shape, nameof(ColliderShape.Size))),
+                nameof(ColliderShapeKind.Sphere) => ColliderShape.Sphere(ReadFloat(shape, nameof(ColliderShape.Radius))),
+                nameof(ColliderShapeKind.Capsule) => ColliderShape.Capsule(ReadFloat(shape, nameof(ColliderShape.Radius)),
+                    ReadFloat(shape, nameof(ColliderShape.HalfHeight))),
+                nameof(ColliderShapeKind.Compound) =>
+                    throw new InvalidDataException("A collider node cannot be a compound; nest collider nodes instead."),
+                _ => throw new InvalidDataException($"Unknown collider kind '{kind}'.")
+            };
+        }
+        catch (Exception e) when (e is InvalidOperationException or FormatException or JsonException)
+        {
+            throw new InvalidDataException($"The {kind} collider {json.ToJsonString()} is malformed: {e.Message}");
+        }
     }
+
+    private static float ReadFloat(JsonObject shape, string name) =>
+        shape[name] is { } value ? Number(value) : throw new InvalidDataException($"The collider has no {name}.");
+
+    private static Vector3 ReadVector(JsonObject shape, string name) =>
+        shape[name] is JsonArray { Count: 3 } xyz
+            ? new Vector3(Number(xyz[0]), Number(xyz[1]), Number(xyz[2]))
+            : throw new InvalidDataException($"The collider's {name} must be three numbers.");
+
+    // Deserializing accepts integers and decimals alike, where GetValue<float> refuses an integer node.
+    private static float Number(JsonNode? node) => node.Deserialize<float>();
 
     private static ColliderShape Scaled(in ColliderShape shape, Vector3 scale) => shape.Kind switch
     {

@@ -212,42 +212,47 @@
       }
     },
     {
+      "name": "Rin.World.Physics.BoxCollider",
+      "displayName": "BoxCollider",
+      "fields": [
+        {
+          "name": "Size",
+          "type": "vector3",
+          "typeName": "System.Numerics.Vector3"
+        }
+      ],
+      "defaults": {
+        "Size": [
+          1,
+          1,
+          1
+        ]
+      }
+    },
+    {
+      "name": "Rin.World.Physics.CapsuleCollider",
+      "displayName": "CapsuleCollider",
+      "fields": [
+        {
+          "name": "Radius",
+          "type": "float",
+          "typeName": "System.Single"
+        },
+        {
+          "name": "HalfHeight",
+          "type": "float",
+          "typeName": "System.Single"
+        }
+      ],
+      "defaults": {
+        "Radius": 0.5,
+        "HalfHeight": 0.5
+      }
+    },
+    {
       "name": "Rin.World.Physics.RigidBody",
       "displayName": "RigidBody",
       "fields": [
-        {
-          "name": "Shape",
-          "type": "struct",
-          "typeName": "Rin.World.Physics.ColliderShape",
-          "fields": [
-            {
-              "name": "Kind",
-              "type": "enum",
-              "typeName": "Rin.World.Physics.ColliderShapeKind",
-              "enumNames": [
-                "Box",
-                "Sphere",
-                "Capsule",
-                "Compound"
-              ]
-            },
-            {
-              "name": "Size",
-              "type": "vector3",
-              "typeName": "System.Numerics.Vector3"
-            },
-            {
-              "name": "Radius",
-              "type": "float",
-              "typeName": "System.Single"
-            },
-            {
-              "name": "HalfHeight",
-              "type": "float",
-              "typeName": "System.Single"
-            }
-          ]
-        },
         {
           "name": "State",
           "type": "enum",
@@ -275,20 +280,24 @@
         }
       ],
       "defaults": {
-        "Shape": {
-          "Kind": "Box",
-          "Size": [
-            0,
-            0,
-            0
-          ],
-          "Radius": 0,
-          "HalfHeight": 0
-        },
         "State": "Static",
         "Mass": 1,
         "IsTrigger": false,
         "CollisionChannel": 0
+      }
+    },
+    {
+      "name": "Rin.World.Physics.SphereCollider",
+      "displayName": "SphereCollider",
+      "fields": [
+        {
+          "name": "Radius",
+          "type": "float",
+          "typeName": "System.Single"
+        }
+      ],
+      "defaults": {
+        "Radius": 0.5
       }
     },
     {

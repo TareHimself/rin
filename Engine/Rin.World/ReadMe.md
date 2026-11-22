@@ -151,7 +151,7 @@ return new SurfaceMaterial<PbrMaterial>(new PbrMaterial
 
 ## Physics
 
-`new PhysicsFeature(world, physicsSystem)`, then add a `RigidBody` (shape, `PhysicsState`, mass, trigger) and optionally `Velocity`.
+`new PhysicsFeature(world, physicsSystem)`, then add a `RigidBody` (`PhysicsState`, mass, trigger), one collider component (`BoxCollider`, `SphereCollider`, `CapsuleCollider` or `CompoundCollider`) and optionally `Velocity`. The body is built once the entity has both a `RigidBody` and a collider, in either order; two colliders on one entity throw.
 
 | `PhysicsState` | Behaviour |
 | --- | --- |
@@ -159,7 +159,7 @@ return new SurfaceMaterial<PbrMaterial>(new PbrMaterial
 | `Controlled` | Follows the entity's transform every tick |
 | `Simulated` | Bepu moves it and writes the pose back to `LocalTransform` |
 
-A shape is a box, sphere or capsule, or a compound: register the parts once with `PhysicsFeature.Shapes.AddCompound` and use `ColliderShape.CompoundOf(handle)`, so many bodies can share them. A compound's scale is fixed when its body is made. `RigidBody` is read once, so remove and re-add it to change the shape. `PhysicsFeature.Contacts` holds the last tick's contacts. Casts and overlaps return entities.
+For a compound, register the parts once with `PhysicsFeature.Shapes.AddCompound` and put the handle in a `CompoundCollider`, so many bodies can share them. A compound's scale is fixed when its body is made. The body and collider are read once, so remove and re-add one to change the shape or state. `Colliders.Set` swaps an entity's collider for any `ColliderShape`. `PhysicsFeature.Contacts` holds the last tick's contacts. Casts and overlaps return entities.
 
 ## Determinism and snapshots
 

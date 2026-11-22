@@ -4,8 +4,9 @@ using Rin.World.Transforms;
 namespace Rin.World.Physics;
 
 /// <summary>
-///     A physics body for the entity. <see cref="PhysicsFeature" /> reads it once, when it is added: overwriting it does
-///     not rebuild the body, so remove it and add it again to change the shape or state.
+///     A physics body for the entity, shaped by its collider component (<see cref="BoxCollider" /> and the others).
+///     <see cref="PhysicsFeature" /> builds the body once the entity has both, and reads them only then: overwriting
+///     either does not rebuild the body, so remove and add it again to change the shape or state.
 /// </summary>
 /// <remarks>
 ///     <see cref="PhysicsState.Static" /> bodies are placed once, <see cref="PhysicsState.Controlled" /> bodies follow the
@@ -15,7 +16,6 @@ namespace Rin.World.Physics;
 [EcsRequires<LocalTransform>]
 public struct RigidBody() : IComponentData
 {
-    public ColliderShape Shape;
     public PhysicsState State;
     public float Mass = 1f;
 

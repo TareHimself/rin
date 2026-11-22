@@ -7,7 +7,7 @@ Imports glTF and glb files into Rin: `GltfMeshImporter` loads static and skinned
 | Extra | On | Meaning |
 | --- | --- | --- |
 | `rin_components` | any node | Object of [components](../Rin.World/ReadMe.md#editor-components) to add, keyed by full type name, each holding its editable fields. The world's schema must hold them, so compose it with the game's component module. `Entity` fields name a node. Unknown or malformed components are skipped with a warning |
-| `rin_collider` | collider node | A box, sphere or capsule in the node's own frame. Collider nodes, and groups of them marked `rin_colliders`, spawn no entities: they become the shape of the nearest node above them with a `RigidBody`, inline when there is one centred collider, otherwise a compound registered with the `PhysicsShapes` passed to `Load` |
+| `rin_collider` | collider node | A box, sphere or capsule in the node's own frame. Collider nodes, and groups of them marked `rin_colliders`, spawn no entities: they become the collider component of the nearest node above them with a `RigidBody`, replacing any collider its own components gave it: a box, sphere or capsule collider when there is one centred collider, otherwise a `CompoundCollider` registered with the `PhysicsShapes` passed to `Load` |
 | `rin_components` `Map` | an `EnvironmentLight` | A `.hdr` path relative to the level's folder, loaded once per file into `RenderFeature.Environments`. A missing or unreadable map skips the light with a warning |
 | `rin_start_camera` | scene | Name of the camera node returned as `StartCamera`, instead of the first camera |
 

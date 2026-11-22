@@ -24,11 +24,15 @@ export_sources = []
 # Components whose panel another module draws, so no generic panel is made for them.
 custom_panels = set()
 
-# Components Blender already authors as an object's transform, camera and parent, so they get no panel.
+# Components Blender already authors as an object's transform, camera and parent, or as collider objects, so they get
+# no panel.
 NATIVE_COMPONENTS = {
     "Rin.World.Transforms.LocalTransform",
     "Rin.World.Transforms.AttachSocket",
     "Rin.World.Graphics.Camera",
+    "Rin.World.Physics.BoxCollider",
+    "Rin.World.Physics.SphereCollider",
+    "Rin.World.Physics.CapsuleCollider",
 }
 
 COLOR_TYPE = "Rin.Core.Views.Color"

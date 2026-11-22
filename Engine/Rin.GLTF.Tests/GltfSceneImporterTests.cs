@@ -34,6 +34,7 @@ public class GltfSceneImporterTests
     private static string EditorSchemaPath => Path.Combine(AppContext.BaseDirectory, "Assets", "editor.schema.json");
 
     private const string RigidBodyName = "Rin.World.Physics.RigidBody";
+    private const string BoxColliderName = "Rin.World.Physics.BoxCollider";
     private const string EnvironmentLightName = "Rin.World.Graphics.ImageBasedLighting.EnvironmentLight";
 
     private Rin.World.World _world = null!;
@@ -206,12 +207,13 @@ public class GltfSceneImporterTests
         var meshes = imported.Entities.Where(_world.Has<StaticMesh>).ToArray();
         var (cube, twin, tower) = (_world.Get<RigidBody>(meshes[0]), _world.Get<RigidBody>(meshes[1]),
             _world.Get<RigidBody>(meshes[2]));
-        Assert.That((cube.Shape, cube.State, cube.Mass), Is.EqualTo((ColliderShape.Box(new Vector3(2f)), PhysicsState.Simulated, 2f)));
-        Assert.That((twin.Shape, twin.State, twin.IsTrigger, twin.CollisionChannel),
+        Assert.That((ShapeOf(meshes[0]), cube.State, cube.Mass), Is.EqualTo((ColliderShape.Box(new Vector3(2f)), PhysicsState.Simulated, 2f)));
+        Assert.That((ShapeOf(meshes[1]), twin.State, twin.IsTrigger, twin.CollisionChannel),
             Is.EqualTo((ColliderShape.Sphere(1f), PhysicsState.Controlled, true, 3)));
-        Assert.That((tower.Shape.Kind, tower.State), Is.EqualTo((ColliderShapeKind.Capsule, PhysicsState.Static)));
-        Assert.That(tower.Shape.Radius, Is.EqualTo(0.5f).Within(Tolerance));
-        Assert.That(tower.Shape.HalfHeight, Is.EqualTo(1f).Within(Tolerance), "a 3 m capsule minus its two caps");
+        var capsule = _world.Get<CapsuleCollider>(meshes[2]);
+        Assert.That(tower.State, Is.EqualTo(PhysicsState.Static));
+        Assert.That(capsule.Radius, Is.EqualTo(0.5f).Within(Tolerance));
+        Assert.That(capsule.HalfHeight, Is.EqualTo(1f).Within(Tolerance), "a 3 m capsule minus its two caps");
     }
 
     [Test]
@@ -220,12 +222,11 @@ public class GltfSceneImporterTests
         var imported = LoadBlenderLevel();
 
         var meshes = imported.Entities.Where(_world.Has<StaticMesh>).ToArray();
-        var (wardrobe, workbench) = (_world.Get<RigidBody>(meshes[3]), _world.Get<RigidBody>(meshes[4]));
         Assert.That(meshes, Has.Length.EqualTo(5), "collider nodes spawn no entities");
-        Assert.That(Vector3.Distance(wardrobe.Shape.Size, new Vector3(1f, 0.5f, 2f)), Is.LessThan(Tolerance),
-            "one centred box stays an inline box, with Blender's Z as Rin's Y");
+        Assert.That(Vector3.Distance(_world.Get<BoxCollider>(meshes[3]).Size, new Vector3(1f, 0.5f, 2f)), Is.LessThan(Tolerance),
+            "one centred box stays a box collider, with Blender's Z as Rin's Y");
 
-        var parts = _shapes.PartsOf(workbench.Shape.Compound).ToArray();
+        var parts = _shapes.PartsOf(_world.Get<CompoundCollider>(meshes[4]).Parts).ToArray();
         Assert.That(parts, Has.Length.EqualTo(5));
         Assert.That(parts.Any(p => Near(p.Position, new Vector3(0f, 0.9f, 0f)) && Near(p.Shape.Size, new Vector3(1.2f, 0.1f, 0.8f))),
             Is.True, "the top");
@@ -241,7 +242,7 @@ public class GltfSceneImporterTests
         var imported = Import();
 
         Assert.That(imported.Entities, Has.Count.EqualTo(1));
-        var parts = _shapes.PartsOf(_world.Get<RigidBody>(imported.Entities[0]).Shape.Compound).ToArray();
+        var parts = _shapes.PartsOf(_world.Get<CompoundCollider>(imported.Entities[0]).Parts).ToArray();
         Assert.That(parts.Select(p => p.Position.X).Order(), Is.EqualTo(new[] { -2f, 2f }));
     }
 
@@ -252,7 +253,7 @@ public class GltfSceneImporterTests
 
         var imported = Import();
 
-        Assert.That(_world.Get<RigidBody>(imported.Entities[0]).Shape, Is.EqualTo(ColliderShape.Box(Vector3.One)));
+        Assert.That(ShapeOf(imported.Entities[0]), Is.EqualTo(ColliderShape.Box(Vector3.One)));
     }
 
     [Test]
@@ -274,8 +275,8 @@ public class GltfSceneImporterTests
 
         var imported = GltfSceneImporter.Load(_model, _render, _ => null);
 
-        Assert.That(_world.Get<RigidBody>(imported.Entities[0]).Shape.Kind, Is.EqualTo(ColliderShapeKind.Box),
-            "falls back to the exported shape");
+        Assert.That(ShapeOf(imported.Entities[0]), Is.EqualTo(ColliderShape.Box(new Vector3(4f))),
+            "keeps the exported box");
         Assert.That(imported.Warnings, Has.One.Contains("PhysicsShapes"));
     }
 
@@ -373,6 +374,9 @@ public class GltfSceneImporterTests
 
     private ImportedScene LoadBlenderLevel() => GltfSceneImporter.Load(BlenderLevelPath, _render, _ => null, _shapes);
 
+    private ColliderShape ShapeOf(Entity entity) =>
+        Colliders.TryGetShape(_world, entity, out var shape) ? shape : throw new AssertionException("no collider");
+
     private Node AddBodyWithColliders(params Vector3[] colliderPositions)
     {
         var body = _scene.CreateNode("Body");
@@ -380,7 +384,8 @@ public class GltfSceneImporterTests
         {
             [GltfSceneImporter.ComponentsKey] = new JsonObject
             {
-                [RigidBodyName] = new JsonObject { ["Shape"] = new JsonObject { ["Kind"] = "Box", ["Size"] = new JsonArray(4, 4, 4) } }
+                [RigidBodyName] = new JsonObject(),
+                [BoxColliderName] = new JsonObject { ["Size"] = new JsonArray(4, 4, 4) }
             }
         };
         var group = body.CreateNode("Colliders");

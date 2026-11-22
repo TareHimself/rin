@@ -452,6 +452,23 @@ internal struct Follow : IComponentData
     public Entity Target;
 }
 
+internal enum TetherMode
+{
+    Loose,
+    Taut
+}
+
+internal struct TetherEnd
+{
+    public TetherMode Mode;
+    public float Length;
+}
+
+internal struct Tether : IComponentData
+{
+    public TetherEnd End;
+}
+
 internal static class TestCameras
 {
     public static CameraView Identity => new(Matrix4x4.Identity, 90f, 0.01f, 50f);

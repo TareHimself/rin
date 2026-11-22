@@ -50,7 +50,8 @@ public class RenderExtractTests : RenderFeatureFixture
         _ = new PhysicsFeature(_world, physics);
         var body = _world.Spawn();
         _world.SetPosition(body, Vector3.Zero);
-        _world.Add(body, new RigidBody { Shape = ColliderShape.Box(Vector3.One), State = PhysicsState.Simulated });
+        _world.Add(body, new RigidBody { State = PhysicsState.Simulated });
+        _world.Add(body, new BoxCollider { Size = Vector3.One });
         var child = SpawnMesh(Vector3.Zero);
         _world.SetParent(child, body);
         _world.Update(0f);

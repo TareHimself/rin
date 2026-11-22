@@ -29,7 +29,8 @@ public class PhysicsDeterminismTests
             _ = new PhysicsFeature(world, physics);
             var floor = world.Spawn();
             world.SetPosition(floor, Vector3.Zero);
-            world.Add(floor, new RigidBody { Shape = ColliderShape.Box(new Vector3(40, 1, 40)), State = PhysicsState.Static });
+            world.Add(floor, new RigidBody { State = PhysicsState.Static });
+            world.Add(floor, new BoxCollider { Size = new Vector3(40, 1, 40) });
 
             var boxes = new Entity[BoxCount];
             for (var i = 0; i < BoxCount; i++)
@@ -37,7 +38,8 @@ public class PhysicsDeterminismTests
                 boxes[i] = world.Spawn();
                 world.SetPosition(boxes[i], new Vector3(i % 3 * 0.7f, 20f + i * 1.5f, i % 4 * 0.6f));
                 world.SetRotation(boxes[i], Quaternion.CreateFromAxisAngle(Vector3.UnitX, i * 0.3f));
-                world.Add(boxes[i], new RigidBody { Shape = ColliderShape.Box(Vector3.One), State = PhysicsState.Simulated });
+                world.Add(boxes[i], new RigidBody { State = PhysicsState.Simulated });
+                world.Add(boxes[i], new BoxCollider { Size = Vector3.One });
             }
 
             for (var tick = 0; tick < Ticks; tick++) world.Update(world.TickInterval);

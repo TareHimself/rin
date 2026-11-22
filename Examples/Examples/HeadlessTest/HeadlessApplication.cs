@@ -47,7 +47,8 @@ public sealed class HeadlessApplication : Application
 
         var sphere = _world.Spawn();
         _world.SetPosition(sphere, new Vector3(0, 50, 0));
-        _world.Add(sphere, new RigidBody { Shape = ColliderShape.Sphere(0.5f), State = PhysicsState.Simulated });
+        _world.Add(sphere, new RigidBody { State = PhysicsState.Simulated });
+        _world.Add(sphere, new SphereCollider { Radius = 0.5f });
         _sphere = _world.Get<PhysicsBody>(sphere).Handle;
         _physics.PhysicsSystem.SetTimeScale(_sphere, 0.5f); // relative to World.TimeScale => 5x real-time
 

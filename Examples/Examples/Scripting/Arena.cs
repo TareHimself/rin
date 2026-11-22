@@ -74,7 +74,8 @@ public sealed class Arena
         // Added before the body, which reads it once when it is created.
         if (velocity != Vector3.Zero) World.Add(cube, new Velocity { Linear = velocity });
         // The physics system multiplies the box by the entity scale, which is half the size.
-        World.Add(cube, new RigidBody { Shape = ColliderShape.Box(new Vector3(2f)), State = state });
+        World.Add(cube, new RigidBody { State = state });
+        World.Add(cube, new BoxCollider { Size = new Vector3(2f) });
         return cube;
     }
 
