@@ -20,6 +20,7 @@
 
     <ItemGroup>
         <ProjectReference Include="..\Examples\Examples.csproj"/>
+        <ProjectReference Include="$(EngineDir)Rin.SourceGenerators\Rin.SourceGenerators.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
     </ItemGroup>
 
 </Project>

@@ -138,6 +138,17 @@ public class GltfSceneImporterTests
     }
 
     [Test]
+    public void EachNamedNodesEntityIsListedWithItsNodeName()
+    {
+        _scene.CreateNode("Lamp");
+        _scene.CreateNode();
+
+        var imported = Import();
+
+        Assert.That(imported.Names, Is.EquivalentTo(new Dictionary<Entity, string> { [imported.Entities[0]] = "Lamp" }));
+    }
+
+    [Test]
     public void TheStartCameraIsTheOneTheSceneNamesOrElseTheFirst()
     {
         AddCamera("First");

@@ -17,9 +17,11 @@ public class TestViewport : Viewport
     private readonly Entity _camera;
     private readonly float _speed;
 
-    private float _forwardAxis;
+    private bool _forwardHeld;
+    private bool _backHeld;
+    private bool _rightHeld;
+    private bool _leftHeld;
     private float _pitch;
-    private float _rightAxis;
     private float _yaw;
 
     // Pass the camera's starting pitch and yaw in degrees so the first mouse drag continues from them.
@@ -49,31 +51,40 @@ public class TestViewport : Viewport
         // The camera is a root entity, so its local transform is its world transform.
         ref var transform = ref _world.Write<LocalTransform>(_camera);
         var position = transform.Position;
-        position += transform.Rotation.GetForward() * _forwardAxis * deltaTime * _speed;
-        position += transform.Rotation.GetRight() * _rightAxis * deltaTime * _speed;
+        position += transform.Rotation.GetForward() * Axis(_forwardHeld, _backHeld) * deltaTime * _speed;
+        position += transform.Rotation.GetRight() * Axis(_rightHeld, _leftHeld) * deltaTime * _speed;
         transform.Position = position;
     }
+
+    private static float Axis(bool positive, bool negative) => (positive ? 1f : 0f) - (negative ? 1f : 0f);
 
     public override void OnKeyboard(KeyboardSurfaceEvent e)
     {
         base.OnKeyboard(e);
         if (e is not { State: InputState.Pressed or InputState.Released }) return;
 
-        var sign = e.State == InputState.Pressed ? 1f : -1f;
+        var isHeld = e.State == InputState.Pressed;
         switch (e.Key)
         {
             case InputKey.W:
-                _forwardAxis += sign;
+                _forwardHeld = isHeld;
                 break;
             case InputKey.S:
-                _forwardAxis -= sign;
+                _backHeld = isHeld;
                 break;
             case InputKey.D:
-                _rightAxis += sign;
+                _rightHeld = isHeld;
                 break;
             case InputKey.A:
-                _rightAxis -= sign;
+                _leftHeld = isHeld;
                 break;
         }
+    }
+
+    // Key releases after focus leaves go elsewhere, so nothing may stay held past it.
+    public override void OnFocusLost()
+    {
+        base.OnFocusLost();
+        _forwardHeld = _backHeld = _rightHeld = _leftHeld = false;
     }
 }

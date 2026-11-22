@@ -3,6 +3,7 @@ using Examples.AudioEffects;
 using Examples.AudioPlayer;
 using Examples.ChildWindows;
 using Examples.Common;
+using Examples.Editor;
 using Examples.ImageStrip;
 using Examples.Level;
 using Examples.Paint;
@@ -35,6 +36,7 @@ public static class ExampleRegistry
         new SponzaExample(),
         new AssetViewerExample(),
         new LevelExample(),
+        new EditorExample(),
         new RenderGraphViewerExample()
     ];
 

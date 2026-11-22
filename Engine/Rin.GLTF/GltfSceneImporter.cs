@@ -37,6 +37,7 @@ public sealed class GltfSceneImporter
     private readonly List<Entity> _entities = [];
     private readonly List<(string? Name, Entity Entity)> _cameras = [];
     private readonly Dictionary<string, Entity> _entitiesByNodeName = [];
+    private readonly Dictionary<Entity, string> _names = [];
     private readonly List<(Node Node, JsonObject Components, Entity Entity)> _pendingComponents = [];
     private readonly List<string> _warnings = [];
     private readonly PhysicsShapes? _shapes;
@@ -71,14 +72,14 @@ public sealed class GltfSceneImporter
         Func<Material?, IMeshMaterial?> resolveMaterial, PhysicsShapes? shapes = null, string? levelDirectory = null)
     {
         var importer = new GltfSceneImporter(render, resolveMaterial, shapes, levelDirectory);
-        if (model.DefaultScene is not { } scene) return new ImportedScene([], null, ["The file has no scene."]);
+        if (model.DefaultScene is not { } scene) return new ImportedScene([], null, ["The file has no scene."], new Dictionary<Entity, string>());
 
         foreach (var node in scene.VisualChildren) importer.SpawnNode(node, null);
         importer.AddPendingComponents();
         importer.AddColliders();
         importer.WarnAboutCollidersWithoutBodies();
         var startCamera = importer.FindStartCamera(ReadString(scene.Extras, StartCameraKey));
-        return new ImportedScene(importer._entities, startCamera, importer._warnings);
+        return new ImportedScene(importer._entities, startCamera, importer._warnings, importer._names);
     }
 
     private void SpawnNode(Node node, Entity? parent)
@@ -87,7 +88,11 @@ public sealed class GltfSceneImporter
         _entities.Add(entity);
         if (parent is { } parentEntity) World.SetParent(entity, parentEntity);
         World.SetLocalTransform(entity, LocalTransformOf(node));
-        if (node.Name is { } name) _entitiesByNodeName.TryAdd(name, entity);
+        if (node.Name is { } name)
+        {
+            _entitiesByNodeName.TryAdd(name, entity);
+            _names[entity] = name;
+        }
         if ((node.Extras as JsonObject)?[ComponentsKey] is JsonObject components)
             _pendingComponents.Add((node, components, entity));
 

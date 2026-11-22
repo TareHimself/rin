@@ -1,6 +1,7 @@
 ﻿using System.Numerics;
 using Examples.AudioPlayer.Playback;
 using Rin.Core.Animation;
+using Examples.Common.Views;
 using Rin.Core.Views;
 using Rin.Core.Views.Composite;
 using Rin.Core.Views.Content;
@@ -25,7 +26,7 @@ public sealed class CoverArtView : PanelView
         _placeholder = new RectView { Color = PlaceholderColor(string.Empty), BorderRadius = BorderRadius.All(radius) };
         _note = new FontIconView
         {
-            FontFamily = Icons.Family,
+            FontFamily = IconFont.Family,
             Icon = Icons.Music,
             IconSize = size * 0.3f,
             Color = Color.White with { A = 0.35f }

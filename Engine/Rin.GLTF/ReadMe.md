@@ -2,7 +2,7 @@
 
 Imports glTF and glb files into Rin: `GltfMeshImporter` loads static and skinned meshes, `GltfAnimationImporter` loads animation clips, and `GltfSceneImporter` spawns a whole scene into a world, all through `SharpGLTF.Core`. glTF is right-handed and Rin left-handed, so the importers mirror X: a model facing glTF's +Z faces Rin's forward, and left and right match what the authoring tool showed.
 
-`GltfSceneImporter.Load(path, renderFeature, resolveMaterial)` takes a level folder (its `level.glb`) or a glTF file and spawns one entity per node with its static mesh (one upload per glTF mesh) and perspective cameras. The caller turns each glTF material into an `IMeshMaterial`. Lights come from `PointLight` and `DirectionalLight` components in `rin_components`; `KHR_lights_punctual` lights, skinned meshes and orthographic cameras are skipped and reported in `Warnings`. These extras add to the glTF values:
+`GltfSceneImporter.Load(path, renderFeature, resolveMaterial)` takes a level folder (its `level.glb`) or a glTF file and spawns one entity per node with its static mesh (one upload per glTF mesh) and perspective cameras. The caller turns each glTF material into an `IMeshMaterial`. Lights come from `PointLight` and `DirectionalLight` components in `rin_components`; `KHR_lights_punctual` lights, skinned meshes and orthographic cameras are skipped and reported in `Warnings`. `Names` maps each named node's entity to its node name, for a scene or editor to keep, since names are not components. These extras add to the glTF values:
 
 | Extra | On | Meaning |
 | --- | --- | --- |

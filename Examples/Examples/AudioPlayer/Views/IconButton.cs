@@ -1,4 +1,5 @@
 using System.Numerics;
+using Examples.Common.Views;
 using Rin.Core.Views;
 using Rin.Core.Views.Composite;
 using Rin.Core.Views.Content;
@@ -26,7 +27,7 @@ public sealed class IconButton : RectView
         _pressed = pressed;
         _icon = new FontIconView
         {
-            FontFamily = Icons.Family,
+            FontFamily = IconFont.Family,
             Icon = icon,
             IconSize = iconSize,
             Color = iconColor
