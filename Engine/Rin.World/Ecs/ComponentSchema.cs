@@ -55,10 +55,14 @@ public sealed class ComponentSchema
     ///     A frozen schema holding <paramref name="modules" /> in order, so the same modules in the same order always give
     ///     the same ids. A module or type already placed is skipped.
     /// </summary>
+    /// <exception cref="InvalidOperationException">
+    ///     A component requires one that no module holds, or requires itself through its requirements.
+    /// </exception>
     public static ComponentSchema Compose(params ReadOnlySpan<ComponentModule> modules)
     {
         var schema = new ComponentSchema();
         foreach (var module in modules) schema.AppendModule(module);
+        schema.CheckRequirements();
         schema.Freeze();
         return schema;
     }
@@ -108,6 +112,31 @@ public sealed class ComponentSchema
         return id.Value != Absent;
     }
 
+    public bool TryGetId(Type type, out ComponentId id)
+    {
+        var count = Count;
+        var infos = Volatile.Read(ref _infos);
+        for (var i = 0; i < count; i++)
+        {
+            if (infos[i].Type != type) continue;
+            id = new ComponentId(i);
+            return true;
+        }
+
+        id = default;
+        return false;
+    }
+
+    /// <summary>
+    ///     Replaces the contents of <paramref name="requirements" /> with every component <paramref name="id" /> needs,
+    ///     directly or through another requirement, each after the ones it needs itself.
+    /// </summary>
+    public void CollectRequirements(ComponentId id, List<ComponentId> requirements)
+    {
+        requirements.Clear();
+        AddRequirementsOf(id, requirements);
+    }
+
     /// <summary>
     ///     The id of the component whose <see cref="Type.FullName" /> is <paramref name="fullName" />, for data that names
     ///     components, like a level file.
@@ -126,6 +155,44 @@ public sealed class ComponentSchema
         id = default;
         return false;
     }
+
+    private void AddRequirementsOf(ComponentId id, List<ComponentId> requirements)
+    {
+        var info = this[id];
+        foreach (var type in info.Requires)
+        {
+            var required = RequiredId(info, type);
+            if (requirements.Contains(required)) continue;
+            AddRequirementsOf(required, requirements);
+            requirements.Add(required);
+        }
+    }
+
+    private void CheckRequirements()
+    {
+        var visiting = new HashSet<ComponentId>();
+        var checkedIds = new HashSet<ComponentId>();
+        for (var i = 0; i < Count; i++) CheckRequirementsOf(new ComponentId(i), visiting, checkedIds);
+    }
+
+    private void CheckRequirementsOf(ComponentId id, HashSet<ComponentId> visiting, HashSet<ComponentId> checkedIds)
+    {
+        if (checkedIds.Contains(id)) return;
+        var info = this[id];
+        if (!visiting.Add(id))
+            throw new InvalidOperationException(
+                $"{info.Type.FullName} requires itself through its requirements. Requirements must go one way.");
+
+        foreach (var type in info.Requires) CheckRequirementsOf(RequiredId(info, type), visiting, checkedIds);
+        visiting.Remove(id);
+        checkedIds.Add(id);
+    }
+
+    private ComponentId RequiredId(ComponentInfo info, Type required) =>
+        TryGetId(required, out var id)
+            ? id
+            : throw new InvalidOperationException(
+                $"{info.Type.FullName} requires {required.FullName}, which is not in this schema. Compose it with the component module of {required.Assembly.GetName().Name}.");
 
     private void AppendModule(ComponentModule module)
     {

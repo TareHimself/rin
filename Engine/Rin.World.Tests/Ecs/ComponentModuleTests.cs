@@ -59,7 +59,7 @@ public class ComponentModuleTests
     public void RenamingAFieldChangesTheLayoutHash()
     {
         var info = InfoOf<Velocity>();
-        var renamed = ComponentInfo.Of<Velocity>([info.Fields[0] with { Name = "Speed" }, info.Fields[1]]);
+        var renamed = ComponentInfo.Of<Velocity>([info.Fields[0] with { Name = "Speed" }, info.Fields[1]], []);
 
         Assert.That(renamed.LayoutHash(), Is.Not.EqualTo(info.LayoutHash()));
     }

@@ -18,7 +18,7 @@ public sealed record ComponentInfo
     private readonly byte[] _defaultValue;
 
     private ComponentInfo(string name, Type type, int typeIndex, int size, bool isSaved, bool isDerived,
-        byte[] defaultValue, ComponentField[] fields)
+        byte[] defaultValue, ComponentField[] fields, Type[] requires)
     {
         Name = name;
         Type = type;
@@ -28,6 +28,7 @@ public sealed record ComponentInfo
         IsDerived = isDerived;
         _defaultValue = defaultValue;
         Fields = fields;
+        Requires = requires;
         _layoutHash = ComputeLayoutHash();
     }
 
@@ -63,17 +64,24 @@ public sealed record ComponentInfo
     /// </summary>
     public ComponentField[] Fields { get; }
 
+    /// <summary>
+    ///     The components this one needs, from its <see cref="EcsRequiresAttribute{T}" />s, as filled by a generated
+    ///     <see cref="ComponentModule" />.
+    /// </summary>
+    public Type[] Requires { get; }
+
     public bool IsTag => Size == 0;
 
     /// <summary>
     ///     A tag for an <see cref="ITagData" />, otherwise a component of the struct's size.
     /// </summary>
-    public static ComponentInfo Of<T>() where T : unmanaged => Of<T>([]);
+    public static ComponentInfo Of<T>() where T : unmanaged => Of<T>([], []);
 
     /// <summary>
-    ///     <see cref="Of{T}()" /> with the struct's fields, which a generated <see cref="ComponentModule" /> passes.
+    ///     <see cref="Of{T}()" /> with the struct's fields and requirements, which a generated
+    ///     <see cref="ComponentModule" /> passes.
     /// </summary>
-    public static ComponentInfo Of<T>(ComponentField[] fields) where T : unmanaged
+    public static ComponentInfo Of<T>(ComponentField[] fields, Type[] requires) where T : unmanaged
     {
         var isTag = typeof(ITagData).IsAssignableFrom(typeof(T));
         if (isTag && typeof(T).GetFields(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic).Length > 0)
@@ -87,7 +95,8 @@ public sealed record ComponentInfo
             !typeof(T).IsDefined(typeof(EcsNotSavedAttribute), false),
             typeof(T).IsDefined(typeof(EcsDerivedAttribute), false),
             isTag ? [] : MemoryMarshal.AsBytes(new ReadOnlySpan<T>(in defaultValue)).ToArray(),
-            fields);
+            fields,
+            requires);
     }
 
     public bool TryGetField(string name, out ComponentField field) => ComponentField.TryFind(Fields, name, out field);

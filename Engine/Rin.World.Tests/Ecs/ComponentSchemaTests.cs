@@ -1,5 +1,6 @@
 using System.Runtime.CompilerServices;
 using Rin.World.Graphics;
+using Rin.World.Physics;
 using Rin.World.Transforms;
 
 namespace Rin.World.Tests.Ecs;
@@ -227,6 +228,63 @@ public class ComponentSchemaTests
         Assert.That(world.Schema.IsFrozen, Is.False);
         Assert.That(world.Schema.IdOf<LocalTransform>(), Is.EqualTo(ComponentSchema.Engine.IdOf<LocalTransform>()));
         Assert.That(world.Schema.Count, Is.EqualTo(ComponentSchema.Engine.Count + 1));
+    }
+
+    [Test]
+    public void CollectRequirementsListsEveryRequirementOnceAfterTheOnesItNeeds()
+    {
+        var schema = ComponentSchema.Compose(new ComponentModule(
+            ComponentInfo.Of<Ammo>([], [typeof(Armor), typeof(Health)]),
+            ComponentInfo.Of<Armor>([], [typeof(Health)]),
+            ComponentInfo.Of<Health>()));
+        var requirements = new List<ComponentId> { schema.IdOf<Ammo>() };
+
+        schema.CollectRequirements(schema.IdOf<Ammo>(), requirements);
+
+        Assert.That(requirements, Is.EqualTo(new[] { schema.IdOf<Health>(), schema.IdOf<Armor>() }));
+    }
+
+    [Test]
+    public void ComposingAComponentWhoseRequirementNoModuleHoldsThrowsNamingBoth()
+    {
+        var needsSpeed = new ComponentModule(ComponentInfo.Of<Health>([], [typeof(Speed)]));
+
+        var error = Assert.Throws<InvalidOperationException>(() => ComponentSchema.Compose(needsSpeed));
+
+        Assert.That(error!.Message, Does.Contain(typeof(Health).FullName).And.Contain(typeof(Speed).FullName));
+    }
+
+    [Test]
+    public void ARequirementFromALaterModuleIsFound()
+    {
+        var needsSpeed = new ComponentModule(ComponentInfo.Of<Health>([], [typeof(Speed)]));
+
+        var schema = ComponentSchema.Compose(needsSpeed, Movement);
+
+        Assert.That(schema[schema.IdOf<Health>()].Requires, Is.EqualTo(new[] { typeof(Speed) }));
+    }
+
+    [Test]
+    public void ComposingRequirementsThatLoopBackThrows()
+    {
+        var loop = new ComponentModule(
+            ComponentInfo.Of<Health>([], [typeof(Armor)]),
+            ComponentInfo.Of<Armor>([], [typeof(Health)]));
+
+        var error = Assert.Throws<InvalidOperationException>(() => ComponentSchema.Compose(loop));
+
+        Assert.That(error!.Message, Does.Contain("one way"));
+    }
+
+    [Test]
+    public void AVelocityNeedsARigidBodyWhichNeedsALocalTransform()
+    {
+        var schema = ComponentSchema.Engine;
+        var requirements = new List<ComponentId>();
+
+        schema.CollectRequirements(schema.IdOf<Velocity>(), requirements);
+
+        Assert.That(requirements, Is.EqualTo(new[] { schema.IdOf<LocalTransform>(), schema.IdOf<RigidBody>() }));
     }
 
     private static readonly ComponentModule Combat = new(ComponentInfo.Of<Health>(), ComponentInfo.Of<Armor>());

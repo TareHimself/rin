@@ -1,4 +1,6 @@
 
+using Rin.World.Transforms;
+
 namespace Rin.World.Physics;
 
 /// <summary>
@@ -10,6 +12,7 @@ namespace Rin.World.Physics;
 ///     entity's world pose every tick, and <see cref="PhysicsState.Simulated" /> bodies write their pose back into
 ///     <see cref="Transforms.LocalTransform" />.
 /// </remarks>
+[EcsRequires<LocalTransform>]
 public struct RigidBody() : IComponentData
 {
     public ColliderShape Shape;

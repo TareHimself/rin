@@ -8,6 +8,7 @@ namespace Rin.SourceGenerators;
 /// </summary>
 /// <param name="FullName">The name <c>Type.FullName</c> gives at run time, which orders the module.</param>
 /// <param name="FieldTypes">Every type its fields use, each after the types its own fields use.</param>
+/// <param name="Requires">The type expressions of its <c>EcsRequiresAttribute&lt;T&gt;</c> arguments.</param>
 /// <param name="Problems">Why the struct is left out of the module, or empty if it is in.</param>
 internal sealed record ComponentDeclaration(
     string FullName,
@@ -15,6 +16,7 @@ internal sealed record ComponentDeclaration(
     bool IsTag,
     ImmutableArray<FieldDeclaration> Fields,
     ImmutableArray<FieldTypeDeclaration> FieldTypes,
+    ImmutableArray<string> Requires,
     ImmutableArray<Diagnostic> Problems);
 
 /// <summary>

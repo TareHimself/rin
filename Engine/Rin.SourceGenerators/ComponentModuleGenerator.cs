@@ -11,8 +11,8 @@ namespace Rin.SourceGenerators;
 
 /// <summary>
 /// Emits one <c>Rin.World.ComponentModule</c> per assembly that declares <c>IComponentData</c> structs: every
-/// component and tag sorted by full type name, each saved component with its fields, their offsets and their
-/// <c>FieldType</c>s.
+/// component and tag sorted by full type name, each with its <c>EcsRequiresAttribute&lt;T&gt;</c> requirements, and each
+/// saved component with its fields, their offsets and their <c>FieldType</c>s.
 /// </summary>
 /// <remarks>
 /// The module is <c>GeneratedComponents.Module</c> in a namespace named after the assembly, and an assembly attribute
@@ -27,6 +27,7 @@ public class ComponentModuleGenerator : IIncrementalGenerator
     private const string ComponentDataName = "Rin.World.IComponentData";
     private const string TagDataName = "Rin.World.ITagData";
     private const string NotSavedName = "Rin.World.EcsNotSavedAttribute";
+    private const string RequiresMetadataName = "Rin.World.EcsRequiresAttribute`1";
     private const string FieldType = "global::Rin.World.FieldType";
     private const string FieldKind = "global::Rin.World.FieldKind";
     private const string ComponentField = "global::Rin.World.ComponentField";
@@ -71,12 +72,26 @@ public class ComponentModuleGenerator : IIncrementalGenerator
         var fullName = FullNameOf(type);
         var typeExpression = type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
 
+        var requires = RequiresOf(type, compilation);
         var problem = ProblemOf(type, isTag);
         if (problem is not null || isTag || HasAttribute(type, NotSavedName))
-            return new ComponentDeclaration(fullName, typeExpression, isTag, [], [], problem is null ? [] : [problem]);
+            return new ComponentDeclaration(fullName, typeExpression, isTag, [], [], requires, problem is null ? [] : [problem]);
 
         var layout = ComponentLayoutReader.Read(compilation, type);
-        return new ComponentDeclaration(fullName, typeExpression, isTag, layout.Fields, layout.Types, layout.Problems);
+        return new ComponentDeclaration(fullName, typeExpression, isTag, layout.Fields, layout.Types, requires, layout.Problems);
+    }
+
+    private static ImmutableArray<string> RequiresOf(INamedTypeSymbol type, Compilation compilation)
+    {
+        var requiresAttribute = compilation.GetTypeByMetadataName(RequiresMetadataName);
+        if (requiresAttribute is null) return [];
+
+        return type.GetAttributes()
+            .Select(static attribute => attribute.AttributeClass)
+            .Where(attribute => SymbolEqualityComparer.Default.Equals(attribute?.OriginalDefinition, requiresAttribute))
+            .Select(static attribute => attribute!.TypeArguments[0].ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat))
+            .Distinct()
+            .ToImmutableArray();
     }
 
     private static bool HasAttribute(INamedTypeSymbol type, string attributeName) =>
@@ -207,15 +222,18 @@ public class ComponentModuleGenerator : IIncrementalGenerator
         Dictionary<string, string> typeNames)
     {
         output.Line();
-        if (component.Fields.IsEmpty)
+        if (component.Fields.IsEmpty && component.Requires.IsEmpty)
         {
             output.Line($"private static {ComponentInfo} Component{index}() => {ComponentInfo}.Of<{component.TypeExpression}>();");
             return;
         }
 
-        output
-            .Line($"private static {ComponentInfo} Component{index}() => {ComponentInfo}.Of<{component.TypeExpression}>(FieldsOfComponent{index}());")
-            .Line();
+        var fields = component.Fields.IsEmpty ? "[]" : $"FieldsOfComponent{index}()";
+        var requires = "[" + string.Join(", ", component.Requires.Select(static type => $"typeof({type})")) + "]";
+        output.Line($"private static {ComponentInfo} Component{index}() => {ComponentInfo}.Of<{component.TypeExpression}>({fields}, {requires});");
+        if (component.Fields.IsEmpty) return;
+
+        output.Line();
         WriteFieldsMethod(output, $"FieldsOfComponent{index}", component.TypeExpression, component.Fields, typeNames);
     }
 
