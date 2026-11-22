@@ -24,6 +24,26 @@ public class QueryChunkTests
     }
 
     [Test]
+    public void WriteAllWritesThroughAndStampsEveryRowOfTheChunk()
+    {
+        var world = new World();
+        var first = Spawn(world, 1);
+        var second = Spawn(world, 2);
+        var changed = world.Query<Health>().Changed<Health>();
+        ChangedRows(changed);
+        world.Update(0f);
+
+        foreach (var chunk in world.Query<Health>())
+        {
+            var healths = chunk.WriteAll<Health>();
+            healths[0].Value += 10;
+        }
+
+        Assert.That(ChangedRows(changed), Is.EquivalentTo(new[] { first, second }));
+        Assert.That(world.Get<Health>(first).Value + world.Get<Health>(second).Value, Is.EqualTo(13));
+    }
+
+    [Test]
     public void HasChangedComparesEachQueriedComponentOnItsOwn()
     {
         var world = new World();
@@ -87,7 +107,7 @@ public class QueryChunkTests
     }
 
     [Test]
-    public void WriteAndHasChangedThrowForAComponentTheQueryDoesNotHave()
+    public void WritesAndHasChangedThrowForAComponentTheQueryDoesNotHave()
     {
         var world = new World();
         var entity = Spawn(world, 1);
@@ -113,13 +133,22 @@ public class QueryChunkTests
             {
                 thrown++;
             }
+
+            try
+            {
+                chunk.WriteAll<Armor>();
+            }
+            catch (InvalidOperationException)
+            {
+                thrown++;
+            }
         }
 
-        Assert.That(thrown, Is.EqualTo(2));
+        Assert.That(thrown, Is.EqualTo(3));
     }
 
     [Test]
-    public void WriteAndHasChangedDoNotAllocate()
+    public void WritesAndHasChangedDoNotAllocate()
     {
         var world = new World();
         for (var i = 0; i < 1000; i++)
@@ -148,9 +177,13 @@ public class QueryChunkTests
                 if (chunk.HasChanged<Health>(i)) chunk.Write<Health>(i).Value++;
 
         foreach (var chunk in four)
+        {
             for (var i = 0; i < chunk.Length; i++)
                 if (chunk.HasChanged<Ammo>(i) || chunk.HasChanged<Speed>(i))
                     chunk.Write<Armor>(i).Value += chunk.Components4[i].Value;
+
+            foreach (ref var speed in chunk.WriteAll<Speed>()) speed.Value += 1f;
+        }
     }
 
     private static Entity Spawn(World world, int health)

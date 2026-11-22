@@ -18,6 +18,12 @@ internal readonly record struct ChunkChangeTicks(uint WriteTick, uint Since, boo
         return ref component;
     }
 
+    public Span<T> StampAll<T>(Span<T> components, Column column) where T : unmanaged
+    {
+        column.StampRows(0, components.Length, WriteTick);
+        return components;
+    }
+
     public bool IsNewer(Column column, int index)
     {
         if (!TracksChanges)

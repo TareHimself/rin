@@ -18,5 +18,7 @@ internal readonly ref struct ChunkColumn<T>
 
     public ref T Write(int index, ChunkChangeTicks ticks) => ref ticks.Stamp(Components, _column, index);
 
+    public Span<T> WriteAll(ChunkChangeTicks ticks) => ticks.StampAll(Components, _column);
+
     public bool HasChanged(int index, ChunkChangeTicks ticks) => ticks.IsNewer(_column, index);
 }
