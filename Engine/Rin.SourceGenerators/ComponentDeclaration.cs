@@ -25,7 +25,7 @@ internal sealed record ComponentDeclaration(
 /// <param name="IsVisible">False for a field the generated module reaches through <c>UnsafeAccessor</c>, by its
 /// metadata <paramref name="Identifier" />.</param>
 internal sealed record FieldDeclaration(string Name, string Identifier, string TypeExpression, bool IsProcessLocal,
-    bool IsVisible);
+    bool IsDerived, bool IsVisible);
 
 /// <summary>
 /// A type used by a component field, with the <c>Rin.World.FieldKind</c> member that describes it.

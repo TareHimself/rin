@@ -91,8 +91,8 @@ internal sealed partial class ArchetypeStore
             return false;
         }
 
-        Phase.EnsureCanMoveRows();
-        EnsureCanGainComponents(entity);
+        EnsureCanAdd(entity);
+        // Only after the guards, so a rejected add leaves the schema unchanged.
         var id = hasId ? existing : Schema.IdOf<T>();
         var moved = Move(entity.Id, location.Row, WithComponent(location.Archetype, id));
         WriteAt<T>(moved, id) = component;
@@ -142,18 +142,8 @@ internal sealed partial class ArchetypeStore
 
     public bool Remove<T>(Entity entity) where T : unmanaged
     {
-        var location = Resolve(entity);
-        if (!Schema.TryGetId<T>(out var id) || !location.Archetype.Has(id) || IsBeingRemoved(entity, id)) return false;
-        Phase.EnsureCanMoveRows();
-        if (HooksOf(id) is not null)
-        {
-            FireRemoveHooks(entity, id);
-            // A hook may have moved the entity, removed the component or despawned it.
-            if (!_entities.TryLocate(entity, out location) || !location.Archetype.Has(id)) return false;
-        }
-
-        Move(entity.Id, location.Row, WithoutComponent(location.Archetype, id));
-        return true;
+        Resolve(entity);
+        return Schema.TryGetId<T>(out var id) && Remove(entity, id);
     }
 
     public Archetype GetOrCreateArchetype(ReadOnlySpan<ComponentId> key)

@@ -46,6 +46,8 @@ flowchart LR
 
 A saved field of any other type (a pointer, `nint`, `char`, a `Nullable<T>`) is compile error RIN00028. A composed schema lists each type once in `FieldTypes`, and `FieldTypeOf(type)` finds one.
 
+**Access by id** lets tools work with components they only know from the schema, like an inspector or a scene loader: `world.ComponentsOf(entity)` lists the ids, `Read` and `Write` give a component's bytes (`Write` marks it changed), `Add`, `AddDefault` and `Remove` change the archetype and fire hooks like their typed versions, and a `ComponentField` reads or writes its slice of those bytes. `AddDefault` uses `ComponentInfo.DefaultValue`, the bytes of `new T()` with field initializers. `[EcsDerived]` marks a component or field computed from other data, like `WorldTransform`, so editors can hide it or show it read-only.
+
 **Composed schemas** give the same ids everywhere: `ComponentSchema.Compose(ComponentModule.Engine, physics, game)` places each module's components in order, skips a module or type already placed, and freezes the result, so `IdOf<T>` for a type outside it throws and names the assembly whose module is missing. `Compose(A, B)` is a prefix of `Compose(A, B, C)`, so snapshots carry forward. `schema.Fingerprint()` hashes every component's layout in id order, for two processes to check they agree. `Clone()` gives an unfrozen copy that adds types on first use.
 
 ## Entities and the update step

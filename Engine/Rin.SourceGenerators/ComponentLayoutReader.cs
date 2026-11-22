@@ -13,6 +13,7 @@ namespace Rin.SourceGenerators;
 internal sealed class ComponentLayoutReader
 {
     private const string ProcessLocalName = "Rin.World.EcsProcessLocalAttribute";
+    private const string DerivedName = "Rin.World.EcsDerivedAttribute";
     private const string EntityName = "Rin.World.Entity";
 
     private static readonly Dictionary<string, string> NamedKinds = new()
@@ -66,18 +67,21 @@ internal sealed class ComponentLayoutReader
                 continue;
             }
 
-            var isProcessLocal = field.GetAttributes().Any(static attribute =>
-                attribute.AttributeClass?.ToDisplayString() == ProcessLocalName);
+            var isProcessLocal = HasAttribute(field, ProcessLocalName);
             var typeExpression = TypeOf(field.Type, isProcessLocal, fieldPath, location);
             if (typeExpression is null) continue;
 
             var isVisible = _compilation.IsSymbolAccessibleWithin(field, _compilation.Assembly);
             var identifier = isVisible ? EscapeKeyword(field.Name) : field.Name;
-            fields.Add(new FieldDeclaration(name, identifier, typeExpression, isProcessLocal, isVisible));
+            fields.Add(new FieldDeclaration(name, identifier, typeExpression, isProcessLocal, HasAttribute(field, DerivedName),
+                isVisible));
         }
 
         return fields.ToImmutable();
     }
+
+    private static bool HasAttribute(IFieldSymbol field, string attributeName) =>
+        field.GetAttributes().Any(attribute => attribute.AttributeClass?.ToDisplayString() == attributeName);
 
     private string? TypeOf(ITypeSymbol type, bool isProcessLocal, string path, Location? location)
     {

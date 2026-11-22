@@ -235,8 +235,8 @@ public class ComponentModuleGenerator : IIncrementalGenerator
             var target = field.IsVisible ? $"{Unsafe}.AsRef(in probe.{field.Identifier})" : $"{methodName}_{field.Name}(ref probe)";
             if (!field.IsVisible) hidden.Add(($"{methodName}_{field.Name}", field));
             var fieldRef = $"ref {Unsafe}.As<{field.TypeExpression}, byte>(ref {target})";
-            var isProcessLocal = field.IsProcessLocal ? "true" : "false";
-            output.Line($"new(\"{field.Name}\", {typeNames[field.TypeExpression]}, OffsetOf(ref start, {fieldRef}), {isProcessLocal}),");
+            var flags = $"{Literal(field.IsProcessLocal)}, {Literal(field.IsDerived)}";
+            output.Line($"new(\"{field.Name}\", {typeNames[field.TypeExpression]}, OffsetOf(ref start, {fieldRef}), {flags}),");
         }
 
         output.Outdent().Line("];").CloseBrace();
@@ -247,6 +247,8 @@ public class ComponentModuleGenerator : IIncrementalGenerator
                 .Line($"[global::System.Runtime.CompilerServices.UnsafeAccessor(global::System.Runtime.CompilerServices.UnsafeAccessorKind.Field, Name = \"{field.Identifier}\")]")
                 .Line($"private static extern ref {field.TypeExpression} {accessor}(ref {ownerType} owner);");
     }
+
+    private static string Literal(bool value) => value ? "true" : "false";
 
     private static string NamespaceOf(string assemblyName) =>
         string.Join(".", assemblyName.Split('.').Select(IdentifierOf));

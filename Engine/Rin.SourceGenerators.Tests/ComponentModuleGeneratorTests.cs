@@ -131,6 +131,25 @@ public struct Drawn : IComponentData
         Assert.Equal([true, true, false], info.Fields.Select(field => field.IsProcessLocal));
     }
 
+    [Fact]
+    public void DerivedFieldsAndComponentsAreMarked()
+    {
+        var module = ModuleOf(@"
+[EcsDerived] public struct Computed : IComponentData { public float Value; }
+public struct Mixed : IComponentData
+{
+    public float Authored;
+    [EcsDerived] public float Cached;
+    [field: EcsDerived] public float CachedProperty { get; internal set; }
+}
+");
+        var mixed = module.Single(info => info.Name == "Mixed");
+
+        Assert.True(module.Single(info => info.Name == "Computed").IsDerived);
+        Assert.False(mixed.IsDerived);
+        Assert.Equal([false, true, true], mixed.Fields.Select(field => field.IsDerived));
+    }
+
     [Theory]
     [InlineData("public System.IntPtr Native;", "Native")]
     [InlineData("public char Letter;", "Letter")]

@@ -10,7 +10,7 @@ CI passes `-p:RinShadeSkipCompile=true` for this project.
 
 | Folder | Covers |
 | --- | --- |
-| root | `World`: entity handles, archetype moves and row order, the hierarchy, hooks and the command buffer, change ticks (stamping, `Write`, moves, restore), chunk writes and `HasChanged` with their zero-allocation check, snapshot save and restore (round trip, saved query order, zero allocation, the saved `Random`), and `DeterminismTests`: a scripted input log run twice and rolled back, hashed every tick |
+| root | `World`: entity handles, archetype moves and row order, the hierarchy, hooks and the command buffer, change ticks (stamping, `Write`, moves, restore), chunk writes and `HasChanged` with their zero-allocation check, access by id and bytes (hooks, defaults, field slices), snapshot save and restore (round trip, saved query order, zero allocation, the saved `Random`), and `DeterminismTests`: a scripted input log run twice and rolled back, hashed every tick |
 | `Ecs/` | Queries and their `With`, `Without` and `Changed` filters, the tick-phase guard on change queries, the structural change guard and the zero-allocation checks, the entity table, and `ComponentSchema`: stable ids across clones, freezing, two worlds on one schema, composing modules (stable ids and fingerprints, prefixes, duplicates, missing types), and that the generated `ComponentModule.Engine` lists every Rin.World component in full-name order with its field kinds and offsets |
 | `Scheduling/` | The tick and frame scheduler, time scale and interpolation alpha, and the change tick around each system run |
 | `Transforms/` | Transform setters and propagation |

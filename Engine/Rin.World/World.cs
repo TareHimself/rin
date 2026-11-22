@@ -217,6 +217,35 @@ public sealed class World
 
     public bool Remove<T>(Entity entity) where T : unmanaged, IComponentData => _store.Remove<T>(entity);
 
+    public bool Has(Entity entity, ComponentId id) => _store.Has(entity, id);
+
+    /// <summary>
+    ///     The ids of every component and tag on the entity, in id order. Valid until its next structural change.
+    /// </summary>
+    public ReadOnlySpan<ComponentId> ComponentsOf(Entity entity) => _store.ComponentsOf(entity);
+
+    /// <summary>
+    ///     The component's bytes, laid out as its <see cref="ComponentInfo.Fields" /> say. Empty for a tag.
+    /// </summary>
+    public ReadOnlySpan<byte> Read(Entity entity, ComponentId id) => _store.Read(entity, id);
+
+    /// <summary>
+    ///     <see cref="Read" /> for writing, which marks the component changed like <see cref="Write{T}" />.
+    /// </summary>
+    public Span<byte> Write(Entity entity, ComponentId id) => _store.Write(entity, id);
+
+    /// <summary>
+    ///     <see cref="Add{T}" /> by id, with the component's bytes.
+    /// </summary>
+    public void Add(Entity entity, ComponentId id, ReadOnlySpan<byte> value) => _store.Add(entity, id, value);
+
+    /// <summary>
+    ///     Adds the component with its <see cref="ComponentInfo.DefaultValue" />, or resets it when present.
+    /// </summary>
+    public void AddDefault(Entity entity, ComponentId id) => _store.Add(entity, id, Schema[id].DefaultValue);
+
+    public bool Remove(Entity entity, ComponentId id) => _store.Remove(entity, id);
+
     public void SetParent(Entity child, Entity parent)
     {
         _store.SetParent(child, parent);
