@@ -6,6 +6,7 @@ Run from the repo root:
 import math
 import os
 import sys
+import tempfile
 
 import bpy
 
@@ -77,7 +78,19 @@ add_rigid_body(wardrobe)
 add_box_collider(wardrobe, (0.0, 0.0, 0.0), (1.0, 2.0, 0.5))
 
 ENVIRONMENT_LIGHT = "Rin.World.Graphics.ImageBasedLighting.EnvironmentLight"
-SKY_HDR = os.path.join(os.path.dirname(__file__), "sky.hdr")
+
+
+# A 16 x 8 flat Radiance panorama, blue sky over brown ground. The export copies it into the level's environments/.
+def write_sky(path):
+    sky, ground = bytes.fromhex("334c8081"), bytes.fromhex("9966337f")
+    with open(path, "wb") as file:
+        file.write(b"#?RADIANCE\nFORMAT=32-bit_rle_rgbe\n\n-Y 8 +X 16\n")
+        for row in range(8):
+            file.write((sky if row < 4 else ground) * 16)
+
+
+SKY_HDR = os.path.join(tempfile.mkdtemp(), "sky.hdr")
+write_sky(SKY_HDR)
 
 
 def add_environment(name, location, unbounded):
