@@ -185,7 +185,7 @@ public sealed class CanvasView : ContentView
 
     private Vector2 ToLocal(Vector2 surfacePosition)
     {
-        Matrix4x4.Invert(ComputeAbsoluteContentTransform(), out var toLocal);
+        Matrix4x4.Invert(ContentToSurface(), out var toLocal);
         return Vector2.Transform(surfacePosition, toLocal);
     }
 

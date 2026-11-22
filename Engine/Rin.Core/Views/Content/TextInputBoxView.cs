@@ -140,7 +140,7 @@ public class TextInputBoxView : TextBoxView
 
     private int IndexAt(in Vector2 surfacePosition)
     {
-        var point = surfacePosition.Transform(ComputeAbsoluteContentTransform().Inverse()) + _scroll;
+        var point = surfacePosition.Transform(ContentToSurface().Inverse()) + _scroll;
         return TextCaretLayout.IndexAt(GetContentBounds(), point);
     }
 

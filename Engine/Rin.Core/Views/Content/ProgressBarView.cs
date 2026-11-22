@@ -35,7 +35,7 @@ public class ProgressBarView(Func<float> getProgress, Action<float>? onClick = n
     {
         if (e.Button is CursorButton.One && onClick is not null)
         {
-            var transform = ComputeAbsoluteContentTransform();
+            var transform = ContentToSurface();
             var localPosition = e.Position.Transform(transform.Inverse());
             _pendingProgress = localPosition.X / GetSize().X;
 
@@ -47,7 +47,7 @@ public class ProgressBarView(Func<float> getProgress, Action<float>? onClick = n
     {
         if (_pendingProgress is not null && onClick is not null)
         {
-            var transform = ComputeAbsoluteContentTransform();
+            var transform = ContentToSurface();
             var localPosition = e.Position.Transform(transform.Inverse());
             _pendingProgress = localPosition.X / GetSize().X;
             e.Target = this;
@@ -58,7 +58,7 @@ public class ProgressBarView(Func<float> getProgress, Action<float>? onClick = n
     {
         if (_pendingProgress is not null && onClick is not null)
         {
-            var transform = ComputeAbsoluteContentTransform();
+            var transform = ContentToSurface();
             var localPosition = e.Position.Transform(transform.Inverse());
             _pendingProgress = localPosition.X / GetSize().X;
             onClick(_pendingProgress.Value);

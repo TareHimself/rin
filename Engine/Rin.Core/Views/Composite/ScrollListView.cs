@@ -227,15 +227,12 @@ public class ScrollListView : ListView
         CollectBar(transform, clip, commands);
     }
 
-    public override Matrix4x4 GetLocalContentTransform()
+    public override Vector2 ContentScroll => Axis switch
     {
-        return base.GetLocalContentTransform().ApplyBefore(Matrix4x4.Identity.Translate(Axis switch
-        {
-            Axis.Row => new Vector2(-GetScroll(), 0.0f),
-            Axis.Column => new Vector2(0.0f, -GetScroll()),
-            _ => throw new ArgumentOutOfRangeException(nameof(Axis))
-        }));
-    }
+        Axis.Row => new Vector2(GetScroll(), 0.0f),
+        Axis.Column => new Vector2(0.0f, GetScroll()),
+        _ => throw new ArgumentOutOfRangeException(nameof(Axis))
+    };
 
     public override void OnCursorDown(CursorDownSurfaceEvent e, in Matrix4x4 transform)
     {

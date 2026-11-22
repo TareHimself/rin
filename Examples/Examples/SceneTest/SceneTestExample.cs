@@ -441,7 +441,7 @@ public sealed class SceneTestExample : Example
 
         private float ComputeFraction(Vector2 cursorPosition)
         {
-            var localPosition = cursorPosition.Transform(ComputeAbsoluteContentTransform().Inverse());
+            var localPosition = cursorPosition.Transform(ContentToSurface().Inverse());
             return float.Clamp(localPosition.X / GetSize().X, 0f, 1f);
         }
     }

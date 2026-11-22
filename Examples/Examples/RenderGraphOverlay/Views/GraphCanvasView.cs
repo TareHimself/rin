@@ -147,7 +147,7 @@ public class GraphCanvasView : ContentView
 
     private Vector2 ToLocal(Vector2 surfacePosition)
     {
-        return surfacePosition.Transform(ComputeAbsoluteContentTransform().Inverse());
+        return surfacePosition.Transform(ContentToSurface().Inverse());
     }
 
     private Vector2 ToWorld(Vector2 surfacePosition)

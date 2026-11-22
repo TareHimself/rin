@@ -12,7 +12,7 @@ namespace Rin.Core.Views;
 public abstract class View : IView
 {
     private Vector2? _cachedDesiredSize;
-    private Matrix4x4? _cachedRelativeTransform;
+    private Matrix4x4? _cachedBoxToParent;
     private Vector2 _size;
 
     public int Depth { get; set; }
@@ -30,7 +30,7 @@ public abstract class View : IView
         set
         {
             field = value;
-            _cachedRelativeTransform = null;
+            _cachedBoxToParent = null;
         }
     }
 
@@ -45,7 +45,7 @@ public abstract class View : IView
         set
         {
             field = value;
-            _cachedRelativeTransform = null;
+            _cachedBoxToParent = null;
         }
     }
 
@@ -58,7 +58,7 @@ public abstract class View : IView
         set
         {
             field = value;
-            _cachedRelativeTransform = null;
+            _cachedBoxToParent = null;
         }
     } = Vector2.Zero;
 
@@ -71,7 +71,7 @@ public abstract class View : IView
         set
         {
             field = value;
-            _cachedRelativeTransform = null;
+            _cachedBoxToParent = null;
         }
     } = Vector2.One;
 
@@ -98,7 +98,7 @@ public abstract class View : IView
         set
         {
             field = value;
-            _cachedRelativeTransform = null;
+            _cachedBoxToParent = null;
         }
     }
 
@@ -152,19 +152,28 @@ public abstract class View : IView
     /// </summary>
     public ICompositeView? Parent { get; private set; }
 
-    public Matrix4x4 GetPaddingOffsetTransform()
+    /// <summary>
+    ///     How far the content has moved inside the viewport, such as a scroll position.
+    /// </summary>
+    public virtual Vector2 ContentScroll => Vector2.Zero;
+
+    /// <summary>
+    ///     From the padded area, where clip and hit-test bounds live, to the view's box.
+    /// </summary>
+    public Matrix4x4 ViewportToBox()
     {
-        return Matrix4x4.Identity.Translate(GetPaddingOffset());
+        return Matrix4x4.Identity.Translate(PaddingOffset);
     }
 
     /// <summary>
-    ///     Transformation to apply to all content. Includes anything subclasses shift content by (such as scroll),
-    ///     so it must not be used to locate the view's own bounds or clip.
+    ///     From the space children are placed in to the view's box: the padding, less <see cref="ContentScroll" />.
     /// </summary>
-    public virtual Matrix4x4 GetLocalContentTransform()
+    public Matrix4x4 ContentToBox()
     {
-        return Matrix4x4.Identity.Translate(new Vector2(Padding.Left, Padding.Top));
+        return Matrix4x4.Identity.Translate(PaddingOffset - ContentScroll);
     }
+
+    private Vector2 PaddingOffset => new(Padding.Left, Padding.Top);
 
     /// <summary>
     ///     Check if this view is focused by its current surface
@@ -197,7 +206,7 @@ public abstract class View : IView
         if (Visibility == Visibility.Collapsed)
         {
             _size = Vector2.Zero;
-            _cachedRelativeTransform = null;
+            _cachedBoxToParent = null;
             PostLayout();
             return _size;
         }
@@ -205,44 +214,43 @@ public abstract class View : IView
         var padding = Padding.Size;
         var contentSize = LayoutContent(availableSpace - padding) + padding;
         var sizeResult = (fill ? availableSpace : contentSize).FiniteOr();
-        _cachedRelativeTransform = null;
+        _cachedBoxToParent = null;
         _size = sizeResult;
         PostLayout();
         return _size;
     }
 
     /// <summary>
-    ///     Computes the relative/local transformation matrix for this view
+    ///     From the view's box to its parent's content space: pivot, scale, rotate, then place at the offset.
     /// </summary>
-    public Matrix4x4 GetLocalTransform()
+    public Matrix4x4 BoxToParent()
     {
-        if (_cachedRelativeTransform is { } cached) return cached;
+        if (_cachedBoxToParent is { } cached) return cached;
 
-        var t = Matrix4x4.Identity.Translate(Offset + Translate)
-            .ApplyBefore(Matrix4x4.Identity.Translate(-(GetSize() * Pivot)).Scale(Scale).Rotate2DDegrees(Angle));
-        _cachedRelativeTransform = t;
-        return t;
+        var boxToParent = Matrix4x4.Identity
+            .Translate(-(GetSize() * Pivot))
+            .Scale(Scale)
+            .Rotate2DDegrees(Angle)
+            .Translate(Offset + Translate);
+        _cachedBoxToParent = boxToParent;
+        return boxToParent;
     }
 
-
-    public Matrix4x4 ComputeAbsoluteContentTransform()
+    /// <summary>
+    ///     From the view's box to the surface, walking up through every parent.
+    /// </summary>
+    public Matrix4x4 BoxToSurface()
     {
-        var absTransform = ComputeAbsoluteTransform();
+        var boxToSurface = BoxToParent();
+        for (var parent = Parent; parent is not null; parent = parent.Parent)
+            boxToSurface = boxToSurface * parent.ContentToBox() * parent.BoxToParent();
 
-        return GetLocalContentTransform().ChildOf(absTransform);
+        return boxToSurface;
     }
 
-    public Matrix4x4 ComputeAbsoluteTransform()
+    public Matrix4x4 ContentToSurface()
     {
-        var parent = Parent;
-        var parentTransform = Matrix4x4.Identity;
-        while (parent is not null)
-        {
-            parentTransform = parentTransform.ChildOf(parent.ComputeChildOffsets(this));
-            parent = parent.Parent;
-        }
-
-        return GetLocalTransform().ChildOf(parentTransform);
+        return ContentToBox() * BoxToSurface();
     }
 
     public void SetParent(ICompositeView? view)
@@ -485,11 +493,6 @@ public abstract class View : IView
     ///     Lay's out content in the available space and returns the size taken by the content
     /// </summary>
     protected abstract Vector2 LayoutContent(in Vector2 availableSpace);
-
-    public Vector2 GetPaddingOffset()
-    {
-        return new Vector2(Padding.Left, Padding.Top);
-    }
 
     protected virtual void OnAddedToSurface(ISurface surface)
     {

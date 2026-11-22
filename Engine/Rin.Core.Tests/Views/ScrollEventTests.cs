@@ -17,7 +17,7 @@ public class ScrollEventTests : FakeApplicationFixture
         root.Layout(new Vector2(800f, 600f), true);
 
         var scroll = new ScrollSurfaceEvent(new FakeSurface(), new Vector2(400f, 300f), new Vector2(0f, -1f));
-        root.HandleEvent(scroll, root.GetLocalTransform());
+        root.HandleEvent(scroll, root.BoxToParent());
 
         Assert.That(content.Received, Is.EqualTo(new[] { new Vector2(0f, -1f) }));
         Assert.That(scroll.Target, Is.SameAs(content));
@@ -32,7 +32,7 @@ public class ScrollEventTests : FakeApplicationFixture
         root.Layout(new Vector2(800f, 600f), true);
 
         var scroll = new ScrollSurfaceEvent(new FakeSurface(), new Vector2(900f, 300f), new Vector2(0f, -1f));
-        root.HandleEvent(scroll, root.GetLocalTransform());
+        root.HandleEvent(scroll, root.BoxToParent());
 
         Assert.That(content.Received, Is.Empty);
     }

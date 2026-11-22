@@ -17,7 +17,7 @@ public abstract class ContentView : View
     {
         if (!IsVisible) return;
 
-        CollectContent(transform.ApplyBefore(GetLocalContentTransform()), commands);
+        CollectContent(ContentToBox() * transform, commands);
     }
 
     public override void Update(float deltaTime)

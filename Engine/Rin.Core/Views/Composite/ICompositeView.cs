@@ -8,11 +8,6 @@ public interface ICompositeView : IView
 {
     public Clip Clip { get; set; }
 
-    /// <summary>
-    ///     Compute all the offsets applied to a child of this <see cref="CompositeView" />
-    /// </summary>
-    public Matrix4x4 ComputeChildOffsets(IView child);
-
     [PublicAPI]
     public ISlot[] GetSlots();
 
