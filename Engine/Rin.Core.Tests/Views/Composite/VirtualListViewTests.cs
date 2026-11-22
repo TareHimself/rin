@@ -142,9 +142,9 @@ public class VirtualListViewTests : FakeApplicationFixture
         var barPosition = new Vector2(contentWidth - list.BarPadding - list.BarWidth / 2f, 5f);
 
         var down = new CursorDownSurfaceEvent(surface, CursorButton.One, barPosition);
-        root.HandleEvent(down, root.GetLocalTransform());
+        root.HandleEvent(down, root.BoxToParent());
         var move = new CursorMoveSurfaceEvent(surface, barPosition + new Vector2(0f, 20f));
-        root.HandleEvent(move, root.GetLocalTransform());
+        root.HandleEvent(move, root.BoxToParent());
 
         var travel = 100f - list.BarMinimumSize;
         Assert.That(list.GetScroll(), Is.EqualTo(20f / travel * list.GetMaxScroll()).Within(1f));

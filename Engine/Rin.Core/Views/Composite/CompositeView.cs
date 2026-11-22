@@ -14,47 +14,39 @@ public abstract class CompositeView : View, ICompositeView
 {
     public Clip Clip { get; set; } = Clip.None;
 
-    public override void HandleEvent(ISurfaceEvent e, in Matrix4x4 absoluteTransform)
+    public override void HandleEvent(ISurfaceEvent e, in Matrix4x4 boxToSurface)
     {
         {
             if (e is IPositionalEvent asPositionalEvent)
             {
-                var paddingTransform = absoluteTransform.ApplyBefore(GetPaddingOffsetTransform());
+                var viewportToSurface = ViewportToBox() * boxToSurface;
 
-                if (Rect2D.PointWithin(GetContentSize(), paddingTransform, asPositionalEvent.Position))
+                if (Rect2D.PointWithin(GetContentSize(), viewportToSurface, asPositionalEvent.Position))
                 {
-                    var contentTransform = absoluteTransform.ApplyBefore(GetLocalContentTransform());
-                    var slots = ComputeHitTestableSlotsForEvent(asPositionalEvent, contentTransform);
+                    var contentToSurface = ContentToBox() * boxToSurface;
+                    var slots = ComputeHitTestableSlotsForEvent(asPositionalEvent, contentToSurface);
                     if (slots.NotEmpty())
                     {
                         if (e is IHandleableEvent asHandleable)
-                            foreach (var (slot, slotTransform) in slots)
+                            foreach (var (slot, childBoxToSurface) in slots)
                             {
-                                slot.Child.HandleEvent(e, slotTransform);
+                                slot.Child.HandleEvent(e, childBoxToSurface);
                                 if (asHandleable.Handled) return;
                             }
                         else
-                            foreach (var (slot, slotTransform) in slots)
-                                slot.Child.HandleEvent(e, slotTransform);
+                            foreach (var (slot, childBoxToSurface) in slots)
+                                slot.Child.HandleEvent(e, childBoxToSurface);
                     }
                 }
             }
         }
-        base.HandleEvent(e, absoluteTransform);
+        base.HandleEvent(e, boxToSurface);
     }
 
     public override void SetSurface(ISurface? surface)
     {
         base.SetSurface(surface);
         foreach (var layoutSlot in GetSlots()) layoutSlot.Child.SetSurface(surface);
-    }
-
-    /// <summary>
-    ///     Compute all the offsets applied to a child of this <see cref="CompositeView" />
-    /// </summary>
-    public virtual Matrix4x4 ComputeChildOffsets(IView child)
-    {
-        return GetLocalContentTransform().ChildOf(GetLocalTransform());
     }
 
     [PublicAPI]
@@ -78,34 +70,34 @@ public abstract class CompositeView : View, ICompositeView
     }
 
     private readonly List<(IView View, Matrix4x4 Transform)> _toCollect = [];
-    public override void Collect(in Matrix4x4 transform, in Rect2D clip, CommandList commands)
+    public override void Collect(in Matrix4x4 boxToSurface, in Rect2D clip, CommandList commands)
     {
         if (Visibility is Visibility.Hidden or Visibility.Collapsed) return;
 
         commands.IncrDepth();
         var clipRect = clip;
 
-        var childSpaceTransform = transform.ApplyBefore(GetLocalContentTransform());
+        var contentToSurface = ContentToBox() * boxToSurface;
 
-        var viewportTransform = transform.ApplyBefore(GetPaddingOffsetTransform());
+        var viewportToSurface = ViewportToBox() * boxToSurface;
         var viewportSize = GetContentSize();
 
-        if (Parent != null && Clip == Clip.Bounds) commands.PushClip(viewportTransform, viewportSize);
+        if (Parent != null && Clip == Clip.Bounds) commands.PushClip(viewportToSurface, viewportSize);
 
-        if (Clip == Clip.Bounds) clipRect = Rect2D.Clamp(ComputeAABB(viewportSize, viewportTransform), clipRect);
+        if (Clip == Clip.Bounds) clipRect = Rect2D.Clamp(ComputeAABB(viewportSize, viewportToSurface), clipRect);
 
 
         foreach (var slot in GetActiveSlots())
         {
             if(!slot.Child.IsVisible) continue;
 
-            var slotTransform = ComputeSlotTransform(slot, childSpaceTransform);
+            var childBoxToSurface = slot.Child.BoxToParent() * contentToSurface;
 
-            var aabb = slot.Child.ComputeAABB(slotTransform);
+            var aabb = slot.Child.ComputeAABB(childBoxToSurface);
 
             if (!Rect2D.IntersectsWith(clipRect, aabb)) continue;
 
-            _toCollect.Add((slot.Child, slotTransform));
+            _toCollect.Add((slot.Child, childBoxToSurface));
         }
 
         foreach (var (view, mat) in _toCollect) view.Collect(mat, clipRect, commands);
@@ -176,7 +168,7 @@ public abstract class CompositeView : View, ICompositeView
 
 
     private readonly List<(ISlot Slot, Matrix4x4 Transform)> _computeHitTestableSlotsForEventScratch = [];
-    protected virtual (ISlot Slot, Matrix4x4 Transform)[] ComputeHitTestableSlotsForEvent(IPositionalEvent e, Matrix4x4 transform)
+    protected virtual (ISlot Slot, Matrix4x4 Transform)[] ComputeHitTestableSlotsForEvent(IPositionalEvent e, Matrix4x4 contentToSurface)
     {
         if (!IsChildrenHitTestable) return [];
         var slots = GetActiveSlots();
@@ -186,10 +178,10 @@ public abstract class CompositeView : View, ICompositeView
             {
                 var slot = slots[i];
                 if(!slot.Child.IsHitTestable) continue;
-                var slotTransform = ComputeSlotTransform(slot, transform);
-                if (slot.Child.PointWithin(slotTransform, e.Position))
+                var childBoxToSurface = slot.Child.BoxToParent() * contentToSurface;
+                if (slot.Child.PointWithin(childBoxToSurface, e.Position))
                 {
-                    _computeHitTestableSlotsForEventScratch.Add(new(slot, slotTransform));
+                    _computeHitTestableSlotsForEventScratch.Add(new(slot, childBoxToSurface));
                 }
             }
         }
@@ -199,10 +191,10 @@ public abstract class CompositeView : View, ICompositeView
             {
                 var slot = slots[i];
                 if(!slot.Child.IsHitTestable) continue;
-                var slotTransform = ComputeSlotTransform(slot, transform);
-                if (slot.Child.PointWithin(slotTransform, e.Position))
+                var childBoxToSurface = slot.Child.BoxToParent() * contentToSurface;
+                if (slot.Child.PointWithin(childBoxToSurface, e.Position))
                 {
-                    _computeHitTestableSlotsForEventScratch.Add(new(slot, slotTransform));
+                    _computeHitTestableSlotsForEventScratch.Add(new(slot, childBoxToSurface));
                 }
             }
         }
@@ -210,14 +202,6 @@ public abstract class CompositeView : View, ICompositeView
         var result = _computeHitTestableSlotsForEventScratch.ToArray();
         _computeHitTestableSlotsForEventScratch.Clear();
         return result;
-    }
-
-    /// <summary>
-    ///     Compute extra offsets for this slot
-    /// </summary>
-    protected virtual Matrix4x4 ComputeSlotTransform(ISlot slot, in Matrix4x4 contentTransform)
-    {
-        return slot.Child.GetLocalTransform().ChildOf(contentTransform);
     }
 
     /// <summary>

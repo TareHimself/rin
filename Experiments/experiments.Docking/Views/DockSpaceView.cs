@@ -85,7 +85,7 @@ public sealed class DockSpaceView : SingleSlotCompositeView
 
         foreach (var group in _groups)
         {
-            var groupTransform = group.ComputeAbsoluteTransform();
+            var groupTransform = group.BoxToSurface();
             if (!group.PointWithin(groupTransform, cursorSurfacePos, true)) continue;
 
             var local = cursorSurfacePos.Transform(groupTransform.Inverse());
@@ -169,7 +169,7 @@ public sealed class DockSpaceView : SingleSlotCompositeView
         if (_dropTarget is { } target)
         {
             var (offset, size) = RegionRect(_dropRegion, target.GetSize());
-            var basis = target.ComputeAbsoluteTransform().Translate(offset);
+            var basis = target.BoxToSurface().Translate(offset);
             commands.AddRect(basis, size, DropFill);
             commands.AddRect(basis, new Vector2(size.X, 2f), DropBorder);
             commands.AddRect(basis, new Vector2(2f, size.Y), DropBorder);

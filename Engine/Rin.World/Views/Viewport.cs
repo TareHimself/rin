@@ -50,7 +50,7 @@ public class Viewport : ContentView
 
     protected Vector2 GetAbsoluteCenter()
     {
-        return (GetContentSize() / 2.0f).Transform(ComputeAbsoluteContentTransform());
+        return (GetContentSize() / 2.0f).Transform(ContentToSurface());
     }
 
     private string GetModeText()

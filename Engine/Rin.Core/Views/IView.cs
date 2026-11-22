@@ -88,12 +88,11 @@ public interface IView : IDisposable, IAnimatable, IUpdatable
 
     public bool IsFocusable { get; }
 
-    /// <summary>
-    /// The offset of this view due to padding represented as a transformation
-    /// </summary>
-    public Matrix4x4 GetPaddingOffsetTransform();
-    // Get the local transformation applied to content (i.e. padding, scroll, etc.)
-    public Matrix4x4 GetLocalContentTransform();
+    public Vector2 ContentScroll { get; }
+
+    public Matrix4x4 ViewportToBox();
+
+    public Matrix4x4 ContentToBox();
 
     /// <summary>
     ///     Compute and set this views size based on the space available
@@ -104,14 +103,11 @@ public interface IView : IDisposable, IAnimatable, IUpdatable
     /// </param>
     public Vector2 Layout(in Vector2 availableSpace, bool fill = false);
 
-    /// <summary>
-    ///     Computes the local transformation matrix for this view
-    /// </summary>
-    public Matrix4x4 GetLocalTransform();
+    public Matrix4x4 BoxToParent();
 
-    public Matrix4x4 ComputeAbsoluteContentTransform();
+    public Matrix4x4 BoxToSurface();
 
-    public Matrix4x4 ComputeAbsoluteTransform();
+    public Matrix4x4 ContentToSurface();
 
     public void SetParent(ICompositeView? view);
 

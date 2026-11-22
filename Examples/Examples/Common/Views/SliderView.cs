@@ -132,7 +132,7 @@ public sealed class SliderView(Func<float> getValue, Action<float> onChanged) : 
 
     private float ValueAt(Vector2 surfacePosition)
     {
-        var local = surfacePosition.Transform(ComputeAbsoluteContentTransform().Inverse());
+        var local = surfacePosition.Transform(ContentToSurface().Inverse());
         var size = GetContentSize();
         var fraction = Axis == Axis.Row ? local.X / size.X : 1f - local.Y / size.Y;
         return float.Clamp(fraction, 0f, 1f);

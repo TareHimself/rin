@@ -105,7 +105,7 @@ public class ScrollListViewTests : FakeApplicationFixture
         root.Layout(new Vector2(200f, 150f), true);
         var scroll = new ScrollSurfaceEvent(new FakeSurface(), new Vector2(10f, 10f), new Vector2(0f, -20f));
 
-        root.HandleEvent(scroll, root.GetLocalTransform());
+        root.HandleEvent(scroll, root.BoxToParent());
 
         Assert.That(list.GetScroll(), Is.EqualTo(20f));
         Assert.That(scroll.Target, Is.SameAs(list));
@@ -164,7 +164,7 @@ public class ScrollListViewTests : FakeApplicationFixture
 
     private static float ScreenTop(ScrollListView list, IView child)
     {
-        return child.Offset.Y + list.GetLocalContentTransform().Translation.Y;
+        return child.Offset.Y + list.ContentToBox().Translation.Y;
     }
 
     private sealed class FixedView(float width, float height) : ContentView

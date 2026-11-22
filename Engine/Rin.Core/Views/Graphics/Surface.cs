@@ -94,7 +94,7 @@ public abstract class Surface : ISurface
 
         var drawList = CommandLists.Take();
         drawList.SurfaceSize = size;
-        _rootView.Collect(_rootView.GetLocalTransform(), new Rect2D
+        _rootView.Collect(_rootView.BoxToParent(), new Rect2D
         {
             Size = size
         }, drawList);
@@ -125,7 +125,7 @@ public abstract class Surface : ISurface
 
     public virtual void ReceiveCursorDown(CursorDownSurfaceEvent e)
     {
-        _rootView.HandleEvent(e, _rootView.GetLocalTransform());
+        _rootView.HandleEvent(e, _rootView.BoxToParent());
         if (e.Target is not null)
         {
             _lastCursorDownEvent = e;
@@ -145,14 +145,14 @@ public abstract class Surface : ISurface
 
     public virtual void ReceiveCursorMove(CursorMoveSurfaceEvent e)
     {
-        _rootView.HandleEvent(e, _rootView.GetLocalTransform());
+        _rootView.HandleEvent(e, _rootView.BoxToParent());
         _lastHovered.AddRange(e.Over);
-        _lastCursorDownEvent?.Target?.OnCursorMove(e, _lastCursorDownEvent.Target.ComputeAbsoluteContentTransform());
+        _lastCursorDownEvent?.Target?.OnCursorMove(e, _lastCursorDownEvent.Target.ContentToSurface());
     }
 
     public virtual void ReceiveScroll(ScrollSurfaceEvent e)
     {
-        _rootView.HandleEvent(e, _rootView.GetLocalTransform());
+        _rootView.HandleEvent(e, _rootView.BoxToParent());
     }
 
     public virtual void ReceiveCharacter(CharacterSurfaceEvent e)
@@ -222,7 +222,7 @@ public abstract class Surface : ISurface
         {
             if (e.Position.Within(new Vector2(), GetSize()))
             {
-                _rootView.HandleEvent(e, _rootView.GetLocalTransform());
+                _rootView.HandleEvent(e, _rootView.BoxToParent());
                 _lastHovered.AddRange(e.Over);
             }
         }
