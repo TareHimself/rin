@@ -19,11 +19,11 @@ public struct PointLight() : IComponentData
     public float Lumens = 800.0f;
 
     /// <summary>
-    ///     How far the light reaches. Unset, it reaches until it gives less than <see cref="CutoffLux" />.
+    ///     How far the light reaches. At zero, it reaches until it gives less than <see cref="CutoffLux" />.
     /// </summary>
-    public float? Radius;
+    public float Radius;
 
-    public readonly float EffectiveRadius => Radius ?? MathF.Sqrt(Candela / CutoffLux);
+    public readonly float EffectiveRadius => Radius > 0f ? Radius : MathF.Sqrt(Candela / CutoffLux);
 
     private readonly float Candela => Lumens / (4f * MathF.PI);
 

@@ -9,7 +9,7 @@ namespace Rin.World.Graphics;
 /// </summary>
 public struct SkinnedMesh : IComponentData
 {
-    public MeshHandle Mesh;
-    public MaterialSet Materials;
-    public PoseSourceHandle PoseSource;
+    [EcsProcessLocal] public MeshHandle Mesh;
+    [EcsProcessLocal] public MaterialSet Materials;
+    [EcsProcessLocal] public PoseSourceHandle PoseSource;
 }

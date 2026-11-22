@@ -8,6 +8,6 @@ namespace Rin.World.Graphics;
 /// </summary>
 public struct StaticMesh : IComponentData
 {
-    public MeshHandle Mesh;
-    public MaterialSet Materials;
+    [EcsProcessLocal] public MeshHandle Mesh;
+    [EcsProcessLocal] public MaterialSet Materials;
 }

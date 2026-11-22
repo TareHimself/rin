@@ -98,7 +98,7 @@ public class GltfSceneImporterTests
 
         var light = _world.Get<PointLight>(Import().Entities[0]);
 
-        Assert.That(light.Radius, Is.Null);
+        Assert.That(light.Radius, Is.Zero);
     }
 
     [Test]

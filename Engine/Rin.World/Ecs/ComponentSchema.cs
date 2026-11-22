@@ -16,6 +16,7 @@ public sealed class ComponentSchema
     private const int Absent = -1;
 
     private readonly Lock _gate = new();
+    private readonly Dictionary<Type, FieldType> _fieldTypes;
     private ComponentInfo[] _infos;
     private int[] _localIds;
     private int _count;
@@ -24,6 +25,7 @@ public sealed class ComponentSchema
     {
         _infos = new ComponentInfo[16];
         _localIds = [];
+        _fieldTypes = [];
     }
 
     private ComponentSchema(ComponentSchema source)
@@ -33,6 +35,7 @@ public sealed class ComponentSchema
             _infos = (ComponentInfo[])source._infos.Clone();
             _localIds = (int[])source._localIds.Clone();
             _count = source._count;
+            _fieldTypes = new Dictionary<Type, FieldType>(source._fieldTypes);
         }
     }
 
@@ -87,6 +90,13 @@ public sealed class ComponentSchema
     }
 
     /// <summary>
+    ///     Every type used by a field of a composed component, nested struct fields included.
+    /// </summary>
+    public IReadOnlyCollection<FieldType> FieldTypes => _fieldTypes.Values;
+
+    public FieldType? FieldTypeOf(Type type) => _fieldTypes.GetValueOrDefault(type);
+
+    /// <summary>
     ///     The id of <typeparamref name="T" />, added on first use unless the schema is frozen.
     /// </summary>
     public ComponentId IdOf<T>() where T : unmanaged =>
@@ -101,7 +111,17 @@ public sealed class ComponentSchema
     private void AppendModule(ComponentModule module)
     {
         foreach (var info in module.Components)
-            if (LocalIdOf(info.TypeIndex) == Absent) Append(info);
+        {
+            if (LocalIdOf(info.TypeIndex) != Absent) continue;
+            Append(info);
+            AddFieldTypes(info.Fields);
+        }
+    }
+
+    private void AddFieldTypes(ComponentField[] fields)
+    {
+        foreach (var field in fields)
+            if (_fieldTypes.TryAdd(field.Type.Type, field.Type)) AddFieldTypes(field.Type.Fields);
     }
 
     private int LocalIdOf(int typeIndex)

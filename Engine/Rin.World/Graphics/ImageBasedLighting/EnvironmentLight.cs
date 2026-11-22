@@ -15,7 +15,7 @@ public struct EnvironmentLight() : IComponentData
     /// <summary>
     ///     A map from <see cref="RenderFeature.Environments" />.
     /// </summary>
-    public EnvironmentMapHandle Map;
+    [EcsProcessLocal] public EnvironmentMapHandle Map;
 
     public float Intensity = 1f;
 

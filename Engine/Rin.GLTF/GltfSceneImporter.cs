@@ -151,7 +151,7 @@ public sealed class GltfSceneImporter
         }
 
         var lumens = ReadFloat(node.Extras, LumensKey) ?? light.Intensity * 4f * MathF.PI;
-        var range = light.Range > 0f && float.IsFinite(light.Range) ? light.Range : (float?)null;
+        var range = light.Range > 0f && float.IsFinite(light.Range) ? light.Range : 0f;
         World.Add(entity, new PointLight { Color = color, Lumens = lumens, Radius = range });
     }
 
