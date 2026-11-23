@@ -15,4 +15,4 @@ rev = "fce75622556caa1aa604304d3121aaa79f46c4fc"
 
 [package.rwin]
 git = "https://github.com/TareHimself/rwin"
-rev = "229eb0e1aec166ba2d983b330b6e44a45c588e89"
+rev = "60db41f0f6e161d735cc26495058c428224edb1d"
